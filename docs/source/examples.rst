@@ -16,6 +16,7 @@ Tutorials
 
     notebooks/VizSimulation
     notebooks/VizData
+    notebooks/WebAPI
     notebooks/ModeSolver
     notebooks/Modal_sources_monitors
     notebooks/Modes_bent_angled
@@ -24,7 +25,7 @@ Tutorials
     notebooks/Dispersion
     notebooks/Fitting
     notebooks/Near2Far
-    notebooks/WebAPI
+    notebooks/SMatrix
 
 Case studies
 ------------

@@ -247,6 +247,9 @@ Plugins
    plugins.StableDispersionFitter
    plugins.ModeSolver
    plugins.Near2Far
+   plugins.Port
+   plugins.ComponentModeler
+
    .. plugins.DispersionFitter.from_file
    .. plugins.DispersionFitter.fit
    .. plugins.DispersionFitter.plot
