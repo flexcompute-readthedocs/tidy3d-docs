@@ -26,6 +26,7 @@ Tutorials
     notebooks/Fitting
     notebooks/Near2Far
     notebooks/SMatrix
+    notebooks/Adjoint
 
 Case studies
 ------------
