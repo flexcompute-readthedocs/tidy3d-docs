@@ -5,34 +5,40 @@ import tidy3d as td
 from tidy3d import web
 
 # config
-plot_structure = True
+plot_structure = False
 initial_solves = False
+mode_solve = False
+optimize = True
 
 # wavelength and frequency
 wavelength = 1.0
 freq0 = td.C_0 / wavelength
 
-# resolution control
-dl = 0.02
-
 # space between boxes and PML
 buffer = 1.5 * wavelength
 
 # initial size of boxes and waveguide
-Lx, Ly = 5 * 9 / 7, 5
-nx, ny = 9, 7
+Lx, Ly = 6, 4
+nx, ny = 12, 8
 
-lx0, ly0, lz0 = Lx/nx, Ly/ny, 10 * dl
-wg_width = .7
+# material
+wg_eps = 3.00
+deps = 0.5
+
+# resolution control
+grid_per_wvl_mat = 10
+wvl_mat = wavelength / np.sqrt(wg_eps)
+dl = wvl_mat / grid_per_wvl_mat
+
+# size of the individual components
+lx0 = Lx/nx
+ly0 = Ly/ny
+lz0 = 10 * dl
+wg_width = 1.5
 
 # simulation parameters
 subpixel = False
 pml_layers = (td.PML(),) * 3
-shutoff = 1e-8
-courant = 0.9
-
-wg_eps = 2.75
-deps = 0.3
 
 # permittivity at each quadrant of box
 quadrants = [f'x_{xi}_y_{yi}' for xi in range(nx) for yi in range(ny)]
@@ -51,10 +57,7 @@ meas_x = lx0*nx/2 + 1
 
 # frequency width and run time
 freqw = freq0 / 10
-run_time = 10 / freqw
-
-# polarization of initial source
-pol = "Ey"
+run_time = 30 / freqw
 
 # monitor for plotting
 monitor_field = td.FieldMonitor(
@@ -69,10 +72,11 @@ center = np.array([0,0,0])#-1e-5, -1e-5, -1e-5])
 center = np.array([-1e-5, -1e-5, -1e-5])
 
 size = np.array([lx0, ly0, lz0])
-ds = -0.0
 
 num_modes = 4
-mode_index = 2
+
+mode_index_in = 0
+mode_index_out = 2
 
 measurement_monitor_name = 'measurement'
 
@@ -133,17 +137,14 @@ def make_sim_base(permittivities, include_field_mon=False):
     sim_base = td.Simulation(
         size=[Lx, Ly, Lz],
         grid_spec=td.GridSpec.uniform(dl=dl),
-        # grid_spec=td.GridSpec.auto(wavelength=wavelength),
         structures=[waveguide] + boxes_quad,
         sources=[],
         monitors=monitors,
         run_time=run_time,
         subpixel=subpixel,
         pml_layers=pml_layers,
-        shutoff=shutoff,
-        courant=courant,
     )
-    
+
     return sim_base
 
 if plot_structure:
@@ -168,7 +169,7 @@ def make_sim_forward(permittivities, include_field_mon=False):
             source_time=td.GaussianPulse(freq0=freq0, fwidth=freqw),
             center=[source_x, 0, 0],
             size=mode_size,
-            mode_index=0,
+            mode_index=mode_index_in,
             direction="+"
         )
     )
@@ -193,13 +194,25 @@ if plot_structure:
         sim_forward.plot(**{dim:0}, ax=ax)
     plt.show()
 
+if mode_solve:
+    from tidy3d.plugins import ModeSolver
+    sim_forward = make_sim_forward(permittivities, include_field_mon=False)
+    plane = sim_forward.sources[0].geometry
+    ms = ModeSolver(simulation=sim_forward, plane=plane, mode_spec=td.ModeSpec(num_modes=num_modes), freqs=[freq0])
+    mode_field_data = ms.solve().fields
+    f, axes = plt.subplots(1, num_modes, tight_layout=True)
+    for mode_index_plot, ax in enumerate(axes):
+        mf = mode_field_data.Ey.real.isel(x=0).sel(mode_index=mode_index_plot)
+        mf.plot(x='y', y='z', ax=ax)
+        ax.set_title(f'mode index {mode_index_plot}')
+    plt.show()
 
 def compute_objective(sim_data):
     """ Computes both the (complex-valued) electric fields at the measure point and the intensity (the objective function)."""
 
     # get the measurement monitor fields and positions
     measure_monitor = sim_data.simulation.get_monitor_by_name(measurement_monitor_name)
-    measure_amp = sim_data[measurement_monitor_name].amps.sel(direction='+', mode_index=mode_index)
+    measure_amp = sim_data[measurement_monitor_name].amps.sel(direction='+', mode_index=mode_index_out)
     
     # sum their absolute values squared to give intensity
     power = float(np.sum(np.abs(measure_amp)**2))
@@ -239,7 +252,7 @@ def make_sim_adjoint(permittivities, include_field_mon=False):
         center=measurement_monitor.center,
         size=measurement_monitor.size,
         direction="-",
-        mode_index=mode_index,
+        mode_index=mode_index_out,
     )
         
     sim_adjoint = sim_base.copy(deep=True)
@@ -364,7 +377,7 @@ def make_array(grad_dict):
     return grad_arr #/ np.linalg.norm(grad_arr)
 
 
-td.set_logging_level('error')
+td.set_logging_level('warning')
 
 def solve(permittivities):
     
@@ -377,28 +390,54 @@ def solve(permittivities):
 
 Js = []
 perms = [permittivities]
-def optimize(permittivities, step_size=1e-2, num_steps=30, eps_max=5):
+
+def optimize(
+    permittivities,
+    step_size=1e-1,
+    num_steps=30,
+    eps_max=5,
+    beta1=0.9,
+    beta2=0.999,
+    epsilon=1e-8,
+):
+
+    mt = np.zeros_like(permittivities)
+    vt = np.zeros_like(permittivities)
+
     for i in range(num_steps):
-        print(f'step = {i+1}')
+
+        t = i + 1
+        print(f'step = {t}')
+
         J, gradient = solve(permittivities)
+
+        mt = beta1 * mt + (1-beta1) * gradient
+        vt = beta2 * vt + (1-beta2) * gradient**2
+
+        mt_hat = mt / (1 - beta1**t)
+        vt_hat = vt / (1 - beta2**t)
+
+        update = step_size * (mt_hat / np.sqrt(vt_hat) + epsilon)
+
         Js.append(J)
-        print(f'\tJ = {J:.2e}')
-        print(f'\tgrad_norm = {np.linalg.norm(gradient):.2e}')
-        permittivities = [eps + step_size * grad for eps, grad in zip(permittivities, gradient)]
+        print(f'\tJ = {J:.4e}')
+        print(f'\tgrad_norm = {np.linalg.norm(gradient):.4e}')
+        permittivities = [eps + step for eps, step in zip(permittivities, update)]
         permittivities = [eps if eps <= eps_max else eps_max for eps in permittivities]
         permittivities = [eps if eps >= 1.0 else 1.0 for eps in permittivities]
         perms.append(permittivities)
     return permittivities
 
-perms_after = optimize(permittivities)
+if optimize:
+    perms_after = optimize(permittivities)
 
-J, _ = solve(perms_after)
-Js.append(J)
+    J, _ = solve(perms_after)
+    Js.append(J)
 
-plt.plot(Js)
-plt.xlabel('iterations')
-plt.ylabel('objective function')
-plt.yscale('log')
-plt.show()
+    plt.plot(Js)
+    plt.xlabel('iterations')
+    plt.ylabel('objective function')
+    plt.yscale('log')
+    plt.show()
 
 
