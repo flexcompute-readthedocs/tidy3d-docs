@@ -2,12 +2,12 @@
     "type": "Batch",
     "simulations": {
         "l=5.00": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 39.0,
                 10.45,
@@ -30,14 +30,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -79,14 +73,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.230232882210198e-15,
-                            -3.200875106376077,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -632,14 +620,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -3.8072470249452414e-15,
-                            3.200875106376077,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -1186,12 +1168,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -19.0,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -1214,9 +1196,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -1340,12 +1323,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -18.5,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -1362,21 +1345,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -18.5,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -1393,21 +1377,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         18.5,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -1424,21 +1409,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         18.5,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -1455,9 +1441,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -1496,15 +1483,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=5.70": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 39.7,
                 10.45,
@@ -1527,14 +1514,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -1576,14 +1557,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.4361350761320633e-14,
-                            -3.1752448865591907,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -2129,14 +2104,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -3.120906702865892e-15,
-                            3.1752448865591885,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -2683,12 +2652,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -19.35,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -2711,9 +2680,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -2837,12 +2807,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -18.85,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -2859,21 +2829,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -18.85,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -2890,21 +2861,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         18.85,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -2921,21 +2893,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         18.85,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -2952,9 +2925,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -2993,15 +2967,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=6.40": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 40.4,
                 10.45,
@@ -3024,14 +2998,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -3073,14 +3041,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            6.630308228488664e-15,
-                            -3.14961463889108,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -3626,14 +3588,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -4.029984220128256e-14,
-                            3.1496146388910735,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -4180,12 +4136,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -19.7,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -4208,9 +4164,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -4334,12 +4291,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.2,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -4356,21 +4313,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.2,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -4387,21 +4345,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.2,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -4418,21 +4377,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.2,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -4449,9 +4409,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -4490,15 +4451,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=7.10": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 41.1,
                 10.45,
@@ -4521,14 +4482,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -4570,14 +4525,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            4.63603595089169e-15,
-                            -3.123984371609557,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -5123,14 +5072,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            4.062358876521579e-14,
-                            3.123984371609559,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -5677,12 +5620,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -20.05,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -5705,9 +5648,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -5831,12 +5775,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.55,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -5853,21 +5797,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.55,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -5884,21 +5829,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.55,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -5915,21 +5861,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.55,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -5946,9 +5893,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -5987,15 +5935,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=7.80": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 41.8,
                 10.45,
@@ -6018,14 +5966,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -6067,14 +6009,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -8.831778171064335e-15,
-                            -3.0983540899952327,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -6620,14 +6556,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.1149796195434602e-14,
-                            3.0983540899952358,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -7174,12 +7104,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -20.4,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -7202,9 +7132,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -7328,12 +7259,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.9,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -7350,21 +7281,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -19.9,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -7381,21 +7313,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.9,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -7412,21 +7345,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         19.9,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -7443,9 +7377,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -7484,15 +7419,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=8.50": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 42.5,
                 10.45,
@@ -7515,14 +7450,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -7564,14 +7493,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.0100860842930293e-15,
-                            -3.072723797589191,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -8117,14 +8040,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            1.3286516954931406e-14,
-                            3.0727237975891972,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -8671,12 +8588,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -20.75,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -8699,9 +8616,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -8825,12 +8743,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.25,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -8847,21 +8765,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.25,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -8878,21 +8797,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.25,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -8909,21 +8829,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.25,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -8940,9 +8861,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -8981,15 +8903,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=9.20": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 43.2,
                 10.45,
@@ -9012,14 +8934,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -9061,14 +8977,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.8932639452684725e-14,
-                            -3.0470934968547914,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -9614,14 +9524,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            1.5190140956223814e-14,
-                            3.047093496854796,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -10168,12 +10072,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -21.1,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -10196,9 +10100,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -10322,12 +10227,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.6,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -10344,21 +10249,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.6,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -10375,21 +10281,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.6,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -10406,21 +10313,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.6,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -10437,9 +10345,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -10478,15 +10387,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=9.90": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 43.9,
                 10.45,
@@ -10509,14 +10418,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -10558,14 +10461,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.824629913213134e-14,
-                            -3.0214631895586748,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -11111,14 +11008,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -2.9253647792395066e-14,
-                            3.0214631895586765,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -11665,12 +11556,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -21.45,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -11693,9 +11584,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -11819,12 +11711,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.95,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -11841,21 +11733,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -20.95,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -11872,21 +11765,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.95,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -11903,21 +11797,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         20.95,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -11934,9 +11829,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -11975,15 +11871,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=10.60": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 44.6,
                 10.45,
@@ -12006,14 +11902,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -12055,14 +11945,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -5.5425238577263176e-15,
-                            -2.995832877000813,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -12608,14 +12492,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            5.400075814653915e-15,
-                            2.9958328770008027,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -13162,12 +13040,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -21.8,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -13190,9 +13068,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -13316,12 +13195,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -21.3,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -13338,21 +13217,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -21.3,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -13369,21 +13249,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         21.3,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -13400,21 +13281,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         21.3,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -13431,9 +13313,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -13472,15 +13355,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=11.30": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 45.3,
                 10.45,
@@ -13503,14 +13386,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -13552,14 +13429,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -1.8427597024554113e-14,
-                            -2.970202560159049,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -14105,14 +13976,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            2.0693815913729833e-14,
-                            2.9702025601590574,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -14659,12 +14524,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -22.15,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -14687,9 +14552,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -14813,12 +14679,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -21.65,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -14835,21 +14701,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -21.65,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -14866,21 +14733,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         21.65,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -14897,21 +14765,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         21.65,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -14928,9 +14797,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -14969,15 +14839,15 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         },
         "l=12.00": {
+            "type": "Simulation",
             "center": [
                 0.0,
                 0.0,
                 0.0
             ],
-            "type": "Simulation",
             "size": [
                 46.0,
                 10.45,
@@ -15000,14 +14870,8 @@
             "structures": [
                 {
                     "geometry": {
-                        "center": [
-                            -0.0,
-                            -0.0,
-                            -5.0
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 10.0,
                         "slab_bounds": [
                             -10.0,
                             0.0
@@ -15049,14 +14913,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            2.7375924417220386e-14,
-                            -2.9445722397830956,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -15602,14 +15460,8 @@
                 },
                 {
                     "geometry": {
-                        "center": [
-                            -2.2882336066806208e-14,
-                            2.944572239783088,
-                            0.11
-                        ],
                         "type": "PolySlab",
                         "axis": 2,
-                        "length": 0.22,
                         "slab_bounds": [
                             0.0,
                             0.22
@@ -16156,12 +16008,12 @@
             ],
             "sources": [
                 {
+                    "type": "ModeSource",
                     "center": [
                         -22.5,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeSource",
                     "size": [
                         0.0,
                         3.0,
@@ -16184,9 +16036,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -16310,12 +16163,12 @@
             },
             "monitors": [
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -22.0,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -16332,21 +16185,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         -22.0,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -16363,21 +16217,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         22.0,
                         4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -16394,21 +16249,22 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
                     }
                 },
                 {
+                    "type": "ModeMonitor",
                     "center": [
                         22.0,
                         -4.0,
                         0.11
                     ],
-                    "type": "ModeMonitor",
                     "size": [
                         0.0,
                         3.0,
@@ -16425,9 +16281,10 @@
                             0,
                             0
                         ],
-                        "sort_by": "largest_neff",
+                        "filter_pol": null,
                         "angle_theta": 0.0,
                         "angle_phi": 0.0,
+                        "precision": "single",
                         "bend_radius": null,
                         "bend_axis": null,
                         "type": "ModeSpec"
@@ -16466,7 +16323,7 @@
             "shutoff": 1e-05,
             "subpixel": true,
             "courant": 0.9,
-            "version": "1.4.1"
+            "version": "1.5.0"
         }
     },
     "folder_name": "default",
@@ -16474,12 +16331,12 @@
         "l=5.00": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     39.0,
                     10.45,
@@ -16502,14 +16359,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -16551,14 +16402,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.230232882210198e-15,
-                                -3.200875106376077,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -17104,14 +16949,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -3.8072470249452414e-15,
-                                3.200875106376077,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -17658,12 +17497,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -19.0,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -17686,9 +17525,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -17812,12 +17652,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -18.5,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -17834,21 +17674,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -18.5,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -17865,21 +17706,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             18.5,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -17896,21 +17738,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             18.5,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -17927,9 +17770,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -17968,22 +17812,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=5.00",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "36e82099-6541-43ce-9e38-2dd4549a248d"
+            "task_id": "076df619-6d9c-41e6-9990-286aacf3af8d"
         },
         "l=5.70": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     39.7,
                     10.45,
@@ -18006,14 +17850,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -18055,14 +17893,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.4361350761320633e-14,
-                                -3.1752448865591907,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -18608,14 +18440,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -3.120906702865892e-15,
-                                3.1752448865591885,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -19162,12 +18988,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -19.35,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -19190,9 +19016,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -19316,12 +19143,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -18.85,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -19338,21 +19165,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -18.85,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -19369,21 +19197,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             18.85,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -19400,21 +19229,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             18.85,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -19431,9 +19261,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -19472,22 +19303,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=5.70",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "28a0e6a4-f89b-4d5c-b13c-aa9c971cedc6"
+            "task_id": "67fd914f-fc5b-412c-816d-a1224ef51242"
         },
         "l=6.40": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     40.4,
                     10.45,
@@ -19510,14 +19341,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -19559,14 +19384,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                6.630308228488664e-15,
-                                -3.14961463889108,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -20112,14 +19931,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -4.029984220128256e-14,
-                                3.1496146388910735,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -20666,12 +20479,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -19.7,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -20694,9 +20507,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -20820,12 +20634,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.2,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -20842,21 +20656,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.2,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -20873,21 +20688,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.2,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -20904,21 +20720,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.2,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -20935,9 +20752,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -20976,22 +20794,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=6.40",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "41863ee4-a4f0-4b34-9525-afb28d19bad7"
+            "task_id": "93fd4a54-c07c-4c47-882e-f4a34cf69801"
         },
         "l=7.10": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     41.1,
                     10.45,
@@ -21014,14 +20832,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -21063,14 +20875,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                4.63603595089169e-15,
-                                -3.123984371609557,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -21616,14 +21422,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                4.062358876521579e-14,
-                                3.123984371609559,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -22170,12 +21970,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -20.05,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -22198,9 +21998,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -22324,12 +22125,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.55,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -22346,21 +22147,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.55,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -22377,21 +22179,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.55,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -22408,21 +22211,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.55,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -22439,9 +22243,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -22480,22 +22285,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=7.10",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "4aa8e872-7526-40c8-8bc2-c6dff16cece1"
+            "task_id": "165f3656-f3da-4308-bfe0-2bbe1e1aa4d7"
         },
         "l=7.80": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     41.8,
                     10.45,
@@ -22518,14 +22323,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -22567,14 +22366,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -8.831778171064335e-15,
-                                -3.0983540899952327,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -23120,14 +22913,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.1149796195434602e-14,
-                                3.0983540899952358,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -23674,12 +23461,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -20.4,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -23702,9 +23489,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -23828,12 +23616,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.9,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -23850,21 +23638,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -19.9,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -23881,21 +23670,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.9,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -23912,21 +23702,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             19.9,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -23943,9 +23734,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -23984,22 +23776,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=7.80",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "b83b91a1-a2b1-4dc7-a301-09f76dc5f256"
+            "task_id": "73535a0a-dd9e-4c68-b5e4-a07734b378ba"
         },
         "l=8.50": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     42.5,
                     10.45,
@@ -24022,14 +23814,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -24071,14 +23857,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.0100860842930293e-15,
-                                -3.072723797589191,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -24624,14 +24404,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                1.3286516954931406e-14,
-                                3.0727237975891972,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -25178,12 +24952,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -20.75,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -25206,9 +24980,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -25332,12 +25107,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.25,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -25354,21 +25129,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.25,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -25385,21 +25161,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.25,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -25416,21 +25193,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.25,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -25447,9 +25225,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -25488,22 +25267,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=8.50",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "e3e2fb08-840b-4b18-857d-e3216cd3ec48"
+            "task_id": "42f5d821-d403-4c74-ad97-9c455c6587fa"
         },
         "l=9.20": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     43.2,
                     10.45,
@@ -25526,14 +25305,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -25575,14 +25348,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.8932639452684725e-14,
-                                -3.0470934968547914,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -26128,14 +25895,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                1.5190140956223814e-14,
-                                3.047093496854796,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -26682,12 +26443,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -21.1,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -26710,9 +26471,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -26836,12 +26598,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.6,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -26858,21 +26620,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.6,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -26889,21 +26652,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.6,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -26920,21 +26684,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.6,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -26951,9 +26716,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -26992,22 +26758,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=9.20",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "6591ee4b-10f0-43ec-88e6-23b54b3deffc"
+            "task_id": "01833a12-bdab-4e8b-a3c6-51556b612ab7"
         },
         "l=9.90": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     43.9,
                     10.45,
@@ -27030,14 +26796,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -27079,14 +26839,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.824629913213134e-14,
-                                -3.0214631895586748,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -27632,14 +27386,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -2.9253647792395066e-14,
-                                3.0214631895586765,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -28186,12 +27934,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -21.45,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -28214,9 +27962,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -28340,12 +28089,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.95,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -28362,21 +28111,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -20.95,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -28393,21 +28143,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.95,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -28424,21 +28175,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             20.95,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -28455,9 +28207,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -28496,22 +28249,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=9.90",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "f556f2da-0728-434e-841c-22028ce4931c"
+            "task_id": "4472e536-7766-431f-a795-da29efc95318"
         },
         "l=10.60": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     44.6,
                     10.45,
@@ -28534,14 +28287,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -28583,14 +28330,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -5.5425238577263176e-15,
-                                -2.995832877000813,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -29136,14 +28877,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                5.400075814653915e-15,
-                                2.9958328770008027,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -29690,12 +29425,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -21.8,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -29718,9 +29453,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -29844,12 +29580,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -21.3,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -29866,21 +29602,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -21.3,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -29897,21 +29634,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             21.3,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -29928,21 +29666,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             21.3,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -29959,9 +29698,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -30000,22 +29740,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=10.60",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "8db231d2-e36f-41f8-a9e3-13a7dde6bddf"
+            "task_id": "c0d93fdb-e4b1-453c-bdcd-7e946f0f02d1"
         },
         "l=11.30": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     45.3,
                     10.45,
@@ -30038,14 +29778,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -30087,14 +29821,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -1.8427597024554113e-14,
-                                -2.970202560159049,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -30640,14 +30368,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                2.0693815913729833e-14,
-                                2.9702025601590574,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -31194,12 +30916,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -22.15,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -31222,9 +30944,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -31348,12 +31071,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -21.65,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -31370,21 +31093,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -21.65,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -31401,21 +31125,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             21.65,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -31432,21 +31157,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             21.65,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -31463,9 +31189,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -31504,22 +31231,22 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=11.30",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "d7bdfd1b-5ea2-4b2c-bbf9-5719a21a9897"
+            "task_id": "eda7e42a-f100-4746-8cbb-80a026ea33d0"
         },
         "l=12.00": {
             "type": "Job",
             "simulation": {
+                "type": "Simulation",
                 "center": [
                     0.0,
                     0.0,
                     0.0
                 ],
-                "type": "Simulation",
                 "size": [
                     46.0,
                     10.45,
@@ -31542,14 +31269,8 @@
                 "structures": [
                     {
                         "geometry": {
-                            "center": [
-                                -0.0,
-                                -0.0,
-                                -5.0
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 10.0,
                             "slab_bounds": [
                                 -10.0,
                                 0.0
@@ -31591,14 +31312,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                2.7375924417220386e-14,
-                                -2.9445722397830956,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -32144,14 +31859,8 @@
                     },
                     {
                         "geometry": {
-                            "center": [
-                                -2.2882336066806208e-14,
-                                2.944572239783088,
-                                0.11
-                            ],
                             "type": "PolySlab",
                             "axis": 2,
-                            "length": 0.22,
                             "slab_bounds": [
                                 0.0,
                                 0.22
@@ -32698,12 +32407,12 @@
                 ],
                 "sources": [
                     {
+                        "type": "ModeSource",
                         "center": [
                             -22.5,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeSource",
                         "size": [
                             0.0,
                             3.0,
@@ -32726,9 +32435,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -32852,12 +32562,12 @@
                 },
                 "monitors": [
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -22.0,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -32874,21 +32584,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             -22.0,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -32905,21 +32616,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             22.0,
                             4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -32936,21 +32648,22 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
                         }
                     },
                     {
+                        "type": "ModeMonitor",
                         "center": [
                             22.0,
                             -4.0,
                             0.11
                         ],
-                        "type": "ModeMonitor",
                         "size": [
                             0.0,
                             3.0,
@@ -32967,9 +32680,10 @@
                                 0,
                                 0
                             ],
-                            "sort_by": "largest_neff",
+                            "filter_pol": null,
                             "angle_theta": 0.0,
                             "angle_phi": 0.0,
+                            "precision": "single",
                             "bend_radius": null,
                             "bend_axis": null,
                             "type": "ModeSpec"
@@ -33008,12 +32722,12 @@
                 "shutoff": 1e-05,
                 "subpixel": true,
                 "courant": 0.9,
-                "version": "1.4.1"
+                "version": "1.5.0"
             },
             "task_name": "l=12.00",
             "folder_name": "default",
             "callback_url": null,
-            "task_id": "66067af5-34aa-4135-92fe-081b7c1aa3fd"
+            "task_id": "ccf0c1b3-2a24-4ef4-9974-ee5a3dfd5a6f"
         }
     }
 }
