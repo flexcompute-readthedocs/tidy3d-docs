@@ -1,0 +1,41 @@
+{
+    "Nt": 382496,
+    "dt": 2.310999840845706e-19,
+    "check_tstep": 24350,
+    "shutoff": 1e-05,
+    "nyquist_step": 2123,
+    "sim_json": "tmp/sim_old.json",
+    "Nx_chunks": [
+        197
+    ],
+    "Ny_chunks": [
+        197
+    ],
+    "Nz_chunks": [
+        197
+    ],
+    "mnt_E": [
+        true,
+        true,
+        false,
+        true
+    ],
+    "mnt_H": [
+        true,
+        true,
+        false,
+        true
+    ],
+    "mnt_F": [
+        false,
+        false,
+        true,
+        false
+    ],
+    "far_fields": [
+        1,
+        0,
+        0,
+        0
+    ]
+}
