@@ -43,5 +43,6 @@ Case studies
     notebooks/MMI_1by4
     notebooks/HighQ_Si
     notebooks/HighQ_Ge
+    notebooks/PolarizationSplitterRotator
     notebooks/Near2FarSphereRCS
     notebooks/Adjoint
