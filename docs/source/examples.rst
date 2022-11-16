@@ -52,3 +52,4 @@ Case studies
     notebooks/BraggGratings.ipynb
     notebooks/PlasmonicNanoparticle.ipynb
     notebooks/Bandstructure.ipynb
+    notebooks/YJunction.ipynb
