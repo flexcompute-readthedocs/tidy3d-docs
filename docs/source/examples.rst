@@ -44,3 +44,4 @@ Case studies
     notebooks/HighQ_Ge
     notebooks/Near2FarSphereRCS
     notebooks/Adjoint
+    notebooks/OptimizedL3
