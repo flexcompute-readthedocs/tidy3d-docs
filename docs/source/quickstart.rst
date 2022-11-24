@@ -80,7 +80,7 @@ and the latest version of Tidy3D will be installed in this environment. To test 
 
     python -c "import tidy3d as td; print(td.__version__)"
 
-to confirm the installation is successful. If so, you should see the client version of Tidy3D being displayed. Now you can open your favorite Python IDE and start creating Tidy3D simulations!
+If the installation is successful, you should see the client version of Tidy3D being displayed. Now you can open your favorite Python IDE and start creating Tidy3D simulations!
 
 Additional Configuration for Python IDE
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
