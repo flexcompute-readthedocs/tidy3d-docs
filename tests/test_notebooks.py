@@ -23,7 +23,7 @@ notebook_filenames = [
 
 # if you want to run only some notebooks, put here, if empty, run all
 run_only = []
-run_only = ["ParameterScan"]
+run_only = ["AdjointPlugin_1_Intro", "AdjointPlugin_2_GradientChecking", "AdjointPlugin_3_InverseDesign2D", "AdjointPlugin_4_Optimize_MMI"]
 if len(run_only):
     notebook_filenames = [NOTEBOOK_DIR + base + ".ipynb" for base in run_only]
 
