@@ -12,3 +12,4 @@ tmm
 gdstk
 grcwa
 sphinx-sitemap
+nbdev
