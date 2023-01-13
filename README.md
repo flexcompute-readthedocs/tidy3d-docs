@@ -69,5 +69,12 @@ jblack docs/source/notebooks/*.ipynb
 
 Note: is is not in the standard requiremenents yet as we are still experimenting with it.
 
+## Git Friendly Notebooks
 
+We use nbdev, documentation [here](https://nbdev.fast.ai/tutorials/git_friendly_jupyter.html).
+
+```
+pip install nbdev
+nbdev_install_hooks
+```
 
