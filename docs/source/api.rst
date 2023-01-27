@@ -85,7 +85,6 @@ Non-Dispersive Medium
    :toctree: _autosummary/
 
    Medium
-   AnisotropicMedium
    PECMedium
 
 Dispersive Mediums
@@ -99,6 +98,7 @@ Dispersive Mediums
    Sellmeier
    Drude
    Debye
+   AnisotropicMedium   
 
 
 Material Library
