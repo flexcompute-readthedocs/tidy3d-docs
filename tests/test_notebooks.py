@@ -27,7 +27,11 @@ notebook_filenames_all = [
 
 
 # if you want to run only some notebooks, put here, if empty, run all
-run_only = []
+run_only = [
+    # "RingResonator",
+    # "THzDemultiplexerFilter",
+    # "WaveguideSizeConverter",
+]
 skip = []
 #     "Metalens"
 #     "8ChannelDemultiplexer",
