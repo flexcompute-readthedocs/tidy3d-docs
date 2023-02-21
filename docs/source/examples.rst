@@ -143,3 +143,12 @@ Optical Scattering and Far-field Radiation
     notebooks/PlasmonicNanoparticle.ipynb
     notebooks/PlasmonicYagiUdaNanoantenna
     notebooks/ZonePlateFieldProjection
+    notebooks/Metalens
+
+Lenses
+~~~~~~
+.. toctree::
+    :maxdepth: 1
+
+    notebooks/OpticalLuneburgLens
+    notebooks/Metalens
