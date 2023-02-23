@@ -358,6 +358,7 @@ Scattering Matrix Calculator
 
    plugins.ComponentModeler
    plugins.Port
+   plugins.SMatrixDataArray
 
 Resonance Finder
 ----------------
