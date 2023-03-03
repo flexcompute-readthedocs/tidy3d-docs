@@ -112,6 +112,7 @@ Photonic Integrated Circuit Components
     notebooks/THzDemultiplexerFilter
     notebooks/PhotonicCrystalWaveguidePolarizationFilter
     notebooks/EdgeCoupler
+    notebooks/90OpticalHybrid
 
 Metamaterials, Grattings, and Other Periodic Structures
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -120,7 +121,6 @@ Metamaterials, Grattings, and Other Periodic Structures
 
     notebooks/DielectricMetasurfaceAbsorber
     notebooks/GradientMetasurfaceReflector
-    notebooks/Metalens
     notebooks/HighQ_Si
     notebooks/HighQ_Ge
     notebooks/GratingEfficiency
