@@ -28,12 +28,9 @@ notebook_filenames_all = [
 
 # if you want to run only some notebooks, put here, if empty, run all
 run_only = [
-    # "PlasmonicNanoparticle",
-    # "SMatrix"
+    # "Near2FarSphereRCS",
 ]
 skip = [
-    "Simulation",
-    "Fitting",
 ]
 
 # if any run only supplied, only add those
