@@ -156,3 +156,4 @@ Lenses
 
     notebooks/OpticalLuneburgLens
     notebooks/Metalens
+    notebooks/FresnelLens
