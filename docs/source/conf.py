@@ -72,11 +72,12 @@ extensions = [
     "sphinx_copybutton",
     "m2r2",
     "sphinx_sitemap",
+    # "rst2pdf.pdfbuilder", # rst2pdf fails to pip install due to issue wih pycairo
 ]
 
 source_suffix = [".rst", ".md"]
 
-autodoc_default_options = {"inherited-members": True, "show-inheritance":True}
+autodoc_default_options = {"inherited-members": True, "show-inheritance": True}
 
 autodoc_inherit_docstrings = True
 # autosummary_generate = True
@@ -164,12 +165,14 @@ html_theme_options = {
     "use_repository_button": True,
     "use_download_button": True,
 }
-html_source_suffix = ''
+html_source_suffix = ""
 
 # html_logo = "_static/logo.svg"
 # html_favicon = "_static/logo.svg"
 
 html_css_files = ["css/custom.css"]
+
+html_js_files = ["js/custom.js"]
 
 # sphinx_github_changelog_token = "..."
 
