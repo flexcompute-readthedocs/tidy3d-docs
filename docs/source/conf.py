@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.abspath("../../tidy3d/tidy3d/plugins"))
 # sys.path.insert(0, "../tidy3d/tidy3d")
 # sys.path.insert(0, "../tidy3d")
 sys.path.insert(0, os.path.abspath(".."))
+sys.path.append(os.path.abspath("./_ext"))
 
 print(sys.path)
 
@@ -72,6 +73,7 @@ extensions = [
     "sphinx_copybutton",
     "m2r2",
     "sphinx_sitemap",
+    "custom_meta"
 ]
 
 source_suffix = [".rst", ".md"]
