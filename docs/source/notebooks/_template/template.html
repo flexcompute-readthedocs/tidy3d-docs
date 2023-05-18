@@ -1,0 +1,27 @@
+{% include header.html extra_class="absolute transparent" logo_class="logo fc-logo" container_class="container" %}
+<div class="wrapper bg-opacity-default">
+<div style="position: relative; top: 66px; z-index: 0">
+    <div class="container">
+    <span class="font-size-14 color-dark-gray">
+        <a href="/tidy3d/examples/" class="color-dark-gray">Examples</a> /
+        {{ page.title }}
+    </span>
+    </div>
+    </div>
+ <div class="container inner pt-100">
+    <section id="container">
+        <div class="row">
+            <main class="col-10" id="notebook-container">
+                <style>
+                    [class*="space"] {
+                        width: unset;
+                    }
+                </style>
+            </main>
+            <div class="col-2 p-0 sticky-top notebook-anchor">{% include anchor.html %}</div>
+        </div>
+    </section>
+</div>
+</div>
+<div class="space80"></div>
+{% include footer_2.html %}

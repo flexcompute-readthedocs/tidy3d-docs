@@ -32,7 +32,7 @@ def html_page_context(app, pagename, templatename, context, doctree):
             if title:
                 context['title'] = title
             if keywords:
-                meta_list.append(f'\n<meta itemprop="keywords" content="{keywords}" />')
+                meta_list.append(f'\n<meta name="keywords" content="{keywords}" />')
             if description:
                 meta_list.append(f'\n<meta name="description" content="{description}" />')
 

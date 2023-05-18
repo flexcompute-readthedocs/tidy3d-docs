@@ -62,7 +62,7 @@ print(
 
 
 # run the simulation, download the data.
-data = web.run(sim, task_name="quickstart", path="data/data.hdf5")
+data = web.run(sim, task_name="quickstart", path="data/data.hdf5", verbose=True)
 
 
 # see the log
