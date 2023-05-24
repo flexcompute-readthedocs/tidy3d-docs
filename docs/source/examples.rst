@@ -1,7 +1,7 @@
 Examples
 ========
 
-Introduction
+Tidy3D Introduction
 ------------
 
 .. toctree::
@@ -11,7 +11,7 @@ Introduction
     notebooks/Simulation
     notebooks/Primer
 
-Tutorials
+Tidy3D Feature Tutorials
 ---------
 
 Advanced Structure Definition
