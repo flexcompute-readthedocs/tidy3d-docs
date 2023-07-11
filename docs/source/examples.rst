@@ -103,6 +103,7 @@ Photonic Integrated Circuit Components
     notebooks/PolarizationSplitterRotator
     notebooks/8ChannelDemultiplexer
     notebooks/GratingCoupler
+    notebooks/FocusedApodGC
     notebooks/RingResonator
     notebooks/THzDemultiplexerFilter
     notebooks/PhotonicCrystalWaveguidePolarizationFilter
