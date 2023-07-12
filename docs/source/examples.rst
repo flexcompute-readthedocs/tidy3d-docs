@@ -126,6 +126,7 @@ Metamaterials, Gratings, and Other Periodic Structures
     notebooks/GratingEfficiency
     notebooks/BiosensorGrating
     notebooks/DistributedBraggReflectorCavity
+    notebooks/PeriodicStructures
 
 Photonic Crystals
 ~~~~~~~~~~~~~~~~~
