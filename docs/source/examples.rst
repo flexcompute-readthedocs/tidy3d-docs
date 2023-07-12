@@ -93,25 +93,25 @@ Photonic Integrated Circuit Components
     :maxdepth: 1
 
     notebooks/YJunction
-    notebooks/MMI1x4
-    notebooks/BilevelPSR
+    notebooks/WaveguideToRingCoupling
     notebooks/WaveguideCrossing
+    notebooks/EulerWaveguideBend
+    notebooks/EdgeCoupler
+    notebooks/GratingCoupler
+    notebooks/FocusedApodGC
+    notebooks/MMI1x4
+    notebooks/RingResonator
+    notebooks/BilevelPSR
     notebooks/WaveguideSizeConverter
     notebooks/BraggGratings.ipynb
     notebooks/BroadbandDirectionalCoupler
-    notebooks/EulerWaveguideBend
     notebooks/PolarizationSplitterRotator
     notebooks/8ChannelDemultiplexer
-    notebooks/GratingCoupler
-    notebooks/FocusedApodGC
-    notebooks/RingResonator
     notebooks/THzDemultiplexerFilter
     notebooks/PhotonicCrystalWaveguidePolarizationFilter
-    notebooks/EdgeCoupler
     notebooks/90OpticalHybrid
     notebooks/SWGBroadbandPolarizer
     notebooks/ZeroCrossTalkTE
-    notebooks/WaveguideToRingCoupling
 
 Metamaterials, Gratings, and Other Periodic Structures
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,8 +145,6 @@ Optical Scattering and Far-field Radiation
     notebooks/PlasmonicNanoparticle
     notebooks/PlasmonicYagiUdaNanoantenna
     notebooks/ZonePlateFieldProjection
-    notebooks/AndersonLocalization
-    notebooks/NonHermitianMetagratings
 
 Lenses
 ~~~~~~
@@ -156,3 +154,12 @@ Lenses
     notebooks/OpticalLuneburgLens
     notebooks/Metalens
     notebooks/FresnelLens
+
+Nanophotonics
+~~~~~~~~~~~~~
+.. toctree::
+    :maxdepth: 1
+
+    notebooks/NanostructuredBoronNitride
+    notebooks/NonHermitianMetagratings
+    notebooks/AndersonLocalization
