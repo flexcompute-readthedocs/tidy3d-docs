@@ -184,3 +184,4 @@ Nanophotonics
     notebooks/NanostructuredBoronNitride
     notebooks/NonHermitianMetagratings
     notebooks/AndersonLocalization
+    notebooks/MoS2Waveguide
