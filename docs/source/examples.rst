@@ -105,6 +105,7 @@ FDTD Adjoint Optimization
     notebooks/AdjointPlugin7Metalens
     notebooks/AdjointPlugin8WaveguideBend
     notebooks/AdjointPlugin9_WDM
+    notebooks/AdjointPlugin10_YBranch_Level_Set
 
 Case Studies
 ------------
