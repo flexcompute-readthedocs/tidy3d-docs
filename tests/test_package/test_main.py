@@ -15,3 +15,7 @@ def test_main(extension, tmp_path):
     path = str((tmp_path / "sim").with_suffix(extension))
     save_sim_to_path(path)
     main([path, "--test_only"])
+
+
+def test_parser():
+    main(["convert", "../../tests/data/example.lsf", "new_tidy3d_file.py"])

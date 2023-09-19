@@ -4,6 +4,7 @@ import argparse
 
 from tidy3d import Simulation
 from tidy3d.web import Job
+from tidy3d.web.cli.converter import converter_arg
 
 
 def main(args):
@@ -50,6 +51,13 @@ def main(args):
         help="load the simulation file and exit, for testing purposes only.",
     )
 
+    parser.add_argument(
+        "convert",
+        nargs="*",
+        default=[],
+        help="create Tidy3D python file from lsf project file with optional folder.",
+    )
+
     args = parser.parse_args(args)
 
     sim_file = args.simulation
@@ -59,6 +67,12 @@ def main(args):
     task_name = args.task_name
     test_only = args.test_only
     folder_name = args.folder_name
+    convert = args.convert
+
+    if convert:
+        lsf_file, sim_file = convert
+        converter_arg(lsf_file, sim_file)
+        return
 
     print("simulation file: ", sim_file)
     print("data output file: ", out_file)
