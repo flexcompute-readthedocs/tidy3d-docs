@@ -25,7 +25,7 @@ Feature Tutorials
 -------------------
 
 Mediums
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -37,7 +37,7 @@ Mediums
     notebooks/CustomMediumTutorial
 
 Structures
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -49,7 +49,7 @@ Structures
     notebooks/PhotonicCrystalsComponents
 
 Grid Specification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -57,7 +57,7 @@ Grid Specification
     notebooks/AutoGrid
 
 Boundary Conditions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -65,7 +65,7 @@ Boundary Conditions
     notebooks/BoundaryConditions
 
 Sources
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -76,7 +76,7 @@ Sources
     notebooks/CustomFieldSource
 
 Monitors and Data Visualization
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -87,7 +87,7 @@ Monitors and Data Visualization
     notebooks/FieldProjections  
 
 Mode Solver
-~~~~~~~~~~~~~
+~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -96,7 +96,7 @@ Mode Solver
     notebooks/WaveguidePluginDemonstration
 
 Parameter Sweep
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -104,7 +104,7 @@ Parameter Sweep
     notebooks/ParameterScan
 
 Scattering Matrix
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
