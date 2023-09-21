@@ -6,6 +6,8 @@ Tidy3D Documentation
 .. * toggle between command line - notebook / python instructions in section 1
 Tidy3D is a software package for solving extremely large electrodynamics problems using the finite-difference time-domain (FDTD) method. It can be controlled through either an `open source python package <https://github.com/flexcompute/tidy3d>`_ or a `web-based graphical user interface <https://tidy3d.simulation.cloud>`_.
 
+If you do not wish to install, please click this button to `get started quickly <https://tidy3d.simulation.cloud/notebook?file=StartHere.ipynb>`_.
+
 .. `TODO: open example in colab <https://github.com/flexcompute/tidy3d>`_
 
 1. Set up Tidy3d
@@ -36,9 +38,13 @@ Start running simulations with just a few lines of code. Run this sample code to
 
 .. code-block:: python
 
+   # !pip install tidy3d # if needed, install tidy3d in a notebook by uncommenting this line
+
    # import the tidy3d package and configure it with your API key
+   import numpy as np
    import tidy3d as td
    import tidy3d.web as web
+   # web.configure("YOUR API KEY") # if authentication needed, uncomment this line and paste your API key here
 
    # set up global parameters of simulation ( speed of light / wavelength in micron )
    freq0 = td.C_0 / 0.75
@@ -49,10 +55,9 @@ Start running simulations with just a few lines of code. Run this sample code to
        medium=td.Medium(permittivity=2.0)
    )
 
-   # create source - A uniform current source with frequency freq0 on the left side of the domain
-   source = td.UniformCurrentSource(
+   # create source - A point dipole source with frequency freq0 on the left side of the domain
+   source = td.PointDipole(
        center=(-1.5, 0, 0),
-       size=(0, 0.4, 0.4),
        source_time=td.GaussianPulse(freq0=freq0, fwidth=freq0 / 10.0),
        polarization="Ey",
    )
