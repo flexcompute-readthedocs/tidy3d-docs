@@ -75,8 +75,8 @@ Sources
     notebooks/TFSF
     notebooks/CustomFieldSource
 
-Monitors and Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Data Visualization and Postprocessing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
