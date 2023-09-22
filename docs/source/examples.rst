@@ -19,36 +19,53 @@ Tidy3D Basics
     notebooks/StartHere
     notebooks/Simulation
     notebooks/Primer
+    notebooks/WebAPI
 
 Feature Tutorials
 -------------------
 
-Structures and Materials
-~~~~~~~~~~~~~~~~~~~~~~~~
+Mediums
+~~~~~~~
+
+.. toctree::
+    :maxdepth: 1
+
+    notebooks/Dispersion
+    notebooks/Fitting
+    notebooks/FullyAnisotropic
+    notebooks/Gyrotropic
+    notebooks/CustomMediumTutorial
+
+Structures
+~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     notebooks/GDSImport
     notebooks/STLImport
-    notebooks/Dispersion
-    notebooks/Fitting
-    notebooks/FullyAnisotropic
-    notebooks/Gyrotropic
-    notebooks/CustomMediumTutorial
     notebooks/SelfIntersectingPolyslab
+    notebooks/PICComponents
+    notebooks/PhotonicCrystalsComponents
 
-Grid and Boundary Conditions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Grid Specification
+~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 1
+
+    notebooks/AutoGrid
+
+Boundary Conditions
+~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     notebooks/BoundaryConditions
-    notebooks/AutoGrid
 
-Sources and Monitors
-~~~~~~~~~~~~~~~~~~~~
+Sources
+~~~~~~~
 
 .. toctree::
     :maxdepth: 1
@@ -58,37 +75,41 @@ Sources and Monitors
     notebooks/TFSF
     notebooks/CustomFieldSource
 
-Running Simulations
-~~~~~~~~~~~~~~~~~~~
-
-.. toctree::
-    :maxdepth: 1
-
-    notebooks/WebAPI
-    notebooks/ParameterScan
-
-Visualization of Simulation and Monitor Data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Data Visualization and Postprocessing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     notebooks/VizSimulation
     notebooks/VizData
-    notebooks/AnimationTutorial
+    notebooks/AnimationTutorial  
+    notebooks/FieldProjections  
 
-Utility Tools
-~~~~~~~~~~~~~
+Mode Solver
+~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     notebooks/ModeSolver
     notebooks/WaveguidePluginDemonstration
-    notebooks/FieldProjections
+
+Parameter Sweep
+~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 1
+
+    notebooks/ParameterScan
+
+Scattering Matrix
+~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 1
+
     notebooks/SMatrix
-    notebooks/PICComponents
-    notebooks/PhotonicCrystalsComponents
 
 FDTD Adjoint Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,7 +125,8 @@ FDTD Adjoint Optimization
     notebooks/AdjointPlugin6GratingCoupler
     notebooks/AdjointPlugin7Metalens
     notebooks/AdjointPlugin8WaveguideBend
-    notebooks/AdjointPlugin9WDM
+    notebooks/AdjointPlugin9_WDM
+    notebooks/AdjointPlugin10_YBranchLevelSet
 
 Case Studies
 ------------
