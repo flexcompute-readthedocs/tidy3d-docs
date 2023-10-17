@@ -121,6 +121,7 @@ Resonance Finder
     :maxdepth: 1
 
     notebooks/ResonanceFinder
+    notebooks/CavityFOM    
 
 FDTD Adjoint Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~
