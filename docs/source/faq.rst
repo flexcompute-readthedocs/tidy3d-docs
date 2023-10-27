@@ -9,7 +9,7 @@ Tidy3D is Flexcompute's ultrafast electromagnetic (EM) solver. The solver is bas
 How can I install the Python client of Tidy3d?
 ----------------------------------------------
 
-We recommend using the Conda package management system to manage your Python virtual environment as well as installing Tidy3D. To avoid package version incapability issues, we recommend creating a new Conda environment and install Tidy3D via pip. Please follow the detailed installation instructions `here <https://docs.flexcompute.com/projects/tidy3d/en/stable/quickstart.html>`_. If you encounter any issues during installation, please reach out to us and we will provide the necessary help to you in a timely manner.
+We recommend using the Conda package management system to manage your Python virtual environment as well as installing Tidy3D. To avoid package version incapability issues, we recommend creating a new Conda environment and install Tidy3D via pip. Please follow the detailed installation instructions `here <https://docs.flexcompute.com/projects/tidy3d/en/stable/quickstart.html/>`_. If you encounter any issues during installation, please reach out to us and we will provide the necessary help to you in a timely manner.
 
 Can I do a free trial to evaluate the capabilities of Tidy3D before purchasing it?
 ----------------------------------------------------------------------------------
@@ -33,12 +33,12 @@ How do I run a simulation and access the results?
 -------------------------------------------------
 
 Submitting and monitoring jobs, and donwloading the results, is all done 
-through our `web API <api.html#web-api>`_. After a successful run, 
+through our `web API <api.html#web-api/>`_. After a successful run, 
 all data for all monitors can be downloaded in a single ``.hdf5`` file 
 using :meth:`tidy3d.web.webapi.load`, and the
 raw data can be loaded into a :class:`.SimulationData` object.
 
-From the :class:`.SimulationData` object, one can grab and plot the data for each monitor with square bracket indexing, inspect the original :class:`.Simulation` object, and view the log from the solver run.  For more details, see `this tutorial <notebooks/VizSimulation.html>`_.
+From the :class:`.SimulationData` object, one can grab and plot the data for each monitor with square bracket indexing, inspect the original :class:`.Simulation` object, and view the log from the solver run.  For more details, see `this tutorial <notebooks/VizSimulation.html/>`_.
 
 How is using Tidy3D billed?
 ---------------------------
@@ -321,7 +321,7 @@ How do I include material dispersion?
 
 Dispersive materials are supported in Tidy3D and we provide an extensive 
 `material library <api.html#material-library>`_ with pre-defined materials. 
-Standard `dispersive material models <api.html#dispersive-mediums>`_ can also be defined. 
+Standard `dispersive material models <api.html#dispersive-mediums/>`_ can also be defined. 
 If you need help inputting a custom material, let us know!
 
 It is important to keep in mind that dispersive materials are inevitably slower to 
@@ -377,7 +377,7 @@ The :class:`.plugins.dispersion.DispersionFitter` tool implements our proprietar
 The dispersion fitter webservice is setup using the :class:`.plugins.dispersion.DispersionFitter` and :class:`.plugins.dispersion.AdvancedFitterParam` classes, 
 and run using :meth:`dispersion.web.run` to obtain stable material fits. This interface replaces the deprecated 
 ``StableDispersionFitter`` class.
-This `notebook <https://docs.flexcompute.com/projects/tidy3d/en/stable/notebooks/Fitting.html>`_ provides detailed 
+This `notebook <https://docs.flexcompute.com/projects/tidy3d/en/stable/notebooks/Fitting.html/>`_ provides detailed 
 instructions and examples of using both :class:`.plugins.dispersion.DispersionFitter` 
 and :class:`.plugins.dispersion.FastDispersionFitter` to create 
 customized materials based on refractive index tabulated data.
@@ -412,7 +412,7 @@ The main use case in which you may want to ignore this warning is when you have 
 an extremely long run time to decay. In that case, you can use the the :class:`.ResonanceFinder` plugin to analyze the modes,
 as well as field monitors with apodization to capture the modal profiles. The only thing to note is that the normalization of
 these modal profiles would be arbitrary, and would depend on the exact run time and apodization definition. An example of
-such a use case is presented in our high-Q photonic crystal cavity `case study <notebooks/OptimizedL3.html>`_.
+such a use case is presented in our high-Q photonic crystal cavity `case study <notebooks/OptimizedL3.html/>`_.
 
 
 Why can I not change Tidy3D instances after they are created?
@@ -447,7 +447,7 @@ The FDTD method for electromagnetic simulations uses what's called the Yee grid,
 
 When computing results that involve multiple field components, like Poynting vector, flux, or total field intensity, it is important to use fields that are defined at the
 same locations, for best numerical accuracy. The field components thus need to be interpolated, or colocated, to some common coordinates. All this is already done under the
-hood when using Tidy3D in-built methods to compute such quantities. When using field data directly, Tidy3D provides several conveniences to handle this. Firstly, field monitors have a ``colocate`` option, set to ``True`` by default, which will automatically return the field data interpolated to the primal grid vertices. The data is then ready to be used directly for computing quantities derived from any combination of the field components. The ``colocate`` option can be turned off by advanced users, in which case each field component will have different coordinates as defined by the Yee grid. In some cases, this can lead to more accurate results, as discussed for example in the `custom source example <notebooks/CustomFieldSource.html>`_. In that example, when using data generated by one simulation as a source in another, it is best to use the fields as recorded on the Yee grid.
+hood when using Tidy3D in-built methods to compute such quantities. When using field data directly, Tidy3D provides several conveniences to handle this. Firstly, field monitors have a ``colocate`` option, set to ``True`` by default, which will automatically return the field data interpolated to the primal grid vertices. The data is then ready to be used directly for computing quantities derived from any combination of the field components. The ``colocate`` option can be turned off by advanced users, in which case each field component will have different coordinates as defined by the Yee grid. In some cases, this can lead to more accurate results, as discussed for example in the `custom source example <notebooks/CustomFieldSource.html/>`_. In that example, when using data generated by one simulation as a source in another, it is best to use the fields as recorded on the Yee grid.
 
 Regardless of whether the ``colocate`` option is on or off for a given monitor, the data can also be easily colocated after the solver run. In principle, if colocating to locations other than the primal grid in post-processing, it is more accurate to set ``colocate=False`` in the monitor to avoid double interpolation (first to the primal grid in the solver, then to new locations). Regardless, the following methods work for both Yee grid data and data that has already been previously colocated:
 
