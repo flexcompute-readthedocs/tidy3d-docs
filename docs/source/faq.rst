@@ -196,7 +196,7 @@ to consider.
 - If none of the above work, try using :class:`.StablePML` or :class:`.Absorber` boundaries anyway
   (note: these may introduce more reflections than in usual simulations with regular PML).
 
-How to Troubleshoot a Diverged FDTD Simulation
+How to troubleshoot a diverged FDTD simulation
 ----------------------------------------------
 
 Tidy3D uses the Finite-Difference Time-Domain (FDTD) method, which is a popular technique for rigorously solving 
@@ -267,7 +267,7 @@ avoid this, Tidy3D offers a stable dispersive fitter that enforces passive fitti
 highly recommended to use this fitter for dispersive medium fitting.
 
 Courant Factor is Too Large
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When conducting FDTD simulations, it's important to satisfy the Courant factor condition. This condition, also 
 known as the Courant number or Courant-Friedrichs-Lewy (CFL) condition, is a numerical requirement that relates 
