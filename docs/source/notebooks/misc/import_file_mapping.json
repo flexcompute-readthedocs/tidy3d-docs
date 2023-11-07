@@ -1,7 +1,8 @@
 {
     "8ChannelDemultiplexer.ipynb": ["8ChannelDemultiplexer.gds"],
-    "90OpticalHybrid.ipynb": ["mmi_stl.stl", "optical_hybrid_stl.stl"],
+    "90OpticalHybrid.ipynb": ["mmi_stl.stl", "optical_hybrid_stl.stl"],    
     "AdjointPlugin6GratingCoupler.ipynb": ["invdes_gc.json"],
+    "CMOSRGBSensor": ["red_eps.csv", "green_eps.csv", "blue_eps.csv"],
     "Fitting.ipynb": ["nk_data.csv"],
     "FocusedApodGC.ipynb": ["Focusing_GC.gds"],
     "GDSImport.ipynb": ["coupler.gds"],
