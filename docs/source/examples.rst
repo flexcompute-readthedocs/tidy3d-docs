@@ -100,13 +100,14 @@ Mode Solver
     notebooks/ModeSolver
     notebooks/WaveguidePluginDemonstration
 
-Parameter Sweep
-~~~~~~~~~~~~~~~
+Design Space Exploration
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     notebooks/ParameterScan
+    notebooks/Design
 
 Scattering Matrix
 ~~~~~~~~~~~~~~~~~

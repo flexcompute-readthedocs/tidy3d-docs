@@ -491,6 +491,12 @@
     "keywords": "strip waveguide, slot waveguide, converter, Tidy3D, FDTD",
     "feature_image": "./img/strip_to_slot_1.png"
   },
+  "Sweep.ipynb": {
+    "title": "Parameter Sweep Tool | Flexcompute",
+    "description": "This notebook provides a deep dive tutorial on the parameter sweep tool in Tidy3D.",
+    "keywords": "parameter sweep, parameter scan, batch, parallel Tidy3D, FDTD",
+    "feature_image": "N/A"
+  },
   "SWGBroadbandPolarizer.ipynb": {
     "title": "Metamaterial-assisted Broadband Polarizer | Flexcompute",
     "description": "This notebook demonstrates how to model a broadband polarizer in Tidy3D FDTD.",
