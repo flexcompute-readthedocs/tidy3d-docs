@@ -1,9 +1,9 @@
 .. meta::
-   :property=keywords: fdtd python api,fdtd new release,python fdtd installation,fdtd api
-   :property=tag: fdtd python api
-   :property=tag: fdtd new release
-   :property=tag: python fdtd installation
-   :property=tag: fdtd api
+   :itemprop=keywords: fdtd python api,fdtd new release,python fdtd installation,fdtd api
+   :property=article:tag: fdtd python api
+   :property=article:tag: fdtd new release
+   :property=article:tag: python fdtd installation
+   :property=article:tag: fdtd api
 
 Tidy3D Documentation
 ====================
