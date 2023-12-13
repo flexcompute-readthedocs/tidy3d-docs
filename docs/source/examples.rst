@@ -88,7 +88,8 @@ Data Visualization and Postprocessing
     notebooks/VizData
     notebooks/XarrayTutorial
     notebooks/AnimationTutorial  
-    notebooks/FieldProjections  
+    notebooks/FieldProjections
+    notebooks/UnstructuredData
 
 Mode Solver
 ~~~~~~~~~~~
