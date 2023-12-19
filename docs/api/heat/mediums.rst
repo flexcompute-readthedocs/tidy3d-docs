@@ -4,7 +4,7 @@ Material Thermal Specification
 ===============================
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
    tidy3d.FluidSpec

@@ -4,7 +4,7 @@ Thermal Sources
 ===============================
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
    tidy3d.UniformHeatSource

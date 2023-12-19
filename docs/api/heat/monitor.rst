@@ -4,7 +4,7 @@ Monitors
 ==========
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
-   tidyd.TemperatureMonitor
+   tidy3d.TemperatureMonitor

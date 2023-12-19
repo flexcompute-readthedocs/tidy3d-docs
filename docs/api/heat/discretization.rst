@@ -4,8 +4,8 @@ Grid Specification
 ===========
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
-   UniformUnstructuredGrid
-   DistanceUnstructuredGrid
+   tidy3d.UniformUnstructuredGrid
+   tidy3d.DistanceUnstructuredGrid

@@ -7,7 +7,7 @@ Specifications
 ----------------
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
    tidy3d.HeatBoundarySpec
@@ -17,7 +17,7 @@ Types
 ------
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
    tidy3d.TemperatureBC
@@ -29,7 +29,7 @@ Placement
 -----------
 
 .. autosummary::
-   :toctree: _autosummary/
+   :toctree: ../_autosummary/
    :template: module.rst
 
    tidy3d.StructureStructureInterface
