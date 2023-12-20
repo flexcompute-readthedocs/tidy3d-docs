@@ -63,7 +63,7 @@ jobs:
             ;;
           esac
   build-and-deploy:
-    needs: set_env
+    needs: extract_branch
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
