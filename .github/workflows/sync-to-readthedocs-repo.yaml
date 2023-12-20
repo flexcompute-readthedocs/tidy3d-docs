@@ -21,8 +21,8 @@ jobs:
       dest-branch: ${{ steps.dest-branch.outputs.branch }}
     runs-on: ubuntu-latest
     steps:
-      - name: Extract branch name
-        id: extract_branch
+      - id: extract_branch
+        name: Extract branch name
         shell: bash
         run: |
           echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
