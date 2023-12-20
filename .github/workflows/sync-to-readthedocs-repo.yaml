@@ -24,7 +24,9 @@ jobs:
       - name: Extract branch name
         id: extract_branch
         shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        run: |
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
       - id: setenv
         run: |
           if test -n "${{ github.event.inputs.env }}"
@@ -45,7 +47,7 @@ jobs:
           fi
       - id: dest-branch
         run: |
-          echo "${{ steps.extract_branch.outputs.branch }}"
+          echo "The destination branch is ${{ steps.extract_branch.outputs.branch }}"
           case ${{ env.ENV }} in
             dev)
             echo "::set-output name=branch::${{ steps.extract_branch.outputs.branch }}"
