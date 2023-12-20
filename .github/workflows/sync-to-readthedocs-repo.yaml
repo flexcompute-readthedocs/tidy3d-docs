@@ -45,10 +45,10 @@ jobs:
           fi
       - id: dest-branch
         run: |
-          echo "{{ steps.extract_branch.outputs.branch }}"
+          echo "${{ steps.extract_branch.outputs.branch }}"
           case ${{ env.ENV }} in
             dev)
-            echo "::set-output name=branch::"
+            echo "::set-output name=branch::${{ steps.extract_branch.outputs.branch }}"
             ;;
             prod)
             echo "::set-output name=branch::main" 
