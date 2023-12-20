@@ -1,7 +1,7 @@
 .. currentmodule:: tidy3d
 
 Thermal Boundary Conditions
---------------------
+-----------------------------
 
 Specifications
 ''''''''''''''''''
