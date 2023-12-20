@@ -15,6 +15,6 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
-        args: [ --exclude-file=poetry.lock, -w ]
+        args: [ --exclude-file=poetry.lock ]
         additional_dependencies:
           - tomli
