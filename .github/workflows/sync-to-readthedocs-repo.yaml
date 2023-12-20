@@ -28,6 +28,7 @@ jobs:
           echo "${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
           echo "${{ steps.extractbranch.outputs.branch }}"
   set_env:
+    needs: extract_branch
     outputs:
       env: ${{ steps.setenv.outputs.env }}
       dest-branch: ${{ steps.dest-branch.outputs.branch }}
@@ -63,7 +64,7 @@ jobs:
             ;;
           esac
   build-and-deploy:
-    needs: extract_branch
+    needs: set_env
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -74,4 +75,4 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           repository-name: flexcompute-readthedocs/tidy3d-docs
           target-folder: .
-          branch: ${{ needs.extract_branch.outputs.branch }}
+          branch: ${{ needs.set_env.outputs.dest-branch }}
