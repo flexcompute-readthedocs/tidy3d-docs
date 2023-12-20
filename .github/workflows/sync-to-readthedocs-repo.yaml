@@ -15,18 +15,23 @@ on:
         default: dev
         required: true
 jobs:
+  extract_branch:
+    outputs:
+      branch: ${{ steps.extractbranch.outputs.branch }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: extractbranch
+        name: Extract branch name
+        shell: bash
+        run: |
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
   set_env:
     outputs:
       env: ${{ steps.setenv.outputs.env }}
       dest-branch: ${{ steps.dest-branch.outputs.branch }}
     runs-on: ubuntu-latest
     steps:
-      - id: extract_branch
-        name: Extract branch name
-        shell: bash
-        run: |
-          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
       - id: setenv
         run: |
           if test -n "${{ github.event.inputs.env }}"
