@@ -30,8 +30,7 @@ for _, path in enumerate(notebook_filenames_all):
 
 
 # if you want to run only some notebooks, put here, if empty, run all
-run_only = [
-]
+run_only = []
 
 skip = [
     "AdjointPlugin5BoundaryGradients",
