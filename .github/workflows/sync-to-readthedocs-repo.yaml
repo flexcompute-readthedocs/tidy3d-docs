@@ -86,7 +86,7 @@ jobs:
           repository_name: tidy3d-docs
           new_branch_name: ${{ needs.set_env.outputs.dest-branch }}
           access_token: ${{ secrets.GH_PAT }}
-          new_branch_ref: "repo_merge_no_history"
+          new_branch_ref: "default_clean_sync_branch"
           ignore_branch_exists: true
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
