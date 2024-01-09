@@ -8,6 +8,7 @@ on:
       - latest
       - 'pre/*'
       - 'v*'
+      - "dario/fix_sync_with_submodule"
   workflow_dispatch:
     inputs:
       env:
@@ -84,6 +85,7 @@ jobs:
           repository_name: tidy3d-docs
           new_branch_name: ${{ needs.set_env.outputs.dest-branch }}
           access_token: ${{ secrets.GH_PAT }}
+          new_branch_ref: "repo_merge_no_history"
           ignore_branch_exists: true
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
