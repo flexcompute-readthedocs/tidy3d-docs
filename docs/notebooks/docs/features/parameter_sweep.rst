@@ -1,8 +1,7 @@
-Design Space Exploration
-~~~~~~~~~~~~~~~~~~~~~~~~
+Parameter Sweep
+~~~~~~~~~~~~~~~
 
 .. toctree::
     :maxdepth: 1
 
     ../../ParameterScan
-    ../../Design

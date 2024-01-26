@@ -23,12 +23,6 @@
     "keywords": "LN, lithium niobate, coupler, Tidy3D, FDTD",
     "feature_image": "./img/LN_adiabatic_coupler.png"
   },
-  "AdjointPlugin0Quickstart.ipynb": {
-    "title": "FDTD Adjoint Optimization Quickstart | Flexcompute",
-    "description": "A simple walkthrough performing inverse design and adjoint optimization for a photonics problem.",
-    "keywords": "adjoint optimization, Jax, automatic differentiation, Tidy3D, FDTD, inverse design, quickstart",
-    "feature_image": ""
-  },
   "AdjointPlugin1Intro.ipynb": {
     "title": "FDTD Adjoint Optimization Basics | Flexcompute",
     "description": "This notebook introduces the basics of Jax, automatic differentiation, and the adjoint plugin in Tidy3D FDTD.",
@@ -203,12 +197,6 @@
     "keywords": "custom medium, spatially-varying dielectric structures, Tidy3D, FDTD",
     "feature_image": ""
   },
-  "Design.ipynb": {
-      "title": "Design Space Exploration Tool | Flexcompute",
-      "description": "This notebook provides a deep dive tutorial on the "design" tool in Tidy3D.",
-      "keywords": "design space, parameter sweep, parameter scan, batch, parallel Tidy3D, FDTD",
-      "feature_image": "N/A"
-    },  
   "DielectricMetasurfaceAbsorber.ipynb": {
     "title": "Dielectric Metasurface Absorber | Flexcompute",
     "description": "This notebook demonstrates how to model a dielectric metasurface absorber in Tidy3D FDTD.",
