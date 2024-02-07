@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic subdivision of 2D materials with inhomogeneous substrate/superstrate.
 - Mode field profiles can be stored directly from a `ModeMonitor` by setting `store_fields_direction`.
 - Users can toggle https ssl version through `from tidy3d.web.core.environment import Env` and `Env.set_ssl_version(ssl_version: ssl.TLSVersion)`
+- Free-carrier absorption (FCA) and free-carrier plasma dispersion (FCPD) nonlinearities inside `TwoPhotonAbsorption` class.
 
 ### Changed
 - `DataArray.to_hdf5()` accepts both file handles and file paths.
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Add dispersion information to dataframe output when available from mode solver under the column "dispersion (ps/(nm km))".
 - Skip adjoint source for diffraction amplitudes of NaN.
+- Helpful error message if `val` supplied to `SimulationData.plot_field` not supported.
 
 ## [2.6.0rc1] - 2024-01-11
 
