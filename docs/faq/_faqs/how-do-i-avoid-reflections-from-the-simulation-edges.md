@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-You should use&nbsp;[tidy3d.PML](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PML.html#tidy3d.PML){: target="_blank" rel="noopener"} boundary condition to enclose the simulation domain with layers of a special lossy material designed to absorb incoming waves from all angles with minimal reflection. Tidy3D uses PML boundary conditions by default, but you can also set the boundaries explicitly using the&nbsp;`all_sides()`&nbsp;method. For example:
+You should use&nbsp;[tidy3d.PML](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PML.html#tidy3d.PML){: target="_blank" rel="noopener"} boundary condition to enclose the simulation domain with layers of a special lossy material designed to absorb incoming waves from all angles with minimal reflection. Tidy3D uses PML boundary conditions by default, but you can also set the boundaries explicitly using the&nbsp;`all_sides()`&nbsp;method. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 
@@ -49,6 +49,6 @@ sim = tidy3d.Simulation(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-In some cases, such as when an angled structure or dispersive materials lie within the PML, use&nbsp;[tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber){: target="_blank" rel="noopener"} instead. The absorber functions similarly to PML such that it absorbs the outgoing radiation to mimic the infinite space. However, the absorber has a slightly higher reflection and requires a bit more computation than PML but it is numerically much more stable.
+In some cases, such as when an angled structure or dispersive materials lie within the PML, use&nbsp;[tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber){: target="_blank" rel="noopener"} instead. The absorber functions similarly to PML such that it absorbs the outgoing radiation to mimic the infinite space. However, the absorber has a slightly higher reflection and requires a bit more computation than PML but it is numerically much more stable.
 
 See this [notebook](https://www.flexcompute.com/tidy3d/examples/notebooks/BoundaryConditions/) for more details on setting up boundary conditions.

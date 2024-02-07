@@ -28,7 +28,7 @@ In some problems the user may want to refine the grid mesh locally around specif
 
 ##### Fictitious Medium
 
-The first type is identical to the&nbsp;[Structure](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.Structure.html)&nbsp;object that consists of a&nbsp;[Geometry](https://docs.flexcompute.com/projects/tidy3d/en/latest/api.html#geometry)&nbsp;and a&nbsp;[Medium](https://docs.flexcompute.com/projects/tidy3d/en/latest/api.html#mediums). The grid step in the `override_structure` region is decided by the minimum steps per wavelength in this&nbsp;`medium`.
+The first type is identical to the&nbsp;[Structure](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Structure.html)&nbsp;object that consists of a&nbsp;[Geometry](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/index.html#geometry)&nbsp;and a&nbsp;[Medium](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/index.html#mediums). The grid step in the `override_structure` region is decided by the minimum steps per wavelength in this&nbsp;`medium`.
 
 <div markdown class="code-snippet">{% highlight python %}
 
@@ -57,7 +57,7 @@ sim_refined = tidy3d.Simulation(
 
 ##### Override Structure
 
-The second type is the [tidy3d.MeshOverrideStructure](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.MeshOverrideStructure.html){: target="_blank" rel="noopener"}&nbsp;object that consists of a&nbsp;[Geometry](https://docs.flexcompute.com/projects/tidy3d/en/latest/api.html#geometry), and a tuple&nbsp;`dl`&nbsp;specifying the grid sizes along `x`, `y`, and `z`\-directions. We can override the grid sizes just along a few selected directions by setting the value to be&nbsp;`None`&nbsp;in the&nbsp;`dl`&nbsp;tuple along the other directions. E.g. if we only plan to refine the grid size along `x`\-direction with grid size 0.01 $\mu$m, we can apply&nbsp;`dl=(0.01, None, None)`. In the following, we override the grid size along&nbsp;`y`&nbsp;and&nbsp;`z`&nbsp;to be 15.5nm.
+The second type is the [tidy3d.MeshOverrideStructure](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.MeshOverrideStructure.html){: target="_blank" rel="noopener"}&nbsp;object that consists of a&nbsp;[Geometry](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/index.html#geometry), and a tuple&nbsp;`dl`&nbsp;specifying the grid sizes along `x`, `y`, and `z`\-directions. We can override the grid sizes just along a few selected directions by setting the value to be&nbsp;`None`&nbsp;in the&nbsp;`dl`&nbsp;tuple along the other directions. E.g. if we only plan to refine the grid size along `x`\-direction with grid size 0.01 $\mu$m, we can apply&nbsp;`dl=(0.01, None, None)`. In the following, we override the grid size along&nbsp;`y`&nbsp;and&nbsp;`z`&nbsp;to be 15.5nm.
 
 <div markdown class="code-snippet">{% highlight python %}
 

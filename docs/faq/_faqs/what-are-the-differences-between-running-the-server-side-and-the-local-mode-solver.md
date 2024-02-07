@@ -26,7 +26,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div>The server-side <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>&nbsp;includes&nbsp; group index calculation and subpixel-smoothing to improve solver accuracy.&nbsp; For example:</div>
+<div>The server-side <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>&nbsp;includes&nbsp; group index calculation and subpixel-smoothing to improve solver accuracy.&nbsp; For example:</div>
 
 <div> </div>
 
@@ -65,4 +65,4 @@ mode_solver = ModeSolver(
 mode_data = mode_solver.solve()
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>In both cases, the results are returned in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>
+{% include copy-button.html %}</div><p>In both cases, the results are returned in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>

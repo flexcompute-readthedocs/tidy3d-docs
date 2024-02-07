@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-To create a converging Gaussian beam, include a&nbsp;[tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"}&nbsp;source in the simulation, and set the&nbsp;`waist_distance`&nbsp;to negative values. This way, the beam waist will lie in the front of the source plane, as illustrated in the following example
+To create a converging Gaussian beam, include a&nbsp;[tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"}&nbsp;source in the simulation, and set the&nbsp;`waist_distance`&nbsp;to negative values. This way, the beam waist will lie in the front of the source plane, as illustrated in the following example
 
 <div markdown class="code-snippet">{% highlight python %}
 
@@ -48,4 +48,4 @@ gauss_source = tidy3d.GaussianBeam(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-See this notebook to an&nbsp;[example](https://www.flexcompute.com/tidy3d/examples/notebooks/EdgeCoupler/)&nbsp;on setting up a [tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"}&nbsp;source.
+See this notebook to an&nbsp;[example](https://www.flexcompute.com/tidy3d/examples/notebooks/EdgeCoupler/)&nbsp;on setting up a [tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"}&nbsp;source.

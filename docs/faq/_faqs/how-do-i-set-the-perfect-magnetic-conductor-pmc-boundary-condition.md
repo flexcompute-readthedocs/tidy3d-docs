@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-You should use&nbsp;[tidy3d.PMCBoundary](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PMCBoundary.html#tidy3d.PMCBoundary){: target="_blank" rel="noopener"}&nbsp;to enclose the simulation domain using perfect magnetic conductors. For example:
+You should use&nbsp;[tidy3d.PMCBoundary](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PMCBoundary.html#tidy3d.PMCBoundary){: target="_blank" rel="noopener"}&nbsp;to enclose the simulation domain using perfect magnetic conductors. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 

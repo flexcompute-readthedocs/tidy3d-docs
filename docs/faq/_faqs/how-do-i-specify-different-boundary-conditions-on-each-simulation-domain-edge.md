@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div><div>Use&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.BoundarySpec.html#tidy3d.BoundarySpec">tidy3d.BoundarySpec</a>&nbsp;to specify different boundary conditions to simulation edges. For example:</div><div> </div><div markdown class="code-snippet">{% highlight python %}
+<div><div>Use&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.BoundarySpec.html#tidy3d.BoundarySpec">tidy3d.BoundarySpec</a>&nbsp;to specify different boundary conditions to simulation edges. For example:</div><div> </div><div markdown class="code-snippet">{% highlight python %}
 
 # Definition different boundary conditions.
 bspec = tidy3d.BoundarySpec(

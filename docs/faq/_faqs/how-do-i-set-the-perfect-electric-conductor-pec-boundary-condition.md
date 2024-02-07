@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-You should use&nbsp;[tidy3d.](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PML.html#tidy3d.PML){: target="_blank" rel="noopener"}[PECBoundary](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PECBoundary.html#tidy3d.PECBoundary){: target="_blank" rel="noopener"}&nbsp;to enclose the simulation domain using perfect electric conductors. For example:
+You should use&nbsp;[tidy3d.](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PML.html#tidy3d.PML){: target="_blank" rel="noopener"}[PECBoundary](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PECBoundary.html#tidy3d.PECBoundary){: target="_blank" rel="noopener"}&nbsp;to enclose the simulation domain using perfect electric conductors. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 

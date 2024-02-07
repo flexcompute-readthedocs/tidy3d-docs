@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-The&nbsp;[tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;is a uniform current distribution on an infinite extent plane. The example below illustrates how to define a&nbsp;[tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;within a simulation.
+The&nbsp;[tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;is a uniform current distribution on an infinite extent plane. The example below illustrates how to define a&nbsp;[tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;within a simulation.
 
 <div markdown class="code-snippet">{% highlight python %}
 
@@ -46,6 +46,6 @@ source = tidy3d.PlaneWave(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-Use the `center`&nbsp;and `size` parameters to set the source position and dimension, then adjust the `source_time` dependence using [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}. The `direction` parameter specifies propagation in the positive or negative direction of the injection axis. You can change the light polarization using `pol_angle`, and&nbsp; adjust the propagation axis direction with `angle_theta`&nbsp;and&nbsp;`angle_phi`to control the polar and azimuth angles.
+Use the `center`&nbsp;and `size` parameters to set the source position and dimension, then adjust the `source_time` dependence using [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}. The `direction` parameter specifies propagation in the positive or negative direction of the injection axis. You can change the light polarization using `pol_angle`, and&nbsp; adjust the propagation axis direction with `angle_theta`&nbsp;and&nbsp;`angle_phi`to control the polar and azimuth angles.
 
-This [example](https://www.flexcompute.com/tidy3d/examples/notebooks/GratingEfficiency/) illustrates setting up a [tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;source at normal and off-normal incidences.
+This [example](https://www.flexcompute.com/tidy3d/examples/notebooks/GratingEfficiency/) illustrates setting up a [tidy3d.PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html){: target="_blank" rel="noopener"}&nbsp;source at normal and off-normal incidences.

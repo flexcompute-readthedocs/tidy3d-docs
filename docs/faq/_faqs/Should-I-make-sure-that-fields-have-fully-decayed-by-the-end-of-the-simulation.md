@@ -26,7 +26,7 @@ videos](/fdtd101/Lecture-3-Applying-FDTD-to-Photonic-Crystal-Slab-Simulation/){:
 The main use case in which you may want to ignore this warning is when
 you have high-Q modes in your simulation that would require an extremely
 long run time to decay. In that case, you can use the the
-[ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder){: .color-primary-hover} plugin to analyze the
+[ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder){: .color-primary-hover} plugin to analyze the
 modes, as well as field monitors with apodization to capture the modal
 profiles. The only thing to note is that the normalization of these
 modal profiles would be arbitrary, and would depend on the exact run

@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-The [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}&nbsp;object has the built-in functions `plot_spectrum` and `plot` that allow users to visualize the source spectrum and time-dependence, respectively. For example:
+The [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}&nbsp;object has the built-in functions `plot_spectrum` and `plot` that allow users to visualize the source spectrum and time-dependence, respectively. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 

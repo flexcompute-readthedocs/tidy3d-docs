@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div>The following example shows how to create a&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>&nbsp;object to perform optical mode analysis and obtain information such as mode effective index (real and imaginary parts), group index, effective area, polarization fraction, and field distribution.</div>
+<div>The following example shows how to create a&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>&nbsp;object to perform optical mode analysis and obtain information such as mode effective index (real and imaginary parts), group index, effective area, polarization fraction, and field distribution.</div>
 
 <div> </div>
 
@@ -45,4 +45,4 @@ mode_solver = ModeSolver(
 mode_data = run_mode_solver(mode_solver)
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>To build the mode solver you need to create a simulation object and a plane where you want to calculate the modes, as well as specify the mode characteristics and frequencies of interest. The results are returned in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>
+{% include copy-button.html %}</div><p>To build the mode solver you need to create a simulation object and a plane where you want to calculate the modes, as well as specify the mode characteristics and frequencies of interest. The results are returned in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>

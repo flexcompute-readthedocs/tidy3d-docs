@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-The&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;is a zero-dimensional uniform current source. The example below illustrates how to define&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;within a simulation.
+The&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;is a zero-dimensional uniform current source. The example below illustrates how to define&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;within a simulation.
 
 <div markdown class="code-snippet">{% highlight python %}
 
@@ -43,6 +43,6 @@ pt_dipole = tidy3d.PointDipole(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-Use the `center` parameter to set the dipole position, then adjust the `source_time` dependence using [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}. The source `polarization` defines the direction and type of the current component. Finally, the parameter `interpolate` handles reverse interpolation of zero-size dimensions of the source. If&nbsp;`False`, the source data is snapped to the nearest Yee grid point. If&nbsp;`True`, equivalent source data is applied on the surrounding Yee grid points to emulate placement at the specified location using linear interpolation.
+Use the `center` parameter to set the dipole position, then adjust the `source_time` dependence using [tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}. The source `polarization` defines the direction and type of the current component. Finally, the parameter `interpolate` handles reverse interpolation of zero-size dimensions of the source. If&nbsp;`False`, the source data is snapped to the nearest Yee grid point. If&nbsp;`True`, equivalent source data is applied on the surrounding Yee grid points to emulate placement at the specified location using linear interpolation.
 
-See this notebook to an&nbsp;[example](https://www.flexcompute.com/tidy3d/examples/notebooks/BullseyeCavityPSO/)&nbsp;on setting up a [tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;source.
+See this notebook to an&nbsp;[example](https://www.flexcompute.com/tidy3d/examples/notebooks/BullseyeCavityPSO/)&nbsp;on setting up a [tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;source.

@@ -4,7 +4,7 @@ date: 2023-12-03 20:22:51
 enabled: true
 category: "Simulations"
 ---
-To access the original [Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.Simulation.html){: target="_blank" rel="noopener"} object that created the simulation data you can use&nbsp;
+To access the original [Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Simulation.html){: target="_blank" rel="noopener"} object that created the simulation data you can use&nbsp;
 
 <div markdown class="code-snippet">{% highlight python %}
 

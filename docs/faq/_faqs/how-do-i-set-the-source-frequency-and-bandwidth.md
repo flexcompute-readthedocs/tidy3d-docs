@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-You can set the source frequency and bandwidth through the&nbsp;`source_time`&nbsp;parameter, which accepts a&nbsp;[tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}&nbsp;object. In the example below, we create a&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;source to radiate power at a center wavelength of 1.55 $\mu$m over a bandwidth of 100 nm.
+You can set the source frequency and bandwidth through the&nbsp;`source_time`&nbsp;parameter, which accepts a&nbsp;[tidy3d.GaussianPulse](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianPulse.html){: target="_blank" rel="noopener"}&nbsp;object. In the example below, we create a&nbsp;[tidy3d.PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PointDipole.html){: target="_blank" rel="noopener"}&nbsp;source to radiate power at a center wavelength of 1.55 $\mu$m over a bandwidth of 100 nm.
 
 <div markdown class="code-snippet">{% highlight python %}
 

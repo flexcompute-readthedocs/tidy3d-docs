@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div>To plot the field distribution of the optical modes obtained using the Tidy3D <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>, you can follow the example below. We have considered a 500 x 220 nm silicon-on-insulator (SOI) waveguide operating at 1.55 $\mu$m.</div>
+<div>To plot the field distribution of the optical modes obtained using the Tidy3D <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a>, you can follow the example below. We have considered a 500 x 220 nm silicon-on-insulator (SOI) waveguide operating at 1.55 $\mu$m.</div>
 
 <div> </div>
 

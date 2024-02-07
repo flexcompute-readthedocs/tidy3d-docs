@@ -24,6 +24,6 @@ _inputs:
         text:
           - key: category_name
 ---
-To simulate an optical fiber mode source, you can use the [tidy3d.ModeSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.ModeSource.html){: target="_blank" rel="noopener"}. This object allows you to solve for the optical modes of a fiber cross-section. You can then include this in your simulation by following the steps outlined in the [example](https://www.flexcompute.com/tidy3d/examples/notebooks/BilayerSiNEdgeCoupler/).
+To simulate an optical fiber mode source, you can use the [tidy3d.ModeSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSource.html){: target="_blank" rel="noopener"}. This object allows you to solve for the optical modes of a fiber cross-section. You can then include this in your simulation by following the steps outlined in the [example](https://www.flexcompute.com/tidy3d/examples/notebooks/BilayerSiNEdgeCoupler/).
 
-If you prefer, you can also use the [tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"} source instead to approximate the optical mode of the fiber with a Gaussian distribution, as explained in more detail in another [example](https://www.flexcompute.com/tidy3d/examples/notebooks/EdgeCoupler/).
+If you prefer, you can also use the [tidy3d.GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianBeam.html){: target="_blank" rel="noopener"} source instead to approximate the optical mode of the fiber with a Gaussian distribution, as explained in more detail in another [example](https://www.flexcompute.com/tidy3d/examples/notebooks/EdgeCoupler/).

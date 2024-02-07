@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div>Use the Tidy3D <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a> to perform optical mode analysis and obtain information such as mode effective index (real and imaginary parts), group index, effective area, polarization fraction, and field distribution. To illustrate how to set up a mode solver, let's consider the case of a silicon-on-insulator (SOI) waveguide operating at 1.55 $\mu$m.</div>
+<div>Use the Tidy3D <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a> to perform optical mode analysis and obtain information such as mode effective index (real and imaginary parts), group index, effective area, polarization fraction, and field distribution. To illustrate how to set up a mode solver, let's consider the case of a silicon-on-insulator (SOI) waveguide operating at 1.55 $\mu$m.</div>
 
 <div> </div>
 
@@ -48,7 +48,7 @@ sim = tidy3d.Simulation(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-<div><p>You can use a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.Box.html#tidy3d.Box">Box</a> object to define the plane where you want to solve the modes. We use a plane perpendicular to the waveguide propagation axis in this example. Symmetries are applied if they are defined in the simulation and the mode plane center sits on the simulation center. Then, use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec">tidy3d.ModeSpec</a>&nbsp;object to specify the number of modes (<code>num_modes</code>), the initial effective index guess (<code>target_neff</code>), polarization, and other characteristics of the modes you are looking for. Make&nbsp;<code>group_index_step=True</code> to enable mode group index calculation.</p><div markdown class="code-snippet">{% highlight python %}
+<div><p>You can use a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Box.html#tidy3d.Box">Box</a> object to define the plane where you want to solve the modes. We use a plane perpendicular to the waveguide propagation axis in this example. Symmetries are applied if they are defined in the simulation and the mode plane center sits on the simulation center. Then, use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec">tidy3d.ModeSpec</a>&nbsp;object to specify the number of modes (<code>num_modes</code>), the initial effective index guess (<code>target_neff</code>), polarization, and other characteristics of the modes you are looking for. Make&nbsp;<code>group_index_step=True</code> to enable mode group index calculation.</p><div markdown class="code-snippet">{% highlight python %}
 
 # Plane we want to solve the modes.
 plane = tidy3d.Box(center=(0, 0, 0), size=(0, 2.5, 1.5))
@@ -61,7 +61,7 @@ mode_spec = tidy3d.ModeSpec(
 )
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>Now you can create and execute the mode solver, which returns the results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p><div markdown class="code-snippet">{% highlight python %}
+{% include copy-button.html %}</div><p>Now you can create and execute the mode solver, which returns the results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p><div markdown class="code-snippet">{% highlight python %}
 from tidy3d.plugins.mode import ModeSolver
 from tidy3d.plugins.mode.web import run as run_mode_solver
 

@@ -43,7 +43,7 @@ source in the list of sources in the simulation. This choice can be
 modified using the `Simulation.normalize_index`{: .interpreted-text
 role="py:obj"} attribute, or normalization can be turned off by setting
 that to `None`. Results can even be renoramlized after the simulation
-run using [SimulationData.renormalize()](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.SimulationData.html#tidy3d.SimulationData.renormalize){: .color-primary-hover}.
+run using [SimulationData.renormalize()](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.SimulationData.html#tidy3d.SimulationData.renormalize){: .color-primary-hover}.
 If multiple sources are used, but they all have the same time
 dependence, the default normalization is still meaningful. However, if
 different sources have a different time dependence, then it may not be
@@ -70,29 +70,29 @@ resolution.
 The injected power values described below assume that the source
 spectrum normalization has also been applied.
 
--   [PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PointDipole.html#tidy3d.PointDipole){: .color-primary-hover}: Normalization is
+-   [PointDipole](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PointDipole.html#tidy3d.PointDipole){: .color-primary-hover}: Normalization is
     such that the power injected by the source in a homogeneous material
     of refractive index $n$ at frequency $\omega = 2\pi f$ is given by
 
     $$\frac{\omega^2}{12\pi}\frac{\mu_0 n}{c}.$$
 
--   [UniformCurrentSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.UniformCurrentSource.html#tidy3d.UniformCurrentSource){: .color-primary-hover}: No extra
+-   [UniformCurrentSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.UniformCurrentSource.html#tidy3d.UniformCurrentSource){: .color-primary-hover}: No extra
     normalization applied.
 
--   [CustomFieldSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.CustomFieldSource.html#tidy3d.CustomFieldSource){: .color-primary-hover}: No extra
+-   [CustomFieldSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomFieldSource.html#tidy3d.CustomFieldSource){: .color-primary-hover}: No extra
     normalization applied.
 
--   [ModeSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.ModeSource.html#tidy3d.ModeSource){: .color-primary-hover},
-    [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover},
-    [GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.GaussianBeam.html#tidy3d.GaussianBeam){: .color-primary-hover},
-    [AstigmaticGaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.AstigmaticGaussianBeam.html#tidy3d.AstigmaticGaussianBeam){: .color-primary-hover}:
+-   [ModeSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSource.html#tidy3d.ModeSource){: .color-primary-hover},
+    [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover},
+    [GaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.GaussianBeam.html#tidy3d.GaussianBeam){: .color-primary-hover},
+    [AstigmaticGaussianBeam](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.AstigmaticGaussianBeam.html#tidy3d.AstigmaticGaussianBeam){: .color-primary-hover}:
     Normalized to inject 1W power at every frequency. If supplied
     `SourceTime.num_freqs`{: .interpreted-text role="py:obj"} is `1`,
     this normalization is only exact at the central frequency of the
-    associated [SourceTime](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.components.source.SourceTime.html#tidy3d.components.source.SourceTime){: .color-primary-hover} pulse, but
+    associated [SourceTime](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.components.source.SourceTime.html#tidy3d.components.source.SourceTime){: .color-primary-hover} pulse, but
     should still be very close to 1W at nearby frequencies too.
     Increasing `num_freqs` can be used to make sure the normalization
-    works well for a broadband source. The correct usage for a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover}
+    works well for a broadband source. The correct usage for a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover}
     source is to span the whole simulation domain for a simulation with
     periodic (or Bloch) boundaries, in which case the normalization of
     this technically infinite source is equivalent to 1W per unit cell.
@@ -113,6 +113,6 @@ spectrum normalization has also been applied.
     injection axis. Note also that when the source spans the entire
     simulation domain with periodic or Bloch boundaries, the conversion
     between the normalization of a `TFSFSource`{: .interpreted-text
-    role="class"} and a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover} is
+    role="class"} and a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave){: .color-primary-hover} is
     just the area of the simulation domain in the plane normal to the
     injection axis.

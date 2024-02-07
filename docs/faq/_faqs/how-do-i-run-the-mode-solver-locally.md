@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-<div>You can run the local version of <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a> through the&nbsp;<code>.solve()</code>&nbsp;method. For example:</div>
+<div>You can run the local version of <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolver.html#tidy3d.plugins.mode.ModeSolver">mode solver</a> through the&nbsp;<code>.solve()</code>&nbsp;method. For example:</div>
 
 <div> </div>
 
