@@ -1,0 +1,132 @@
+# Batch JSON files
+batch*.json
+*.vtu
+
+# Byte-compiled / optimized / DLL files
+*$py.class
+*.py[cod]
+__pycache__/
+
+# C extensions
+*.so
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# Django stuff:
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+*.log
+
+# Distribution / packaging
+.Python
+*.egg
+*.egg-info/
+.installed.cfg
+MANIFEST
+build/
+build_docs/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+pip-wheel-metadata/
+sdist/
+share/python-wheels/
+var/
+wheels/
+
+# Environments
+.ENV
+.env
+.env.bak/
+.venv
+.venv.bak/
+env/
+venv/
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# HDF5 files
+*.h5
+*.hdf5
+*.hdf5.gz
+
+# IPython
+ipython_config.py
+profile_default/
+
+# Installer logs
+pip-delete-this-directory.txt
+pip-log.txt
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS-specific exclusion
+.DS_Store
+
+# mkdocs documentation
+/site
+
+# mypy
+.dmypy.json
+.mypy_cache/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Pyre type checker
+.pyre/
+
+# Python version files
+.python-version
+
+# Rope project settings
+.ropeproject
+
+# SageMath parsed files
+*.sage.py
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+_docs
+_autosummary
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Test and temporary files
+tests/tmp/*
+
+# Translations
+*.mo
+*.pot
+
+# Unit test / coverage reports
+.cache
+.coverage
+.coverage.*
+.coverage.xml
+.cover
+.hypothesis/
+.nosetests.xml
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+
+# Specific file and folder exclusions
+.idea
