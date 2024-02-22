@@ -214,7 +214,6 @@ def test_submit(set_api_key):
                     "protocolVersion": http_util.get_version(),
                     "solverVersion": None,
                     "workerGroup": None,
-                    "enableCaching": Env.current.enable_caching,
                 }
             )
         ],

@@ -22,7 +22,7 @@ from ..viz import equal_aspect, add_ax_if_none, plot_params_grid
 from ..base import Tidy3dBaseModel, cached_property
 from ..base import skip_if_fields_missing
 from ..types import Axis, Bound, ArrayLike, Ax, Coordinate, Literal
-from ...packaging import vtk, requires_vtk
+from ..types import vtk, requires_vtk
 from ...exceptions import DataError, ValidationError, Tidy3dNotImplementedError
 from ...constants import PICOSECOND_PER_NANOMETER_PER_KILOMETER
 from ...log import log
@@ -170,14 +170,7 @@ class ElectromagneticFieldDataset(AbstractFieldDataset, ABC):
     @property
     def field_components(self) -> Dict[str, DataArray]:
         """Maps the field components to their associated data."""
-        fields = {
-            "Ex": self.Ex,
-            "Ey": self.Ey,
-            "Ez": self.Ez,
-            "Hx": self.Hx,
-            "Hy": self.Hy,
-            "Hz": self.Hz,
-        }
+        fields = dict(Ex=self.Ex, Ey=self.Ey, Ez=self.Ez, Hx=self.Hx, Hy=self.Hy, Hz=self.Hz)
         return {field_name: field for field_name, field in fields.items() if field is not None}
 
     @property
@@ -326,32 +319,32 @@ class ModeSolverDataset(ElectromagneticFieldDataset):
     """
 
     Ex: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Ex",
         description="Spatial distribution of the x-component of the electric field of the mode.",
     )
     Ey: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Ey",
         description="Spatial distribution of the y-component of the electric field of the mode.",
     )
     Ez: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Ez",
         description="Spatial distribution of the z-component of the electric field of the mode.",
     )
     Hx: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Hx",
         description="Spatial distribution of the x-component of the magnetic field of the mode.",
     )
     Hy: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Hy",
         description="Spatial distribution of the y-component of the magnetic field of the mode.",
     )
     Hz: ScalarModeFieldDataArray = pd.Field(
-        None,
+        ...,
         title="Hz",
         description="Spatial distribution of the z-component of the magnetic field of the mode.",
     )
@@ -379,15 +372,8 @@ class ModeSolverDataset(ElectromagneticFieldDataset):
     @property
     def field_components(self) -> Dict[str, DataArray]:
         """Maps the field components to their associated data."""
-        fields = {
-            "Ex": self.Ex,
-            "Ey": self.Ey,
-            "Ez": self.Ez,
-            "Hx": self.Hx,
-            "Hy": self.Hy,
-            "Hz": self.Hz,
-        }
-        return {field_name: field for field_name, field in fields.items() if field is not None}
+
+        return {field: getattr(self, field) for field in ["Ex", "Ey", "Ez", "Hx", "Hy", "Hz"]}
 
     @property
     def n_eff(self) -> ModeIndexDataArray:
@@ -791,20 +777,18 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
     @classmethod
     @abstractmethod
     @requires_vtk
-    def _from_vtk_obj(cls, vtk_obj, field=None) -> UnstructuredGridDataset:
+    def _from_vtk_obj(cls, vtk_obj) -> UnstructuredGridDataset:
         """Initialize from a vtk object."""
 
     @classmethod
     @requires_vtk
-    def from_vtu(cls, file: str, field: str = None) -> UnstructuredGridDataset:
+    def from_vtu(cls, file: str) -> UnstructuredGridDataset:
         """Load unstructured data from a vtu file.
 
         Parameters
         ----------
         fname : str
             Full path to the .vtu file to load the unstructured data from.
-        field : str = None
-            Name of the field to load.
 
         Returns
         -------
@@ -812,7 +796,7 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
             Unstructured data.
         """
         grid = cls._read_vtkUnstructuredGrid(file)
-        return cls._from_vtk_obj(grid, field=field)
+        return cls._from_vtk_obj(grid)
 
     @requires_vtk
     def to_vtu(self, fname: str):
@@ -831,9 +815,7 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
 
     @classmethod
     @requires_vtk
-    def _get_values_from_vtk(
-        cls, vtk_obj, num_points: pd.PositiveInt, field: str = None
-    ) -> IndexedDataArray:
+    def _get_values_from_vtk(cls, vtk_obj, num_points: pd.PositiveInt) -> IndexedDataArray:
         """Get point data values from a VTK object."""
 
         point_data = vtk_obj.GetPointData()
@@ -847,13 +829,10 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
             values_name = None
 
         else:
-            if field is not None:
-                array_vtk = point_data.GetAbstractArray(field)
-            else:
-                array_vtk = point_data.GetAbstractArray(0)
+            array_vtk = point_data.GetAbstractArray(0)
 
             # currently we assume there is only one point data array provided in the VTK object
-            if num_point_arrays > 1 and field is None:
+            if num_point_arrays > 1:
                 array_name = array_vtk.GetName()
                 log.warning(
                     f"{num_point_arrays} point data arrays are found in a VTK object. "
@@ -1126,7 +1105,7 @@ class TriangularGridDataset(UnstructuredGridDataset):
 
     @classmethod
     @requires_vtk
-    def _from_vtk_obj(cls, vtk_obj, field=None):
+    def _from_vtk_obj(cls, vtk_obj):
         """Initialize from a vtkUnstructuredGrid instance."""
 
         # get points cells data from vtk object
@@ -1147,7 +1126,7 @@ class TriangularGridDataset(UnstructuredGridDataset):
         points_numpy = vtk["vtk_to_numpy"](vtk_obj.GetPoints().GetData())
 
         # data values are read directly into Tidy3D array
-        values = cls._get_values_from_vtk(vtk_obj, len(points_numpy), field)
+        values = cls._get_values_from_vtk(vtk_obj, len(points_numpy))
 
         # detect zero size dimension
         bounds = np.max(points_numpy, axis=0) - np.min(points_numpy, axis=0)
@@ -1268,14 +1247,14 @@ class TriangularGridDataset(UnstructuredGridDataset):
         grid : bool = True
             Whether to plot the unstructured grid.
         cbar : bool = True
-            Display colorbar (only if ``field == True``).
+            Display colorbar (only if `field == True`).
         cmap : str = "viridis"
             Color map to use for plotting.
         vmin : float = None
-            The lower bound of data range that the colormap covers. If ``None``, they are
+            The lower bound of data range that the colormap covers. If `None`, they are
             inferred from the data and other keyword arguments.
         vmax : float = None
-            The upper bound of data range that the colormap covers. If ``None``, they are
+            The upper bound of data range that the colormap covers. If `None`, they are
             inferred from the data and other keyword arguments.
         shading : Literal["gourand", "flat"] = "gourand"
             Type of shading to use when plotting the data field.
@@ -1514,13 +1493,13 @@ class TetrahedralGridDataset(UnstructuredGridDataset):
 
     @classmethod
     @requires_vtk
-    def _from_vtk_obj(cls, grid, field=None) -> TetrahedralGridDataset:
+    def _from_vtk_obj(cls, grid) -> TetrahedralGridDataset:
         """Initialize from a vtkUnstructuredGrid instance."""
 
         # read point, cells, and values info from a vtk instance
         cells_numpy = vtk["vtk_to_numpy"](grid.GetCells().GetConnectivityArray())
         points_numpy = vtk["vtk_to_numpy"](grid.GetPoints().GetData())
-        values = cls._get_values_from_vtk(grid, len(points_numpy), field)
+        values = cls._get_values_from_vtk(grid, len(points_numpy))
 
         # verify cell_types
         cells_types = vtk["vtk_to_numpy"](grid.GetCellTypesArray())

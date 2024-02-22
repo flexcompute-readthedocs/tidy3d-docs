@@ -301,9 +301,10 @@ def test_heat_sim():
     structure = structure.updated_copy(geometry=p, name="polyslab")
     _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
 
-    # stl support
+    # test unsupported yet geometries
     structure = structure.updated_copy(geometry=STL_GEO, name="stl")
-    _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
 
     # test unsupported yet zero dimension domains
     with pytest.raises(pd.ValidationError):
