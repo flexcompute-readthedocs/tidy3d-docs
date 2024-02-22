@@ -17,6 +17,7 @@ from .types import ArrayFloat1D, Axis, PlotVal, ArrayComplex1D, TYPE_TAG_STR
 from .validators import assert_plane, assert_volumetric
 from .validators import warn_if_dataset_none, assert_single_freq_in_range, _assert_min_freq
 from .data.dataset import FieldDataset, TimeDataset
+from .data.validators import validate_no_nans
 from .data.data_array import TimeDataArray
 from .geometry.base import Box
 from .mode import ModeSpec
@@ -238,6 +239,7 @@ class CustomSourceTime(Pulse):
         "This envelope will be modulated by a complex exponential at frequency ``freq0``.",
     )
 
+    _no_nans_dataset = validate_no_nans("source_time_dataset")
     _source_time_dataset_none_warning = warn_if_dataset_none("source_time_dataset")
 
     @pydantic.validator("source_time_dataset", always=True)
@@ -265,15 +267,15 @@ class CustomSourceTime(Pulse):
         values: ArrayComplex1D
             Complex values of the source envelope.
         dt: float
-            Time step for the `values` array. This value should be sufficiently small
+            Time step for the ``values`` array. This value should be sufficiently small
             that the interpolation to simulation time steps does not introduce artifacts.
 
         Returns
         -------
         CustomSourceTime
-            :class:`.CustomSourceTime` with envelope given by `values`, modulated by a complex
-            exponential at frequency `freq0`. The time coordinates are evenly spaced
-            between 0 and dt * (N-1) with a step size of `dt`, where N is the length of
+            :class:`.CustomSourceTime` with envelope given by ``values``, modulated by a complex
+            exponential at frequency ``freq0``. The time coordinates are evenly spaced
+            between ``0`` and ``dt * (N-1)`` with a step size of ``dt``, where ``N`` is the length of
             the values array.
         """
 
@@ -555,6 +557,7 @@ class CustomCurrentSource(ReverseInterpolatedSource):
         "electric and magnetic current patterns to inject.",
     )
 
+    _no_nans_dataset = validate_no_nans("current_dataset")
     _current_dataset_none_warning = warn_if_dataset_none("current_dataset")
     _current_dataset_single_freq = assert_single_freq_in_range("current_dataset")
 
@@ -723,6 +726,7 @@ class CustomFieldSource(FieldSource, PlanarSource):
         "fields patterns to inject. At least one tangential field component must be specified.",
     )
 
+    _no_nans_dataset = validate_no_nans("field_dataset")
     _field_dataset_none_warning = warn_if_dataset_none("field_dataset")
     _field_dataset_single_freq = assert_single_freq_in_range("field_dataset")
 
