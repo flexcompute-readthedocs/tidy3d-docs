@@ -5,7 +5,7 @@
 | 2023-12-04 14:46:02 | Parameter Sweep |
 
 
-To submit multiple simulations and run them concurrently in the server, you can create a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.Batch.html#tidy3d.web.Batch">tidy3d.web.Batch</a> object including all the simulations you want to run. Then, use <code>tidy3d.web.Batch.run()</code> to upload, run, and get the simulations results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.BatchData.html#tidy3d.web.BatchData">tidy3d.web.BatchData</a> object. For example:
+To submit multiple simulations and run them concurrently in the server, you can create a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.Batch.html">tidy3d.web.Batch</a> object including all the simulations you want to run. Then, use <code>tidy3d.web.Batch.run()</code> to upload, run, and get the simulations results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.BatchData.html">tidy3d.web.BatchData</a> object. For example:
 
 ```python
 
@@ -20,7 +20,7 @@ batch_results = batch.run(path_dir="data")
 
 ```
 
-Alternatively, you can use the <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.run_async.html#tidy3d.web.run_async">tidy3d.web.run_async</a>, which submits and runs multiple simulations using only one command. 
+Alternatively, you can use the <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.asynchronous.run_async.html">tidy3d.web.run_async</a>, which submits and runs multiple simulations using only one command. 
 
 ```python
 
@@ -32,7 +32,7 @@ batch_results = batch.run_async(sims, path_dir="data")
 
 ```
 
-After running the simulations, you can get the results from the <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.BatchData.html#tidy3d.web.BatchData">tidy3d.web.BatchData</a> object directly, using for example  <code>sim_data_1 = batch_results["sim_1"]</code>. Or iterating over it in a loop, as below:
+After running the simulations, you can get the results from the <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.BatchData.html">tidy3d.web.BatchData</a> object directly, using for example  <code>sim_data_1 = batch_results["sim_1"]</code>. Or iterating over it in a loop, as below:
 
 ```python
 

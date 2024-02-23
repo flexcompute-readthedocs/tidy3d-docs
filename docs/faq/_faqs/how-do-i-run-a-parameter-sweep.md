@@ -4,7 +4,7 @@ date: 2023-12-04 18:41:54
 enabled: true
 category: "Parameter Sweep"
 ---
-<div>To submit multiple simulations and run them concurrently in the server, you can create a&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.Batch.html#tidy3d.web.Batch">tidy3d.web.Batch</a> object including all the simulations you want to run. Then, use&nbsp;<code>tidy3d.web.Batch.run()</code> to upload, run, and get the simulations results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.BatchData.html#tidy3d.web.BatchData">tidy3d.web.BatchData</a> object. For example:</div>
+<div>To submit multiple simulations and run them concurrently in the server, you can create a&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.Batch.html">tidy3d.web.Batch</a> object including all the simulations you want to run. Then, use&nbsp;<code>tidy3d.web.Batch.run()</code> to upload, run, and get the simulations results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.BatchData.html">tidy3d.web.BatchData</a> object. For example:</div>
 
 <div><div><div markdown class="code-snippet">{% highlight python %}
 
@@ -20,7 +20,7 @@ batch_results = batch.run(path_dir="data")
 {% endhighlight %}
 {% include copy-button.html %}</div></div></div>
 
-<div>Alternatively, you can use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.run_async.html#tidy3d.web.run_async">tidy3d.web.run_async</a>, which submits and runs multiple simulations using only one command.&nbsp;</div>
+<div>Alternatively, you can use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.asynchronous.run_async.html">tidy3d.web.run_async</a>, which submits and runs multiple simulations using only one command.&nbsp;</div>
 
 <div><div><div markdown class="code-snippet">{% highlight python %}
 
@@ -31,7 +31,7 @@ sims = {"sim_1": sim_1, "sim_2": sim_2, "sim_3": sim_3}
 batch_results = batch.run_async(sims, path_dir="data")
 
 {% endhighlight %}
-{% include copy-button.html %}</div></div><p>After running the simulations, you can get the results from the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.BatchData.html#tidy3d.web.BatchData">tidy3d.web.BatchData</a>&nbsp;object directly, using for example &nbsp;<code>sim_data_1 = batch_results["sim_1"]</code>. Or iterating over it in a loop, as below:</p><div markdown class="code-snippet">{% highlight python %}
+{% include copy-button.html %}</div></div><p>After running the simulations, you can get the results from the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.container.BatchData.html">tidy3d.web.BatchData</a>&nbsp;object directly, using for example &nbsp;<code>sim_data_1 = batch_results["sim_1"]</code>. Or iterating over it in a loop, as below:</p><div markdown class="code-snippet">{% highlight python %}
 
 sim_data = []
 for task_name, sim_data in batch_results.items():

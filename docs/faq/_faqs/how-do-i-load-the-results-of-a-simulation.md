@@ -13,4 +13,4 @@ sim_data = web.load(task_id, path="outt/sim.hdf5", verbose=verbose)
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-The [web.load()](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.load.html) method is very convenient to load and postprocess results from simulations created using [Tidy3D GUI](https://tidy3d.simulation.cloud/v).
+The [web.load()](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.web.api.webapi.load.html) method is very convenient to load and postprocess results from simulations created using [Tidy3D GUI](https://tidy3d.simulation.cloud/v).
