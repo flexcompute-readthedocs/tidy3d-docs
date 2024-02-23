@@ -14,7 +14,7 @@ from ..cli.migrate import migrate
 from ..core.constants import KEY_APIKEY, HEADER_APIKEY
 from ..core.environment import Env
 from ..cli.converter import converter_arg
-from .develop.index import develop
+from ..cli.develop import develop
 
 if not os.path.exists(TIDY3D_DIR):
     os.mkdir(TIDY3D_DIR)

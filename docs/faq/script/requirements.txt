@@ -1,4 +1,0 @@
-configparser
-PyYAML
-algoliasearch
-python-slugify

@@ -2,6 +2,7 @@
 
 import pytest
 import responses
+from _pytest import monkeypatch
 from botocore.exceptions import ClientError
 import tidy3d as td
 from responses import matchers
@@ -117,7 +118,6 @@ def mock_start(monkeypatch, set_api_key, mock_get_info):
                     "solverVersion": None,
                     "workerGroup": None,
                     "protocolVersion": td.version.__version__,
-                    "enableCaching": Env.current.enable_caching,
                 }
             )
         ],

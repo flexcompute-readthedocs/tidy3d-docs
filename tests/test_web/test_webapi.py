@@ -173,7 +173,6 @@ def mock_start(monkeypatch, set_api_key, mock_get_info):
                     "solverVersion": None,
                     "workerGroup": None,
                     "protocolVersion": td.version.__version__,
-                    "enableCaching": Env.current.enable_caching,
                 }
             )
         ],

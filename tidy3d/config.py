@@ -22,8 +22,7 @@ class Tidy3dConfig(pd.BaseModel):
         DEFAULT_LEVEL,
         title="Logging Level",
         description="The lowest level of logging output that will be displayed. "
-        'Can be "DEBUG", "SUPPORT", "USER", INFO", "WARNING", "ERROR", or "CRITICAL". '
-        'Note: "SUPPORT" and "USER" levels are only used in backend solver logging.',
+        'Can be "DEBUG", "INFO", "WARNING", "ERROR", or "CRITICAL".',
     )
 
     log_suppression: bool = pd.Field(
