@@ -903,9 +903,9 @@ class ModeSolver(Tidy3dBaseModel):
         Parameters
         ----------
         field_name : str
-            Name of `field` component to plot (eg. `'Ex'`).
-            Also accepts `'E'` and `'H'` to plot the vector magnitudes of the electric and
-            magnetic fields, and `'S'` for the Poynting vector.
+            Name of ``field`` component to plot (eg. ``'Ex'``).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
         val : Literal['real', 'imag', 'abs', 'abs^2', 'dB'] = 'real'
             Which part of the field to plot.
         eps_alpha : float = 0.2
@@ -973,7 +973,8 @@ class ModeSolver(Tidy3dBaseModel):
         This might significantly reduce upload time in the presence of custom mediums.
         """
 
-        # we preserve extracells along the normal direction to ensure
+        # we preserve extra cells along the normal direction to ensure there is enough data for
+        # subpixel
         extended_grid = self._get_solver_grid(preserve_layer_behind=True, truncate_symmetry=False)
         grids_1d = extended_grid.boundaries
         new_sim_box = Box.from_bounds(
