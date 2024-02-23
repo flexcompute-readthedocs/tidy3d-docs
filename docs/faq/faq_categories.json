@@ -1,0 +1,287 @@
+[
+  {
+    "category": "About Tidy3D",
+    "id": "about-tidy3d",
+    "faqs": [
+      "_faqs/How-is-using-Tidy3D-billed.md",
+      "_faqs/what-is-tidy3d.md",
+      "_faqs/can-i-get-a-discount-as-a-student-or-teacher.md",
+      "_faqs/what-are-the-advantages-of-tidy3d-compared-to-traditional-em-simulators.md",
+      "_faqs/do-i-have-to-know-python-programming-to-use-tidy3d.md",
+      "_faqs/what-is-a-flexcredit.md",
+      "_faqs/how-many-cpu-hours-is-one-flexcredit-comparable-to.md",
+      "_faqs/does-tidy3d-have-a-graphical-user-interface.md",
+      "_faqs/can-i-do-a-free-trial-to-evaluate-the-capabilities-of-tidy3d-before-purchasing-it.md"
+    ]
+  },
+  {
+    "category": "Installation and Help",
+    "id": "installation-and-help",
+    "faqs": [
+      "_faqs/how-can-i-install-the-python-client-of-tidy3d.md",
+      "_faqs/how-do-i-see-the-version-of-tidy3d-i-am-using.md",
+      "_faqs/how-do-i-get-help-related-to-a-tidy3d-object.md",
+      "_faqs/can-i-try-tidy3d-before-installing-the-python-client-on-my-computer.md"
+    ]
+  },
+  {
+    "category": "Simulations",
+    "id": "simulations",
+    "faqs": [
+      "_faqs/How-do-I-run-a-simulation-and-access-the-results.md",
+      "_faqs/how-to-submit-a-simulation-in-python-to-the-server.md",
+      "_faqs/how-do-i-upload-a-job-to-the-web-without-running-it-so-i-can-inspect-it-first.md",
+      "_faqs/how-do-i-monitor-the-progress-of-a-simulation.md",
+      "_faqs/how-do-i-load-the-results-of-a-simulation.md",
+      "_faqs/how-do-i-load-the-results-of-a-job-that-has-already-been-finished-without-knowing-the-task-id.md",
+      "_faqs/how-do-i-access-the-original-simulation-object-that-created-the-data.md",
+      "_faqs/how-do-i-save-and-load-the-simulationdata-object.md",
+      "_faqs/how-do-i-save-and-load-any-tidy3d-object.md",
+      "_faqs/how-do-i-get-all-data-in-a-tidy3d-object-as-a-dictionary.md",
+      "_faqs/how-do-i-estimate-how-many-credits-my-simulation-will-take.md",
+      "_faqs/how-do-i-see-the-cost-of-my-simulation.md",
+      "_faqs/how-can-i-optimize-the-simulation-cost.md",
+      "_faqs/how-do-i-print-the-task-log-file.md",
+      "_faqs/What-are-the-units-used-in-the-simulation.md",
+      "_faqs/how-to-run-a-2d-simulation-in-tidy3d.md",
+      "_faqs/how-long-should-i-run-the-simulation.md"
+    ]
+  },
+  {
+    "category": "Parameter Sweep",
+    "id": "parameter-sweep",
+    "faqs": [
+      "_faqs/how-do-i-run-a-parameter-sweep.md",
+      "_faqs/how-do-i-submit-multiple-simulations.md",
+      "_faqs/how-do-i-loop-through-tidy3d-web-batchdata-without-loading-all-of-the-data-into-memory.md",
+      "_faqs/how-do-i-save-or-load-a-tidy3d-web-batch-so-i-can-work-with-it-later.md"
+    ]
+  },
+  {
+    "category": "Simulation Troubleshoot",
+    "id": "simulation-troubleshoot",
+    "faqs": [
+      "_faqs/Why-is-a-simulation-diverging.md",
+      "_faqs/how-can-i-troubleshoot-a-diverged-fdtd-simulation.md",
+      "_faqs/Why-did-my-simulation-finish-early.md",
+      "_faqs/Should-I-make-sure-that-fields-have-fully-decayed-by-the-end-of-the-simulation.md",
+      "_faqs/can-i-have-structures-larger-than-the-simulation-domain.md",
+      "_faqs/Why-can-I-not-change-Tidy3D-instances-after-they-are-created.md"
+    ]
+  },
+  {
+    "category": "Mediums",
+    "id": "mediums",
+    "faqs": [
+      "_faqs/How-do-I-include-material-dispersion.md",
+      "_faqs/can-i-import-my-own-tabulated-material-data.md",
+      "_faqs/how-do-i-create-a-lossy-material-with-a-conductivity.md",
+      "_faqs/how-do-i-create-a-material-from-n-k-values-at-a-given-frequency.md",
+      "_faqs/how-do-i-create-a-material-from-optical-n-k-data.md",
+      "_faqs/how-do-i-create-a-dispersive-material-from-model-parameters.md",
+      "_faqs/how-do-i-create-an-anisotropic-material.md",
+      "_faqs/how-do-i-create-an-active-material.md",
+      "_faqs/how-do-i-create-a-spatially-varying-material.md",
+      "_faqs/how-do-i-export-a-spatially-varying-medium-dataset-to-hdf5.md",
+      "_faqs/how-do-i-load-a-commonly-used-dispersive-material.md",
+      "_faqs/how-can-i-define-a-2d-material.md",
+      "_faqs/how-can-i-define-graphene.md",
+      "_faqs/how-can-i-define-a-nonlinear-material.md"
+    ]
+  },
+  {
+    "category": "Structures",
+    "id": "structures",
+    "faqs": [
+      "_faqs/how-do-i-import-a-structure-from-a-gdsii-file.md",
+      "_faqs/how-can-i-import-a-structure-from-stl-files.md",
+      "_faqs/how-do-i-export-a-structure-to-gdsii-format.md",
+      "_faqs/how-do-i-create-a-box.md",
+      "_faqs/how-do-i-create-a-sphere.md",
+      "_faqs/how-do-i-create-a-cylinder.md",
+      "_faqs/how-do-i-create-a-polygon.md",
+      "_faqs/how-do-i-create-a-geometry-group.md",
+      "_faqs/how-do-i-combine-multiple-geometries.md",
+      "_faqs/how-do-i-use-clip-operations.md",
+      "_faqs/which-features-can-i-use-to-create-geometries-in-tidy3d.md",
+      "_faqs/how-do-i-define-complex-geometries-using-trimesh.md",
+      "_faqs/how-do-i-build-curves-rings-and-other-photonic-integrated-components.md",
+      "_faqs/how-do-i-build-photonic-crystal-structures.md"
+    ]
+  },
+  {
+    "category": "Sources",
+    "id": "sources",
+    "faqs": [
+      "_faqs/what-source-bandwidth-should-i-use-for-my-simulation.md",
+      "_faqs/how-do-i-set-the-source-frequency-and-bandwidth.md",
+      "_faqs/how-can-i-plot-the-source-spectrum-and-time-dependence.md",
+      "_faqs/How-are-results-normalized.md",
+      "_faqs/how-do-i-set-a-pointdipole-source.md",
+      "_faqs/how-do-i-calculate-the-power-radiated-by-a-pointdipole-source.md",
+      "_faqs/how-do-i-set-a-uniformcurrentsource-source.md",
+      "_faqs/how-do-i-set-a-planewave-source.md",
+      "_faqs/how-do-i-set-a-modesource.md",
+      "_faqs/how-do-i-inject-a-specific-optical-mode-in-a-waveguide.md",
+      "_faqs/how-do-i-inject-an-optical-mode-in-a-waveguide-bend.md",
+      "_faqs/how-do-i-set-a-gaussianbeam.md",
+      "_faqs/how-do-i-model-an-optical-fiber-mode-source.md",
+      "_faqs/how-do-i-model-a-converging-gaussian-beam.md",
+      "_faqs/how-do-i-model-a-diverging-gaussian-beam.md",
+      "_faqs/how-do-i-set-an-astigmaticgaussianbeam-source.md",
+      "_faqs/how-do-i-set-a-total-field-scattered-field-tfsf-source.md",
+      "_faqs/how-do-i-set-a-custom-field-source.md",
+      "_faqs/how-do-i-set-a-custom-current-source.md",
+      "_faqs/how-do-i-inject-an-optical-mode-in-a-tilted-waveguide.md"
+    ]
+  },
+  {
+    "category": "Grid Specification",
+    "id": "grid-specification",
+    "faqs": [
+      "_faqs/What-do-I-need-to-know-about-the-numerical-grid.md",
+      "_faqs/how-fine-of-a-grid-or-mesh-does-my-simulation-need-how-to-choose-grid-spec.md",
+      "_faqs/how-to-use-the-automatic-nonuniform-meshing-what-steps-per-wavelength-will-be-sufficient.md",
+      "_faqs/how-can-i-create-a-uniform-grid.md",
+      "_faqs/how-can-i-locally-refine-the-mesh.md"
+    ]
+  },
+  {
+    "category": "Boundary Conditions",
+    "id": "boundary-conditions",
+    "faqs": [
+      "_faqs/which-types-of-boundary-conditions-are-available-in-tidy3d.md",
+      "_faqs/how-do-i-set-the-perfect-matched-layer-pml-boundary-condition.md",
+      "_faqs/how-do-i-set-the-perfect-electric-conductor-pec-boundary-condition.md",
+      "_faqs/how-do-i-set-the-perfect-magnetic-conductor-pmc-boundary-condition.md",
+      "_faqs/how-do-i-set-the-periodic-boundary-condition.md",
+      "_faqs/how-do-i-set-the-bloch-boundary-condition.md",
+      "_faqs/how-do-i-set-the-absorber-boundary-condition.md",
+      "_faqs/how-do-i-specify-different-boundary-conditions-on-each-simulation-domain-edge.md",
+      "_faqs/can-my-geometry-lie-within-the-boundary-layers.md",
+      "_faqs/what-is-the-ideal-distance-between-the-geometry-and-absorbing-layers.md",
+      "_faqs/how-do-i-avoid-reflections-from-the-simulation-edges.md",
+      "_faqs/how-do-i-simulate-periodic-structures-in-tidy3d.md"
+    ]
+  },
+  {
+    "category": "Symmetry",
+    "id": "symmetry",
+    "faqs": [
+      "_faqs/why-is-it-preferable-to-use-symmetry-whenever-possible.md",
+      "_faqs/how-do-i-set-symmetry-in-tidy3d.md",
+      "_faqs/how-do-i-identify-the-symmetry-planes-of-my-simulation.md",
+      "_faqs/what-does-odd-i-e-pec-symmetry-mean.md",
+      "_faqs/what-does-even-i-e-pmc-symmetry-mean.md",
+      "_faqs/how-do-i-filter-out-waveguide-modes-using-symmetry.md"
+    ]
+  },
+  {
+    "category": "Mode Solver",
+    "id": "mode-solver",
+    "faqs": [
+      "_faqs/how-do-i-set-the-mode-solver.md",
+      "_faqs/how-are-the-output-modes-sorted.md",
+      "_faqs/how-do-i-set-the-mode-polarization.md",
+      "_faqs/how-do-i-run-the-mode-solver-locally.md",
+      "_faqs/how-do-i-run-the-server-side-mode-solver.md",
+      "_faqs/what-are-the-differences-between-running-the-server-side-and-the-local-mode-solver.md",
+      "_faqs/which-information-can-i-obtain-from-the-mode-solver.md",
+      "_faqs/how-can-i-get-the-mode-solver-information.md",
+      "_faqs/how-can-i-get-the-mode-field-distribution.md",
+      "_faqs/how-can-i-plot-the-mode-field-distribution.md",
+      "_faqs/how-do-i-plot-the-mode-effective-index-versus-wavelength.md",
+      "_faqs/how-do-i-plot-the-mode-group-index-versus-wavelength.md",
+      "_faqs/how-do-i-calculate-the-mode-effective-area.md",
+      "_faqs/how-do-i-calculate-the-mode-polarization-fraction.md",
+      "_faqs/how-do-i-calculate-the-waveguide-mode-polarization-fraction.md"
+    ]
+  },
+  {
+    "category": "Monitors",
+    "id": "monitors",
+    "faqs": [
+      "_faqs/how-do-i-set-a-fieldmonitor.md",
+      "_faqs/how-do-i-specify-apodization.md",
+      "_faqs/how-do-i-create-field-animations.md",
+      "_faqs/to-how-do-i-change-the-phase-of-fields-obtained-from-frequency-domain-monitors.md",
+      "_faqs/how-do-i-set-a-fieldtimemonitor.md",
+      "_faqs/how-do-i-create-a-field-animation.md",
+      "_faqs/how-do-i-plot-the-time-domain-field-at-a-specific-time.md",
+      "_faqs/how-do-i-set-a-fluxmonitor.md",
+      "_faqs/how-do-i-calculate-the-poynting-vector-at-a-specific-surface.md",
+      "_faqs/how-do-i-integrate-the-poyting-vector-at-a-specific-surface.md",
+      "_faqs/how-do-i-create-a-flux-box.md",
+      "_faqs/how-do-i-set-a-fluxtimemonitor.md",
+      "_faqs/how-do-i-set-a-modemonitor.md",
+      "_faqs/how-do-i-get-the-coupling-efficiency-of-a-specific-waveguide-mode.md",
+      "_faqs/how-do-i-calculate-mode-overlap.md",
+      "_faqs/how-do-i-set-a-modesolvermonitor.md",
+      "_faqs/how-do-i-set-a-permittivitymonitor.md",
+      "_faqs/how-do-i-set-a-fieldprojectioncartesianmonitor.md",
+      "_faqs/how-do-i-set-a-fieldprojectionanglemonitor.md",
+      "_faqs/how-do-i-set-a-fieldprojectionkspacemonitor.md",
+      "_faqs/how-do-i-set-a-diffractionmonitor.md"
+    ]
+  },
+  {
+    "category": "Data Visualization and Postprocessing",
+    "id": "data-visualization-and-postprocessing",
+    "faqs": [
+      "_faqs/how-do-i-plot-an-object-with-a-spatial-definition.md",
+      "_faqs/how-do-i-change-the-object-plotting-characteristics-facecolor-edgecolor-etc.md",
+      "_faqs/how-do-i-change-the-global-plot-characteristics-title-size-etc.md",
+      "_faqs/how-do-i-access-the-data-of-a-specific-monitor.md",
+      "_faqs/how-do-i-interpolate-the-electromagnetic-field-data-at-the-yee-cell-centers.md",
+      "_faqs/how-do-i-get-the-monitor-s-data-from-a-simulationdata-object.md",
+      "_faqs/how-do-i-select-the-data-at-a-certain-coordinate-value-i-e-x-0-0-f-200e12.md",
+      "_faqs/how-do-i-get-the-monitor-data-at-a-certain-index.md",
+      "_faqs/how-do-i-interpolate-the-monitor-data-at-various-coordinate-values.md",
+      "_faqs/how-do-i-get-the-real-part-imaginary-part-or-absolute-value-of-complex-valued-simulation-data.md",
+      "_faqs/how-do-i-get-the-raw-monitor-data-values-as-a-numpy-array.md",
+      "_faqs/how-do-i-get-a-specific-field-component-from-a-fieldmonitor-or-fieldtimemonitor.md",
+      "_faqs/how-do-i-plot-the-monitor-data-as-a-function-of-one-of-its-coordinates.md",
+      "_faqs/how-do-i-plot-the-simulation-structure-on-top-of-my-field-plot.md",
+      "_faqs/how-do-i-project-electromagnetic-near-field-data-to-the-far-field.md"
+    ]
+  },
+  {
+    "category": "Scattering Matrix",
+    "id": "scattering-matrix",
+    "faqs": [
+      "_faqs/how-do-i-compute-scattering-matrix-parameters-for-modeling-my-device.md",
+      "_faqs/how-do-i-specify-a-port-in-the-scattering-matrix-calculation.md",
+      "_faqs/how-do-i-specify-mappings-between-scattering-matrix-elements.md"
+    ]
+  },
+  {
+    "category": "Resonance Finder",
+    "id": "resonance-finder",
+    "faqs": [
+      "_faqs/how-do-i-set-the-resonancefinder.md",
+      "_faqs/how-do-i-get-resonance-quality-factors.md",
+      "_faqs/how-do-i-calculate-photonic-band-diagrams-using-the-resonancefinder.md",
+      "_faqs/how-do-i-calculate-the-effective-mode-volume.md",
+      "_faqs/how-do-i-calculate-the-purcell-factor.md"
+    ]
+  },
+  {
+    "category": "Inverse Design",
+    "id": "inverse-design",
+    "faqs": [
+      "_faqs/what-is-adjoint-simulation.md",
+      "_faqs/how-many-simulations-are-performed-in-adjoint-calculations.md",
+      "_faqs/how-is-the-adjoint-simulation-billed.md",
+      "_faqs/how-to-install-jax.md",
+      "_faqs/how-do-i-set-an-inverse-design-problem.md",
+      "_faqs/what-are-the-differences-between-adjoint-shape-topology-and-level-set-optimizations.md",
+      "_faqs/how-do-i-set-an-adjoint-shape-optimization.md",
+      "_faqs/how-do-i-set-an-adjoint-topology-optimization.md",
+      "_faqs/how-do-i-create-an-adjoint-parameterized-level-set-optimization.md",
+      "_faqs/how-do-i-include-fabrication-constraints-in-adjoint-shape-optimization.md",
+      "_faqs/how-do-i-include-fabrication-constraints-in-adjoint-topology-optimization.md",
+      "_faqs/how-do-i-include-fabrication-constraints-in-adjoint-level-set-optimization.md",
+      "_faqs/how-do-i-export-the-final-inverse-design-structure-to-gds.md"
+    ]
+  }
+]

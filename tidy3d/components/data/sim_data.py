@@ -357,11 +357,12 @@ class SimulationData(AbstractSimulationData):
             field_components = (dataset[c] for c in required_components)
 
             # Apply the requested transformation
-            if val == "real":
+            val = val.lower()
+            if val in ("real", "re"):
                 derived_data = sum(f.real**2 for f in field_components) ** 0.5
                 derived_data.name = f"|Re{{{field_name}}}|"
 
-            elif val == "imag":
+            elif val in ("imag", "im"):
                 derived_data = sum(f.imag**2 for f in field_components) ** 0.5
                 derived_data.name = f"|Im{{{field_name}}}|"
 
@@ -376,6 +377,12 @@ class SimulationData(AbstractSimulationData):
 
             elif val == "phase":
                 raise Tidy3dKeyError(f"Phase is not defined for complex vector {field_name}")
+
+            else:
+                raise Tidy3dKeyError(
+                    f"'val' of {val} not supported. "
+                    "Must be one of 'real', 'imag', 'abs', 'abs^2', or 'phase'."
+                )
 
             return derived_data
 
@@ -411,14 +418,14 @@ class SimulationData(AbstractSimulationData):
         fname : str
             Full path to an hdf5 file containing :class:`.SimulationData` data.
         mnt_name : str, optional
-            `.name` of the monitor to load the data from.
+            ``.name`` of the monitor to load the data from.
         **parse_obj_kwargs
             Keyword arguments passed to either pydantic's ``parse_obj`` function when loading model.
 
         Returns
         -------
         :class:`MonitorData`
-            Monitor data corresponding to the `mnt_name` type.
+            Monitor data corresponding to the ``mnt_name`` type.
 
         Example
         -------
@@ -494,9 +501,9 @@ class SimulationData(AbstractSimulationData):
             Name of :class:`.FieldMonitor`, :class:`.FieldTimeData`, or :class:`.ModeSolverData`
             to plot.
         field_name : str
-            Name of `field` component to plot (eg. `'Ex'`).
-            Also accepts `'E'` and `'H'` to plot the vector magnitudes of the electric and
-            magnetic fields, and `'S'` for the Poynting vector.
+            Name of ``field`` component to plot (eg. `'Ex'`).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
         val : Literal['real', 'imag', 'abs', 'abs^2', 'phase'] = 'real'
             Which part of the field to plot.
         scale : Literal['lin', 'dB']
@@ -512,19 +519,19 @@ class SimulationData(AbstractSimulationData):
             to compute the color limits. This helps in visualizing the field patterns especially
             in the presence of a source.
         vmin : float = None
-            The lower bound of data range that the colormap covers. If `None`, they are
+            The lower bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         vmax : float = None
-            The upper bound of data range that the colormap covers. If `None`, they are
+            The upper bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         ax : matplotlib.axes._subplots.Axes = None
             matplotlib axes to plot on, if not specified, one is created.
-        sel_kwargs : keyword arguments used to perform `.sel()` selection in the monitor data.
-            These kwargs can select over the spatial dimensions (`x`, `y`, `z`),
-            frequency or time dimensions (`f`, `t`) or `mode_index`, if applicable.
+        sel_kwargs : keyword arguments used to perform ``.sel()`` selection in the monitor data.
+            These kwargs can select over the spatial dimensions (``x``, ``y``, ``z``),
+            frequency or time dimensions (``f``, ``t``) or ``mode_index``, if applicable.
             For the plotting to work appropriately, the resulting data after selection must contain
             only two coordinates with len > 1.
-            Furthermore, these should be spatial coordinates (`x`, `y`, or `z`).
+            Furthermore, these should be spatial coordinates (``x``, ``y``, or ``z``).
 
         Returns
         -------
