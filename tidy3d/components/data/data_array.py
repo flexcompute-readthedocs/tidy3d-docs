@@ -1,6 +1,6 @@
 """Storing tidy3d data at it's most fundamental level as xr.DataArray objects"""
 from __future__ import annotations
-from typing import Dict, List
+from typing import Dict, List, Union
 from abc import ABC
 
 import xarray as xr
@@ -139,12 +139,24 @@ class DataArray(xr.DataArray):
         """Absolute value of data array."""
         return abs(self)
 
-    def to_hdf5(self, fname: str, group_path: str) -> None:
-        """Save an xr.DataArray to the hdf5 file with a given path to the group."""
-        sub_group = fname.create_group(group_path)
+    def to_hdf5(self, fname: Union[str, h5py.File], group_path: str) -> None:
+        """Save an xr.DataArray to the hdf5 file or file handle with a given path to the group."""
+
+        # file name passed
+        if isinstance(fname, str):
+            with h5py.File(fname, "w") as f_handle:
+                self.to_hdf5_handle(f_handle=f_handle, group_path=group_path)
+
+        # file handle passed
+        else:
+            self.to_hdf5_handle(f_handle=fname, group_path=group_path)
+
+    def to_hdf5_handle(self, f_handle: h5py.File, group_path: str) -> None:
+        """Save an xr.DataArray to the hdf5 file handle with a given path to the group."""
+
+        sub_group = f_handle.create_group(group_path)
         sub_group[DATA_ARRAY_VALUE_NAME] = self.values
         for key, val in self.coords.items():
-            # sub_group[key] = val
             if val.dtype == "<U1":
                 sub_group[key] = val.values.tolist()
             else:
@@ -653,13 +665,19 @@ class ChargeDataArray(DataArray):
 
 
 class PointDataArray(DataArray):
-    """Indexed data array.
+    """A two-dimensional array that stores coordinates of a collection of points.
+    Dimension ``index`` denotes the index of a point in the collection, and dimension ``axis``
+    denotes the point's coordinate along that axis.
 
     Example
     -------
     >>> point_array = PointDataArray(
     ...     (1+1j) * np.random.random((5, 3)), coords=dict(index=np.arange(5), axis=np.arange(3)),
     ... )
+    >>> # get coordinates of a point number 3
+    >>> point3 = point_array.sel(index=3)
+    >>> # get x coordinates of all points
+    >>> x_coords = point_array.sel(axis=0)
     """
 
     __slots__ = ()
@@ -667,7 +685,11 @@ class PointDataArray(DataArray):
 
 
 class CellDataArray(DataArray):
-    """Cell connection data array.
+    """A two-dimensional array that stores indices of points composing each cell in a collection of
+    cells of the same type (for example: triangles, tetrahedra, etc). Dimension ``cell_index``
+    denotes the index of a cell in the collection, and dimension ``vertex_index`` denotes placement
+    (index) of a point in a cell (for example: 0, 1, or 2 for triangles; 0, 1, 2, or 3 for
+    tetrahedra).
 
     Example
     -------
@@ -675,6 +697,10 @@ class CellDataArray(DataArray):
     ...     (1+1j) * np.random.random((4, 3)),
     ...     coords=dict(cell_index=np.arange(4), vertex_index=np.arange(3)),
     ... )
+    >>> # get indices of points composing cell number 3
+    >>> cell3 = cell_array.sel(cell_index=3)
+    >>> # get indices of points that represent the first vertex in each cell
+    >>> first_vertices = cell_array.sel(vertex_index=0)
     """
 
     __slots__ = ()
@@ -682,7 +708,9 @@ class CellDataArray(DataArray):
 
 
 class IndexedDataArray(DataArray):
-    """Indexed data array.
+    """Stores a one-dimensional array enumerated by coordinate ``index``. It is typically used
+    in conjuction with a ``PointDataArray`` to store point-associated data or a ``CellDataArray``
+    to store cell-associated data.
 
     Example
     -------

@@ -14,16 +14,15 @@ from .base import skip_if_fields_missing
 from .validators import assert_objects_in_sim_bounds
 from .validators import validate_mode_objects_symmetry
 from .geometry.base import Geometry, Box
-from .geometry.primitives import Cylinder
 from .geometry.mesh import TriangleMesh
-from .geometry.polyslab import PolySlab
 from .geometry.utils import flatten_groups, traverse_geometries
+from .geometry.utils_2d import get_bounds, set_bounds, get_thickened_geom, subdivide
 from .types import Ax, FreqBound, Axis, annotate_type, InterpMethod, Symmetry
-from .types import Literal
+from .types import Literal, TYPE_TAG_STR
 from .grid.grid import Coords1D, Grid, Coords
 from .grid.grid_spec import GridSpec, UniformGrid, AutoGrid, CustomGrid
-from .medium import Medium, MediumType, AbstractMedium
-from .medium import AbstractCustomMedium, Medium2D, MediumType3D
+from .medium import MediumType, AbstractMedium
+from .medium import AbstractCustomMedium, Medium2D
 from .medium import AnisotropicMedium, FullyAnisotropicMedium, AbstractPerturbationMedium
 from .boundary import BoundarySpec, BlochBoundary, PECBoundary, PMCBoundary, Periodic
 from .boundary import PML, StablePML, Absorber, AbsorberSpec
@@ -31,6 +30,7 @@ from .structure import Structure
 from .source import SourceType, PlaneWave, GaussianBeam, AstigmaticGaussianBeam, CustomFieldSource
 from .source import CustomCurrentSource, CustomSourceTime, ContinuousWave
 from .source import TFSF, Source, ModeSource
+from .medium import Medium, MediumType3D
 from .monitor import MonitorType, Monitor, FreqMonitor, SurfaceIntegrationMonitor
 from .monitor import AbstractModeMonitor, FieldMonitor, TimeMonitor
 from .monitor import PermittivityMonitor, DiffractionMonitor, AbstractFieldProjectionMonitor
@@ -44,7 +44,7 @@ from .viz import PlotParams
 from .viz import plot_params_pml, plot_params_override_structures
 from .viz import plot_params_pec, plot_params_pmc, plot_params_bloch, plot_sim_3d
 
-from ..constants import C_0, SECOND, fp_eps
+from ..constants import C_0, SECOND, fp_eps, inf
 from ..exceptions import SetupError, ValidationError, Tidy3dError, Tidy3dImportError
 from ..log import log
 from ..updater import Updater
@@ -62,7 +62,6 @@ try:
     import gdspy
 except ImportError:
     gdspy_available = False
-
 
 # minimum number of grid points allowed per central wavelength in a medium
 MIN_GRIDS_PER_WVL = 6.0
@@ -84,9 +83,6 @@ WARN_MODE_NUM_CELLS = 1e5
 NUM_CELLS_WARN_EPSILON = 100_000_000
 # number of structures at which we warn about slow Simulation.epsilon()
 NUM_STRUCTURES_WARN_EPSILON = 10_000
-# for 2d materials. to find neighboring media, search a distance on either side
-# equal to this times the grid size
-DIST_NEIGHBOR_REL_2D_MED = 1e-5
 
 # height of the PML plotting boxes along any dimensions where sim.size[dim] == 0
 PML_HEIGHT_FOR_0_DIMS = 0.02
@@ -139,6 +135,7 @@ class Simulation(AbstractSimulation):
     >>> from tidy3d import FieldMonitor, FluxMonitor
     >>> from tidy3d import GridSpec, AutoGrid
     >>> from tidy3d import BoundarySpec, Boundary
+    >>> from tidy3d import Medium
     >>> sim = Simulation(
     ...     size=(3.0, 3.0, 3.0),
     ...     grid_spec=GridSpec(
@@ -194,101 +191,6 @@ class Simulation(AbstractSimulation):
         * `FDTD Walkthrough <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-1-FDTD-Walkthrough/#presentation-slides>`_
     """
 
-    run_time: pydantic.PositiveFloat = pydantic.Field(
-        ...,
-        title="Run Time",
-        description="Total electromagnetic evolution time in seconds. "
-        "Note: If simulation 'shutoff' is specified, "
-        "simulation will terminate early when shutoff condition met. ",
-        units=SECOND,
-    )
-    """
-    Total electromagnetic evolution time in seconds. If simulation 'shutoff' is specified, simulation will
-    terminate early when shutoff condition met.
-
-    **How long to run a simulation?**
-
-    The frequency-domain response obtained in the FDTD simulation only accurately represents the continuous-wave
-    response of the system if the fields at the beginning and at the end of the time stepping are (very close to)
-    zero. So, you should run the simulation for a time enough to allow the electromagnetic fields decay to negligible
-    values within the simulation domain.
-
-    When dealing with light propagation in a NON-RESONANT device, like a simple optical waveguide, a good initial
-    guess to simulation run_time would be the a few times the largest domain dimension (:math:`L`) multiplied by the
-    waveguide mode group index (:math:`n_g`), divided by the speed of light in a vacuum (:math:`c_0`),
-    plus the ``source_time``:
-
-    .. math::
-
-        t_{sim} \\approx \\frac{n_g L}{c_0} + t_{source}
-
-    By default, ``tidy3d`` checks periodically the total field intensity left in the simulation, and compares that to
-    the maximum total field intensity recorded at previous times. If it is found that the ratio of these two values
-    is smaller than the default :attr:`shutoff` value :math:`10^{-5}`, the simulation is terminated as the fields
-    remaining in the simulation are deemed negligible. The shutoff value can be controlled using the :attr:`shutoff`
-    parameter, or completely turned off by setting it to zero. In most cases, the default behavior ensures that
-    results are correct, while avoiding unnecessarily long run times. The Flex Unit cost of the simulation is also
-    proportionally scaled down when early termination is encountered.
-
-    **Resonant Caveats**
-
-    Should I make sure that fields have fully decayed by the end of the simulation?
-
-    The main use case in which you may want to ignore the field decay warning is when you have high-Q modes in your
-    simulation that would require an extremely long run time to decay. In that case, you can use the the
-    :class:`tidy3d.plugins.resonance.ResonanceFinder` plugin to analyze the modes, as well as field monitors with
-    vaporization to capture the modal profiles. The only thing to note is that the normalization of these modal
-    profiles would be arbitrary, and would depend on the exact run time and apodization definition. An example of
-    such a use case is presented in our case study.
-
-    .. TODO add links to resonant plugins.
-
-    See Also
-    --------
-
-    **Notebooks**
-
-    *   `High-Q silicon resonator <../../notebooks/HighQSi.html>`_
-
-    """
-
-    sources: Tuple[annotate_type(SourceType), ...] = pydantic.Field(
-        (),
-        title="Sources",
-        description="Tuple of electric current sources injecting fields into the simulation.",
-    )
-    """
-    Tuple of electric current sources injecting fields into the simulation.
-
-    Example
-    -------
-    Simple application reference:
-
-    .. code-block:: python
-
-         Simulation(
-            ...
-            sources=[
-                UniformCurrentSource(
-                    size=(0, 0, 0),
-                    center=(0, 0.5, 0),
-                    polarization="Hx",
-                    source_time=GaussianPulse(
-                        freq0=2e14,
-                        fwidth=4e13,
-                    ),
-                )
-            ],
-            ...
-         )
-
-    See Also
-    --------
-
-    `Index <../sources.html>`_:
-        Frequency and time domain source models.
-    """
-
     boundary_spec: BoundarySpec = pydantic.Field(
         BoundarySpec(),
         title="Boundaries",
@@ -333,20 +235,84 @@ class Simulation(AbstractSimulation):
         * `Using FDTD to Compute a Transmission Spectrum <https://www.flexcompute.com/fdtd101/Lecture-2-Using-FDTD-to-Compute-a-Transmission-Spectrum/>`__
     """
 
-    monitors: Tuple[annotate_type(MonitorType), ...] = pydantic.Field(
-        (),
-        title="Monitors",
-        description="Tuple of monitors in the simulation. "
-        "Note: monitor names are used to access data after simulation is run.",
+    courant: float = pydantic.Field(
+        0.99,
+        title="Courant Factor",
+        description="Courant stability factor, controls time step to spatial step ratio. "
+        "Lower values lead to more stable simulations for dispersive materials, "
+        "but result in longer simulation times. This factor is normalized to no larger than 1 "
+        "when CFL stability condition is met in 3D.",
+        gt=0.0,
+        le=1.0,
     )
-    """
-    Tuple of monitors in the simulation. Monitor names are used to access data after simulation is run.
+    """The Courant-Friedrichs-Lewy (CFL) stability factor :math:`C`, controls time step to spatial step ratio.  A
+    physical wave has to propagate slower than the numerical information propagation in a Yee-cell grid. This is
+    because in this spatially-discrete grid, information propagates over 1 spatial step :math:`\\Delta x`
+    over a time step :math:`\\Delta t`. This constraint enables the correct physics to be captured by the simulation.
+
+    **1D Illustration**
+
+    In a 1D model:
+
+    .. image:: ../../_static/img/courant_instability.png
+
+    Lower values lead to more stable simulations for dispersive materials, but result in longer simulation times. This
+    factor is normalized to no larger than 1 when CFL stability condition is met in 3D.
+
+    .. TODO finish this section for 1D, 2D and 3D references.
+
+    For a 1D grid:
+
+    .. math::
+
+        C_{\\text{1D}} = \\frac{\\Delta x}{c \\Delta t} \\leq 1
+
+    **2D Illustration**
+
+    In a 2D grid, where the :math:`E_z` field is at the red dot center surrounded by four green magnetic edge components
+    in a square Yee cell grid:
+
+    .. image:: ../../_static/img/courant_instability_2d.png
+
+    .. math::
+
+        C_{\\text{2D}} = \\frac{\\Delta x}{c \\Delta t} \\leq \\frac{1}{\\sqrt{2}}
+
+    Hence, for the same spatial grid, the time step in 2D grid needs to be smaller than the time step in a 1D grid.
+
+    **3D Illustration**
+
+    For an isotropic medium with refractive index :math:`n`, the 3D time step condition can be derived to be:
+
+    .. math::
+
+        \\Delta t \\le \\frac{n}{c \\sqrt{\\frac{1}{\\Delta x^2} + \\frac{1}{\\Delta y^2} + \\frac{1}{\\Delta z^2}}}
+
+    In this case, the number of spatial grid points scale by :math:`\\sim \\frac{1}{\\Delta x^3}` where :math:`\\Delta x`
+    is the spatial discretization in the :math:`x` dimension. If the total simulation time is kept the same whilst
+    maintaining the CFL condition, then the number of time steps required scale by :math:`\\sim \\frac{1}{\\Delta x}`.
+    Hence, the spatial grid discretization influences the total time-steps required. The total simulation scaling per
+    spatial grid size in this case is by :math:`\\sim \\frac{1}{\\Delta x^4}.`
+
+    As an example, in this case, refining the mesh by a factor or 2 (reducing the spatial step size by half)
+    :math:`\\Delta x \\to \\frac{\\Delta x}{2}` will increase the total simulation computational cost by 16.
+
+    **Divergence Caveats**
+
+    ``tidy3d`` uses a default Courant factor of 0.99. When a dispersive material with ``eps_inf < 1`` is used,
+    the Courant factor will be automatically adjusted to be smaller than ``sqrt(eps_inf)`` to ensure stability. If
+    your simulation still diverges despite addressing any other issues discussed above, reducing the Courant
+    factor may help.
 
     See Also
     --------
 
-    `Index <../monitors.html>`_
-        All the monitor implementations.
+    :attr:`grid_spec`
+        Specifications for the simulation grid along each of the three directions.
+
+    **Lectures:**
+        *  `Time step size and CFL condition in FDTD <https://www.flexcompute.com/fdtd101/Lecture-7-Time-step-size-and-CFL-condition-in-FDTD/>`_
+        *  `Numerical dispersion in FDTD <https://www.flexcompute.com/fdtd101/Lecture-8-Numerical-dispersion-in-FDTD/>`_
     """
 
     grid_spec: GridSpec = pydantic.Field(
@@ -496,6 +462,103 @@ class Simulation(AbstractSimulation):
         *  `Numerical dispersion in FDTD <https://www.flexcompute.com/fdtd101/Lecture-8-Numerical-dispersion-in-FDTD/>`_
     """
 
+    medium: MediumType3D = pydantic.Field(
+        Medium(),
+        title="Background Medium",
+        description="Background medium of simulation, defaults to vacuum if not specified.",
+        discriminator=TYPE_TAG_STR,
+    )
+    """
+    Background medium of simulation, defaults to vacuum if not specified.
+
+    See Also
+    --------
+
+    `Material Library <../material_library.html>`_:
+        The material library is a dictionary containing various dispersive models from real world materials.
+
+    `Index <../mediums.html>`_:
+        Dispersive and dispersionless Mediums models.
+
+    **Notebooks:**
+
+    * `Fitting dispersive material models <../../notebooks/Fitting.html>`_
+
+    **Lectures:**
+
+    * `Modeling dispersive material in FDTD <https://www.flexcompute.com/fdtd101/Lecture-5-Modeling-dispersive-material-in-FDTD/>`_
+
+    **GUI:**
+
+    * `Mediums <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-2-Mediums/>`_
+
+    """
+
+    normalize_index: Union[pydantic.NonNegativeInt, None] = pydantic.Field(
+        0,
+        title="Normalization index",
+        description="Index of the source in the tuple of sources whose spectrum will be used to "
+        "normalize the frequency-dependent data. If ``None``, the raw field data is returned "
+        "unnormalized.",
+    )
+    """
+    Index of the source in the tuple of sources whose spectrum will be used to normalize the frequency-dependent
+    data. If ``None``, the raw field data is returned. If ``None``, the raw field data is returned unnormalized.
+    """
+
+    monitors: Tuple[annotate_type(MonitorType), ...] = pydantic.Field(
+        (),
+        title="Monitors",
+        description="Tuple of monitors in the simulation. "
+        "Note: monitor names are used to access data after simulation is run.",
+    )
+    """
+    Tuple of monitors in the simulation. Monitor names are used to access data after simulation is run.
+
+    See Also
+    --------
+
+    `Index <../monitors.html>`_
+        All the monitor implementations.
+    """
+
+    sources: Tuple[annotate_type(SourceType), ...] = pydantic.Field(
+        (),
+        title="Sources",
+        description="Tuple of electric current sources injecting fields into the simulation.",
+    )
+    """
+    Tuple of electric current sources injecting fields into the simulation.
+
+    Example
+    -------
+    Simple application reference:
+
+    .. code-block:: python
+
+         Simulation(
+            ...
+            sources=[
+                UniformCurrentSource(
+                    size=(0, 0, 0),
+                    center=(0, 0.5, 0),
+                    polarization="Hx",
+                    source_time=GaussianPulse(
+                        freq0=2e14,
+                        fwidth=4e13,
+                    ),
+                )
+            ],
+            ...
+         )
+
+    See Also
+    --------
+
+    `Index <../sources.html>`_:
+        Frequency and time domain source models.
+    """
+
     shutoff: pydantic.NonNegativeFloat = pydantic.Field(
         1e-5,
         title="Shutoff Condition",
@@ -509,6 +572,71 @@ class Simulation(AbstractSimulation):
     at which the simulation will automatically terminate time stepping.
     Used to prevent extraneous run time of simulations with fully decayed fields.
     Set to ``0`` to disable this feature.
+    """
+
+    structures: Tuple[Structure, ...] = pydantic.Field(
+        (),
+        title="Structures",
+        description="Tuple of structures present in simulation. "
+        "Note: Structures defined later in this list override the "
+        "simulation material properties in regions of spatial overlap.",
+    )
+    """
+    Tuple of structures present in simulation. Structures defined later in this list override the simulation
+    material properties in regions of spatial overlap.
+
+    Example
+    -------
+    Simple application reference:
+
+    .. code-block:: python
+
+        Simulation(
+            ...
+            structures=[
+                 Structure(
+                 geometry=Box(size=(1, 1, 1), center=(0, 0, 0)),
+                 medium=Medium(permittivity=2.0),
+                 ),
+            ],
+            ...
+        )
+
+    **Usage Caveats**
+
+    It is very important to understand the way the dielectric permittivity of the :class:`Structure` list is resolved
+    by the simulation grid. Without :attr:`subpixel` averaging, the structure geometry in relation to the
+    grid points can lead to its features permittivity not being fully resolved by the
+    simulation.
+
+    For example, in the image below, two silicon slabs with thicknesses 150nm and 175nm centered in a grid with
+    spatial discretization :math:`\\Delta z = 25\\text{nm}` will compute equivalently because that grid does
+    not resolve the feature permittivity in between grid points without :attr:`subpixel` averaging.
+
+    .. image:: ../../_static/img/permittivity_on_yee_grid.png
+
+    See Also
+    --------
+
+    :class:`Structure`:
+        Defines a physical object that interacts with the electromagnetic fields.
+
+    :attr:`subpixel`
+        Subpixel averaging of the permittivity based on structure definition, resulting in much higher
+        accuracy for a given grid size.
+
+    **Notebooks:**
+
+    * `Visualizing geometries in Tidy3D <../../notebooks/VizSimulation.html>`_
+
+    **Lectures:**
+
+    * `Using FDTD to Compute a Transmission Spectrum <https://www.flexcompute.com/fdtd101/Lecture-2-Using-FDTD-to-Compute-a-Transmission-Spectrum/>`_
+    *  `Dielectric constant assignment on Yee grids <https://www.flexcompute.com/fdtd101/Lecture-9-Dielectric-constant-assignment-on-Yee-grids/>`_
+
+    **GUI:**
+
+    * `Structures <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-3-Structures/#presentation-slides>`_
     """
 
     subpixel: bool = pydantic.Field(
@@ -560,96 +688,91 @@ class Simulation(AbstractSimulation):
         *  `Dielectric constant assignment on Yee grids <https://www.flexcompute.com/fdtd101/Lecture-9-Dielectric-constant-assignment-on-Yee-grids/>`_
     """
 
-    normalize_index: Union[pydantic.NonNegativeInt, None] = pydantic.Field(
-        0,
-        title="Normalization index",
-        description="Index of the source in the tuple of sources whose spectrum will be used to "
-        "normalize the frequency-dependent data. If ``None``, the raw field data is returned "
-        "unnormalized.",
+    symmetry: Tuple[Symmetry, Symmetry, Symmetry] = pydantic.Field(
+        (0, 0, 0),
+        title="Symmetries",
+        description="Tuple of integers defining reflection symmetry across a plane "
+        "bisecting the simulation domain normal to the x-, y-, and z-axis "
+        "at the simulation center of each axis, respectively. "
+        "Each element can be ``0`` (no symmetry), ``1`` (even, i.e. 'PMC' symmetry) or "
+        "``-1`` (odd, i.e. 'PEC' symmetry). "
+        "Note that the vectorial nature of the fields must be taken into account to correctly "
+        "determine the symmetry value.",
     )
     """
-    Index of the source in the tuple of sources whose spectrum will be used to normalize the frequency-dependent
-    data. If ``None``, the raw field data is returned. If ``None``, the raw field data is returned unnormalized.
+    You should set the ``symmetry`` parameter in your :class:`Simulation` object using a tuple of integers
+    defining reflection symmetry across a plane bisecting the simulation domain normal to the x-, y-, and z-axis.
+    Each element can be 0 (no symmetry), 1 (even, i.e. :class:`PMC` symmetry) or -1 (odd, i.e. :class:`PEC`
+    symmetry). Note that the vectorial nature of the fields must be considered to determine the symmetry value
+    correctly.
+
+    The figure below illustrates how the electric and magnetic field components transform under :class:`PEC`- and
+    :class:`PMC`-like symmetry planes. You can refer to this figure when considering whether a source field conforms
+    to a :class:`PEC`- or :class:`PMC`-like symmetry axis. This would be helpful, especially when dealing with
+    optical waveguide modes.
+
+    .. image:: ../../notebooks/img/pec_pmc.png
+
+
+    .. TODO maybe resize?
     """
 
-    courant: float = pydantic.Field(
-        0.99,
-        title="Courant Factor",
-        description="Courant stability factor, controls time step to spatial step ratio. "
-        "Lower values lead to more stable simulations for dispersive materials, "
-        "but result in longer simulation times. This factor is normalized to no larger than 1 "
-        "when CFL stability condition is met in 3D.",
-        gt=0.0,
-        le=1.0,
+    run_time: pydantic.PositiveFloat = pydantic.Field(
+        ...,
+        title="Run Time",
+        description="Total electromagnetic evolution time in seconds. "
+        "Note: If simulation 'shutoff' is specified, "
+        "simulation will terminate early when shutoff condition met. ",
+        units=SECOND,
     )
-    """The Courant-Friedrichs-Lewy (CFL) stability factor :math:`C`, controls time step to spatial step ratio.  A
-    physical wave has to propagate slower than the numerical information propagation in a Yee-cell grid. This is
-    because in this spatially-discrete grid, information propagates over 1 spatial step :math:`\\Delta x`
-    over a time step :math:`\\Delta t`. This constraint enables the correct physics to be captured by the simulation.
+    """
+    Total electromagnetic evolution time in seconds. If simulation 'shutoff' is specified, simulation will
+    terminate early when shutoff condition met.
 
-    **1D Illustration**
+    **How long to run a simulation?**
 
-    In a 1D model:
+    The frequency-domain response obtained in the FDTD simulation only accurately represents the continuous-wave
+    response of the system if the fields at the beginning and at the end of the time stepping are (very close to)
+    zero. So, you should run the simulation for a time enough to allow the electromagnetic fields decay to negligible
+    values within the simulation domain.
 
-    .. image:: ../../_static/img/courant_instability.png
-
-    Lower values lead to more stable simulations for dispersive materials, but result in longer simulation times. This
-    factor is normalized to no larger than 1 when CFL stability condition is met in 3D.
-
-    .. TODO finish this section for 1D, 2D and 3D references.
-
-    For a 1D grid:
+    When dealing with light propagation in a NON-RESONANT device, like a simple optical waveguide, a good initial
+    guess to simulation run_time would be the a few times the largest domain dimension (:math:`L`) multiplied by the
+    waveguide mode group index (:math:`n_g`), divided by the speed of light in a vacuum (:math:`c_0`),
+    plus the ``source_time``:
 
     .. math::
 
-        C_{\\text{1D}} = \\frac{\\Delta x}{c \\Delta t} \\leq 1
+        t_{sim} \\approx \\frac{n_g L}{c_0} + t_{source}
 
-    **2D Illustration**
+    By default, ``tidy3d`` checks periodically the total field intensity left in the simulation, and compares that to
+    the maximum total field intensity recorded at previous times. If it is found that the ratio of these two values
+    is smaller than the default :attr:`shutoff` value :math:`10^{-5}`, the simulation is terminated as the fields
+    remaining in the simulation are deemed negligible. The shutoff value can be controlled using the :attr:`shutoff`
+    parameter, or completely turned off by setting it to zero. In most cases, the default behavior ensures that
+    results are correct, while avoiding unnecessarily long run times. The Flex Unit cost of the simulation is also
+    proportionally scaled down when early termination is encountered.
 
-    In a 2D grid, where the :math:`E_z` field is at the red dot center surrounded by four green magnetic edge components
-    in a square Yee cell grid:
+    **Resonant Caveats**
 
-    .. image:: ../../_static/img/courant_instability_2d.png
+    Should I make sure that fields have fully decayed by the end of the simulation?
 
-    .. math::
+    The main use case in which you may want to ignore the field decay warning is when you have high-Q modes in your
+    simulation that would require an extremely long run time to decay. In that case, you can use the the
+    :class:`tidy3d.plugins.resonance.ResonanceFinder` plugin to analyze the modes, as well as field monitors with
+    vaporization to capture the modal profiles. The only thing to note is that the normalization of these modal
+    profiles would be arbitrary, and would depend on the exact run time and apodization definition. An example of
+    such a use case is presented in our case study.
 
-        C_{\\text{2D}} = \\frac{\\Delta x}{c \\Delta t} \\leq \\frac{1}{\\sqrt{2}}
-
-    Hence, for the same spatial grid, the time step in 2D grid needs to be smaller than the time step in a 1D grid.
-
-    **3D Illustration**
-
-    For an isotropic medium with refractive index :math:`n`, the 3D time step condition can be derived to be:
-
-    .. math::
-
-        \\Delta t \\le \\frac{n}{c \\sqrt{\\frac{1}{\\Delta x^2} + \\frac{1}{\\Delta y^2} + \\frac{1}{\\Delta z^2}}}
-
-    In this case, the number of spatial grid points scale by :math:`\\sim \\frac{1}{\\Delta x^3}` where :math:`\\Delta x`
-    is the spatial discretization in the :math:`x` dimension. If the total simulation time is kept the same whilst
-    maintaining the CFL condition, then the number of time steps required scale by :math:`\\sim \\frac{1}{\\Delta x}`.
-    Hence, the spatial grid discretization influences the total time-steps required. The total simulation scaling per
-    spatial grid size in this case is by :math:`\\sim \\frac{1}{\\Delta x^4}.`
-
-    As an example, in this case, refining the mesh by a factor or 2 (reducing the spatial step size by half)
-    :math:`\\Delta x \\to \\frac{\\Delta x}{2}` will increase the total simulation computational cost by 16.
-
-    **Divergence Caveats**
-
-    ``tidy3d`` uses a default Courant factor of 0.99. When a dispersive material with ``eps_inf < 1`` is used,
-    the Courant factor will be automatically adjusted to be smaller than ``sqrt(eps_inf)`` to ensure stability. If
-    your simulation still diverges despite addressing any other issues discussed above, reducing the Courant
-    factor may help.
+    .. TODO add links to resonant plugins.
 
     See Also
     --------
 
-    :attr:`grid_spec`
-        Specifications for the simulation grid along each of the three directions.
+    **Notebooks**
 
-    **Lectures:**
-        *  `Time step size and CFL condition in FDTD <https://www.flexcompute.com/fdtd101/Lecture-7-Time-step-size-and-CFL-condition-in-FDTD/>`_
-        *  `Numerical dispersion in FDTD <https://www.flexcompute.com/fdtd101/Lecture-8-Numerical-dispersion-in-FDTD/>`_
+    *   `High-Q silicon resonator <../../notebooks/HighQSi.html>`_
+
     """
 
     """ Validating setup """
@@ -729,7 +852,7 @@ class Simulation(AbstractSimulation):
                     )
 
                 # check the Bloch boundary + angled plane wave case
-                num_bloch = sum(isinstance(bnd, BlochBoundary) for bnd in boundary)
+                num_bloch = sum(isinstance(bnd, (Periodic, BlochBoundary)) for bnd in boundary)
                 if num_bloch > 0:
                     cls._check_bloch_vec(
                         source=source,
@@ -787,20 +910,14 @@ class Simulation(AbstractSimulation):
             for tan_dir in tan_dirs:
                 boundary = boundaries[tan_dir]
 
-                # if the boundary is periodic, the source is allowed to cross the boundary
-                # so nothing needs to be done
-                num_pbc = sum(isinstance(bnd, Periodic) for bnd in boundary)
-                if num_pbc == 2:
-                    continue
-
-                # crossing may be allowed for Bloch boundaries, but not others
+                # crossing may be allowed for periodic or Bloch boundaries, but not others
                 if (
                     src_bounds[0][tan_dir] <= sim_bounds[0][tan_dir]
                     or src_bounds[1][tan_dir] >= sim_bounds[1][tan_dir]
                 ):
                     # if the boundary is Bloch periodic, crossing is allowed, but check that the
                     # Bloch vector has been correctly set, similar to the check for plane waves
-                    num_bloch = sum(isinstance(bnd, BlochBoundary) for bnd in boundary)
+                    num_bloch = sum(isinstance(bnd, (Periodic, BlochBoundary)) for bnd in boundary)
                     if num_bloch == 2:
                         cls._check_bloch_vec(
                             source=source,
@@ -1203,7 +1320,7 @@ class Simulation(AbstractSimulation):
     @pydantic.validator("monitors", always=True)
     @skip_if_fields_missing(["center", "size"])
     def _integration_surfaces_in_bounds(cls, val, values):
-        """Error if any of the integration surfaces are outside of the simulation domain."""
+        """Error if all of the integration surfaces are outside of the simulation domain."""
 
         if val is None:
             return val
@@ -1643,11 +1760,22 @@ class Simulation(AbstractSimulation):
         return data_size
 
     def _monitor_num_cells(self, monitor: Monitor) -> int:
-        """Total number of cells included by monitor based on simulation grid."""
-        num_cells = self.discretize_monitor(monitor).num_cells
-        # take monitor downsampling into account
-        num_cells = monitor.downsampled_num_cells(num_cells)
-        return np.prod(np.array(num_cells, dtype=np.int64))
+        """Total number of cells included in monitor based on simulation grid."""
+
+        def num_cells_in_monitor(monitor: Monitor) -> int:
+            """Get the number of measurement cells in a monitor given the simulation grid and
+            downsampling."""
+            if not self.intersects(monitor):
+                # Monitor is outside of simulation domain; can happen e.g. for integration surfaces
+                return 0
+            num_cells = self.discretize_monitor(monitor).num_cells
+            # take monitor downsampling into account
+            num_cells = monitor.downsampled_num_cells(num_cells)
+            return np.prod(np.array(num_cells, dtype=np.int64))
+
+        if isinstance(monitor, SurfaceIntegrationMonitor):
+            return sum(num_cells_in_monitor(mnt) for mnt in monitor.integration_surfaces)
+        return num_cells_in_monitor(monitor)
 
     def _validate_datasets_not_none(self) -> None:
         """Ensures that all custom datasets are defined."""
@@ -3009,6 +3137,11 @@ class Simulation(AbstractSimulation):
         # Discretize without extension for now
         span_inds = np.array(self.grid.discretize_inds(box_expanded, extend=False))
 
+        if any(ind[0] >= ind[1] for ind in span_inds):
+            # At least one dimension has no indexes inside the grid, e.g. monitor is entirely
+            # outside of the grid
+            return span_inds
+
         # Now add extensions, which are specific for monitors and are determined such that data
         # colocated to grid boundaries can be interpolated anywhere inside the monitor.
         # We always need to expand on the right.
@@ -3059,9 +3192,9 @@ class Simulation(AbstractSimulation):
         coord_key : str = 'centers'
             Specifies at what part of the grid to return the permittivity at.
             Accepted values are ``{'centers', 'boundaries', 'Ex', 'Ey', 'Ez', 'Exy', 'Exz', 'Eyx',
-            'Eyz', 'Ezx', Ezy'}``. The field values (eg. 'Ex') correspond to the corresponding field
+            'Eyz', 'Ezx', Ezy'}``. The field values (eg. ``'Ex'``) correspond to the corresponding field
             locations on the yee lattice. If field values are selected, the corresponding diagonal
-            (eg. `eps_xx` in case of `Ex`) or off-diagonal (eg. `eps_xy` in case of `Exy`) epsilon
+            (eg. ``eps_xx`` in case of ``'Ex'``) or off-diagonal (eg. ``eps_xy`` in case of ``'Exy'``) epsilon
             component from the epsilon tensor is returned. Otherwise, the average of the main
             values is returned.
         freq : float = None
@@ -3100,9 +3233,9 @@ class Simulation(AbstractSimulation):
         coord_key : str = 'centers'
             Specifies at what part of the grid to return the permittivity at.
             Accepted values are ``{'centers', 'boundaries', 'Ex', 'Ey', 'Ez', 'Exy', 'Exz', 'Eyx',
-            'Eyz', 'Ezx', Ezy'}``. The field values (eg. 'Ex') correspond to the corresponding field
+            'Eyz', 'Ezx', Ezy'}``. The field values (eg. ``'Ex'``) correspond to the corresponding field
             locations on the yee lattice. If field values are selected, the corresponding diagonal
-            (eg. `eps_xx` in case of `Ex`) or off-diagonal (eg. `eps_xy` in case of `Exy`) epsilon
+            (eg. ``eps_xx`` in case of ``'Ex'``) or off-diagonal (eg. ``eps_xy`` in case of ``'Exy'``) epsilon
             component from the epsilon tensor is returned. Otherwise, the average of the main
             values is returned.
         freq : float = None
@@ -3236,34 +3369,18 @@ class Simulation(AbstractSimulation):
         if not any(isinstance(medium, Medium2D) for medium in self.scene.mediums):
             return self.structures
 
-        def get_bounds(geom: Geometry, axis: Axis) -> Tuple[float, float]:
-            """Get the bounds of a geometry in the axis direction."""
-            return (geom.bounds[0][axis], geom.bounds[1][axis])
-
-        def set_bounds(geom: Geometry, bounds: Tuple[float, float], axis: Axis) -> Geometry:
-            """Set the bounds of a geometry in the axis direction."""
-            if isinstance(geom, Box):
-                new_center = list(geom.center)
-                new_center[axis] = (bounds[0] + bounds[1]) / 2
-                new_size = list(geom.size)
-                new_size[axis] = bounds[1] - bounds[0]
-                return geom.updated_copy(center=new_center, size=new_size)
-            if isinstance(geom, PolySlab):
-                return geom.updated_copy(slab_bounds=bounds)
-            if isinstance(geom, Cylinder):
-                new_center = list(geom.center)
-                new_center[axis] = (bounds[0] + bounds[1]) / 2
-                new_length = bounds[1] - bounds[0]
-                return geom.updated_copy(center=new_center, length=new_length)
-            raise ValidationError(
-                "'Medium2D' is only compatible with 'Box', 'PolySlab', or 'Cylinder' geometry."
-            )
-
-        def get_dls(geom: Geometry, axis: Axis, num_dls: int) -> float:
+        def get_dls(geom: Geometry, axis: Axis, num_dls: int) -> List[float]:
             """Get grid size around the 2D material."""
             dls = self._discretize_grid(Box.from_bounds(*geom.bounds), grid=grid).sizes.to_list[
                 axis
             ]
+            # When 1 dl is requested it is assumed that only an approximate value is needed
+            # before the 2D material has been snapped to the grid
+            if num_dls == 1:
+                return [np.mean(dls)]
+
+            # When 2 dls are requested the 2D geometry should have been snapped to grid,
+            # so this represents the exact adjacent grid spacing
             if len(dls) != num_dls:
                 raise Tidy3dError(
                     "Failed to detect grid size around the 2D material. "
@@ -3281,35 +3398,16 @@ class Simulation(AbstractSimulation):
             new_center = new_centers[np.argmin(abs(new_centers - get_bounds(geom, axis)[0]))]
             return set_bounds(geom, (new_center, new_center), axis)
 
-        def get_neighboring_media(
-            geom: Geometry, axis: Axis, structures: List[Structure]
-        ) -> Tuple[List[MediumType3D], List[float]]:
-            """Find the neighboring material properties and grid sizes."""
-            dl = get_dls(geom, axis, 1)[0]
-            center = get_bounds(geom, axis)[0]
-            thickness = dl * DIST_NEIGHBOR_REL_2D_MED
-            thickened_geom = set_bounds(
-                geom, bounds=(center - thickness / 2, center + thickness / 2), axis=axis
-            )
-            grid_sizes = get_dls(thickened_geom, axis, 2)
-            dls_signed = [-grid_sizes[0], grid_sizes[1]]
-            neighbors = []
-            for _, dl_signed in enumerate(dls_signed):
-                geom_shifted = set_bounds(
-                    geom, bounds=(center + dl_signed, center + dl_signed), axis=axis
-                )
-                media = Scene.intersecting_media(Box.from_bounds(*geom_shifted.bounds), structures)
-                if len(media) > 1:
-                    raise SetupError(
-                        "2D materials do not support multiple neighboring media on a side. "
-                        "Please split the 2D material into multiple smaller 2D materials, one "
-                        "for each background medium."
-                    )
-                medium_side = Medium() if len(media) == 0 else list(media)[0]
-                neighbors.append(medium_side)
-            return (neighbors, grid_sizes)
+        # Begin volumetric structures grid
+        # For 1D and 2D simulations, a nonzero size is needed for the polygon operations in subdivide
+        placeholder_size = tuple(i if i > 0 else inf for i in self.geometry.size)
+        simulation_placeholder_geometry = self.geometry.updated_copy(
+            center=self.geometry.center, size=placeholder_size
+        )
 
-        simulation_background = Structure(geometry=self.geometry, medium=self.medium)
+        simulation_background = Structure(
+            geometry=simulation_placeholder_geometry, medium=self.medium
+        )
         background_structures = [simulation_background]
         new_structures = []
         for structure in self.structures:
@@ -3320,25 +3418,39 @@ class Simulation(AbstractSimulation):
                 continue
             # otherwise, found a 2D material; replace it with volumetric equivalent
             axis = structure.geometry._normal_2dmaterial
+            geometry = structure.geometry
 
-            # snap monolayer to grid
-            geometry = snap_to_grid(structure.geometry, axis)
-            center = get_bounds(geometry, axis)[0]
+            # subdivide
+            avg_axis_dl = get_dls(geometry, axis, 1)[0]
+            subdivided_geometries = subdivide(geometry, axis, avg_axis_dl, background_structures)
+            # Create and add volumetric equivalents
+            background_structures_temp = []
+            for subdivided_geometry in subdivided_geometries:
+                # Snap to the grid and create volumetric equivalent
+                snapped_geometry = snap_to_grid(subdivided_geometry[0], axis)
+                snapped_center = get_bounds(snapped_geometry, axis)[0]
+                dls = get_dls(get_thickened_geom(snapped_geometry, axis, avg_axis_dl), axis, 2)
+                adjacent_media = [subdivided_geometry[1].medium, subdivided_geometry[2].medium]
 
-            # get neighboring media and grid sizes
-            (neighbors, dls) = get_neighboring_media(geometry, axis, background_structures)
+                # Create the new volumetric medium
+                new_medium = structure.medium.volumetric_equivalent(
+                    axis=axis, adjacent_media=adjacent_media, adjacent_dls=dls
+                )
 
-            if not structure.medium.is_pec:
-                new_bounds = (center - dls[0] / 2, center + dls[1] / 2)
-            else:
-                new_bounds = (center, center)
+                new_bounds = (snapped_center - dls[0] / 2, snapped_center + dls[1] / 2)
+                temp_geometry = set_bounds(snapped_geometry, bounds=new_bounds, axis=axis)
+                temp_structure = structure.updated_copy(geometry=temp_geometry, medium=new_medium)
 
-            new_geometry = set_bounds(structure.geometry, bounds=new_bounds, axis=axis)
+                if structure.medium.is_pec:
+                    pec_delta = fp_eps * max(np.abs(snapped_center), 1.0)
+                    new_bounds = (snapped_center - pec_delta, snapped_center + pec_delta)
+                new_geometry = set_bounds(snapped_geometry, bounds=new_bounds, axis=axis)
+                new_structure = structure.updated_copy(geometry=new_geometry, medium=new_medium)
 
-            new_medium = structure.medium.volumetric_equivalent(
-                axis=axis, adjacent_media=neighbors, adjacent_dls=dls
-            )
-            new_structures.append(structure.updated_copy(geometry=new_geometry, medium=new_medium))
+                new_structures.append(new_structure)
+                background_structures_temp.append(temp_structure)
+
+            background_structures += background_structures_temp
 
         return tuple(new_structures)
 
@@ -3563,7 +3675,10 @@ class Simulation(AbstractSimulation):
             # adjust region bounds to perfectly coincide with the grid
             # note, sometimes (when a box already seems to perfrecty align with the grid)
             # this causes the new region to expand one more pixel because of numerical roundoffs
-            aux_box = Box.from_bounds(*new_bounds)
+            # To help to avoid that we shrink new region by a small amount.
+            center = [(bmin + bmax) / 2 for bmin, bmax in zip(*new_bounds)]
+            size = [max(0.0, bmax - bmin - 2 * fp_eps) for bmin, bmax in zip(*new_bounds)]
+            aux_box = Box(center=center, size=size)
             grid_inds = self.grid.discretize_inds(box=aux_box)
 
             new_bounds = [
