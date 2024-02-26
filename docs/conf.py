@@ -80,7 +80,8 @@ extensions = [
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "nbsphinx",  # Integrate Jupyter Notebooks and Sphinx
-    "m2r2",
+    "notfound.extension",
+    "myst_parser",
     # "sphinxcontrib.divparams", # TODO FIX
     "sphinx.ext.autodoc",  # Core Sphinx library for auto html doc generation from docstrings
     "sphinx.ext.autosummary",  # Create neat summary tables for modules/classes/methods etc
@@ -112,7 +113,7 @@ html_baseurl = "https://docs.flexcompute.com/projects/tidy3d/"  # for sphinx-sit
 html_css_files = [
     "css/custom.css",
 ]
-html_extra_path = ["./_static/robots.txt"]
+html_extra_path = ["./_static/robots.txt", "./_static/"]
 html_favicon = "_static/logo.ico"
 html_js_files = ["js/custom-download.js"]
 htmlhelp_basename = "tidy3ddoc"
@@ -160,6 +161,10 @@ man_pages = [(master_doc, "tidy3d", "tidy3d Documentation", [author], 1)]
 mathjax3_config = {
     "tex": {"tags": "ams", "useLabelIds": True},
 }
+myst_enable_extensions = [
+    "amsmath",
+    "dollarmath",
+]
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"
 project = "tidy3d"
