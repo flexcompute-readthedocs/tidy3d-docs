@@ -27,6 +27,14 @@ class BoundaryEdge(ABC, Tidy3dBaseModel):
 class Periodic(BoundaryEdge):
     """Periodic boundary condition class."""
 
+    @property
+    def bloch_vec(self):
+        """Periodic boundaries are effectively Bloch boundaries with ``bloch_vec == 0``.
+        In practice, periodic boundaries do not force the use of complex fields, while Bloch
+        boundaries do, even with ``bloch_vec == 0``. Thus, it is more efficient to use periodic.
+        """
+        return 0
+
 
 # PEC keyword
 class PECBoundary(BoundaryEdge):
@@ -69,7 +77,7 @@ class BlochBoundary(BoundaryEdge):
 
     @cached_property
     def bloch_phase(self) -> Complex:
-        """Returns the forward phase factor associated with `bloch_vec`."""
+        """Returns the forward phase factor associated with ``bloch_vec``."""
         return np.exp(1j * 2.0 * np.pi * self.bloch_vec)
 
     @classmethod
@@ -110,13 +118,13 @@ class BlochBoundary(BoundaryEdge):
 
         if not isinstance(source, BlochSourceType.__args__):
             raise SetupError(
-                "The `source` parameter must be `GaussianBeam`, `ModeSource`, `PlaneWave`, "
-                "or `TFSF` in order to define a Bloch boundary condition."
+                "The 'source' parameter must be 'GaussianBeam', 'ModeSource', 'PlaneWave', "
+                "or 'TFSF' in order to define a Bloch boundary condition."
             )
 
         if axis == source.injection_axis:
             raise SetupError(
-                "Bloch boundary axis must be orthogonal to the injection axis of `source`."
+                "Bloch boundary axis must be orthogonal to the injection axis of 'source'."
             )
 
         if medium is None:
@@ -760,7 +768,7 @@ class BoundarySpec(Tidy3dBaseModel):
         Boundary(),
         title="Boundary condition along x.",
         description="Boundary condition on the plus and minus sides along the x axis. "
-        "If `None`, periodic boundaries are applied. Default will change to PML in 2.0 "
+        "If ``None``, periodic boundaries are applied. Default will change to PML in 2.0 "
         "so explicitly setting the boundaries is recommended.",
     )
 
@@ -768,7 +776,7 @@ class BoundarySpec(Tidy3dBaseModel):
         Boundary(),
         title="Boundary condition along y.",
         description="Boundary condition on the plus and minus sides along the y axis. "
-        "If `None`, periodic boundaries are applied. Default will change to PML in 2.0 "
+        "If ``None``, periodic boundaries are applied. Default will change to PML in 2.0 "
         "so explicitly setting the boundaries is recommended.",
     )
 
@@ -776,7 +784,7 @@ class BoundarySpec(Tidy3dBaseModel):
         Boundary(),
         title="Boundary condition along z.",
         description="Boundary condition on the plus and minus sides along the z axis. "
-        "If `None`, periodic boundaries are applied. Default will change to PML in 2.0 "
+        "If ``None``, periodic boundaries are applied. Default will change to PML in 2.0 "
         "so explicitly setting the boundaries is recommended.",
     )
 

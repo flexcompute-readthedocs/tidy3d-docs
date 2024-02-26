@@ -35,7 +35,7 @@ from tidy3d.plugins.adjoint.components.data.dataset import JaxPermittivityDatase
 from tidy3d.plugins.adjoint.web import run, run_async
 from tidy3d.plugins.adjoint.web import run_local, run_async_local
 from tidy3d.plugins.adjoint.components.data.data_array import VALUE_FILTER_THRESHOLD
-from tidy3d.plugins.adjoint.utils.penalty import RadiusPenalty
+from tidy3d.plugins.adjoint.utils.penalty import RadiusPenalty, ErosionDilationPenalty
 from tidy3d.plugins.adjoint.utils.filter import ConicFilter, BinaryProjector, CircularFilter
 from tidy3d.web.api.container import BatchData
 import tidy3d.material_library as material_library
@@ -1499,6 +1499,17 @@ def test_adjoint_utils(strict_binarize):
     radius_penalty = RadiusPenalty(min_radius=0.2, wrap=True)
     _ = radius_penalty.evaluate(polyslab.vertices)
 
+    # erosion / dilation
+
+    image_01 = np.random.random(image.shape)
+
+    ed_penalty = ErosionDilationPenalty(
+        length_scale=1.0, beta=10, pixel_size=0.01, eta0=0.45, delta_eta=0.02
+    )
+
+    val = ed_penalty.evaluate(image_01)
+    assert val > 0
+
 
 @pytest.mark.parametrize(
     "input_size_y, log_level_expected", [(13, None), (12, "WARNING"), (11, "WARNING"), (14, None)]
@@ -1649,16 +1660,15 @@ def test_no_adjoint_sources(
     if not has_adj_src:
         monkeypatch.setattr(JaxModeData, "to_adjoint_sources", lambda *args, **kwargs: [])
 
-    def J(x):
-        sim = make_sim(eps=x)
-        data = run(sim, task_name="test", path=str(tmp_path / RUN_FILE))
-        data.make_adjoint_simulation(fwidth=src.source_time.fwidth, run_time=sim.run_time)
-        power = jnp.sum(jnp.abs(jnp.array(data["mnt"].amps.values)) ** 2)
-        return power
+    x = 2.0
+    sim = make_sim(eps=x)
+    data = run(sim, task_name="test", path=str(tmp_path / RUN_FILE))
 
-    grad_J = grad(J)
-    grad_J(2.0)
-    assert_log_level(log_capture, log_level_expected)
+    # check whether we got a warning for no sources?
+    with AssertLogLevel(log_capture, log_level_expected, contains_str="No adjoint sources"):
+        data.make_adjoint_simulation(fwidth=src.source_time.fwidth, run_time=sim.run_time)
+
+    power = jnp.sum(jnp.abs(jnp.array(data["mnt"].amps.values)) ** 2)
 
 
 def test_nonlinear_warn(log_capture):
