@@ -21,10 +21,10 @@ def extract_content_between_dashed(content):
     return yml_content
 
 def remove_jekyll_constructions(content):
-    # Regex pattern to match constructions like {: ... }
-    pattern = r'\{: .*?\}'
-    # Replace matched patterns with an empty string
-    cleaned_content = re.sub(pattern, '', content)
+    # Regex pattern to match constructions like {: ... }, including newlines
+    pattern = r'\{\:.*?\}'
+    # Replace matched patterns with an empty string, using re.DOTALL to match across multiple lines
+    cleaned_content = re.sub(pattern, '', content, flags=re.DOTALL)
 
     return cleaned_content
 

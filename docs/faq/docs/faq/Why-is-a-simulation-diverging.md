@@ -23,8 +23,7 @@ consider.
     possible, use [Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber)
     boundaries.
 -   If using our fitter to fit your own material data, make sure you are
-    using the `plugins.StableDispersionFitter`{: .interpreted-text
-    role="class"}.
+    using the `plugins.StableDispersionFitter`.
 -   If none of the above work, try using [StablePML](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.StablePML.html#tidy3d.StablePML) or [Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber)
     boundaries anyway (note: these may introduce more reflections than
     in usual simulations with regular PML).

@@ -8,8 +8,7 @@
 Conversely to early termination, you may sometimes get a warning that
 the fields remaining in the simulation at the end of the run have not
 decayed down to the pre-defined shutoff value. This should **usually**
-be avoided (that is to say, `Simulation.run_time`{: .interpreted-text
-role="py:obj"} should be increased), but there are some cases in which
+be avoided (that is to say, `Simulation.run_time` should be increased), but there are some cases in which
 it may be inevitable. The important thing to understand is that in such
 simulations, frequency-domain results cannot always be trusted. The
 frequency-domain response obtained in the FDTD simulation only
