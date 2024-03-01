@@ -21,8 +21,7 @@ this is somewhat arbitrary and it is most convenient for it to be taken
 out of the frequency-domain results. By default, after a run, Tidy3D
 normalizes all frequency-domain results by the spectrum of the first
 source in the list of sources in the simulation. This choice can be
-modified using the `Simulation.normalize_index`{: .interpreted-text
-role="py:obj"} attribute, or normalization can be turned off by setting
+modified using the `Simulation.normalize_index` attribute, or normalization can be turned off by setting
 that to `None`. Results can even be renoramlized after the simulation
 run using [SimulationData.renormalize()](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.SimulationData.html#tidy3d.SimulationData.renormalize).
 If multiple sources are used, but they all have the same time
@@ -93,7 +92,6 @@ spectrum normalization has also been applied.
     direction, which is at an angle $\theta$ with respect to the
     injection axis. Note also that when the source spans the entire
     simulation domain with periodic or Bloch boundaries, the conversion
-    between the normalization of a `TFSFSource`{: .interpreted-text
-    role="class"} and a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave) is
+    between the normalization of a `TFSFSource` and a [PlaneWave](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PlaneWave.html#tidy3d.PlaneWave) is
     just the area of the simulation domain in the plane normal to the
     injection axis.
