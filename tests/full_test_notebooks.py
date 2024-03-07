@@ -33,12 +33,9 @@ for _, path in enumerate(notebook_filenames_all):
 run_only = []
 
 skip = [
-    "AdjointPlugin5BoundaryGradients",
-    "AdjointPlugin6GratingCoupler",
-    "AdjointPlugin7Metalens",
-    "AdjointPlugin8WaveguideBend",
-    "AdjointPlugin9WDM",
-    "AdjointPlugin11CircuitMZI",
+'8ChannelDemultiplexer',
+'90BendPolarizationSplitterRotator',
+'90OpticalHybrid',
 ]
 
 # if any run only supplied, only add those
