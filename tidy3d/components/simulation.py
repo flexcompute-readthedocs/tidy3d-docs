@@ -24,7 +24,7 @@ from .grid.grid_spec import GridSpec, UniformGrid, AutoGrid, CustomGrid
 from .medium import MediumType, AbstractMedium
 from .medium import AbstractCustomMedium, Medium2D
 from .medium import AnisotropicMedium, FullyAnisotropicMedium, AbstractPerturbationMedium
-from .boundary import BoundarySpec, BlochBoundary, PECBoundary, PMCBoundary, Periodic
+from .boundary import BoundarySpec, BlochBoundary, PECBoundary, PMCBoundary, Periodic, Boundary
 from .boundary import PML, StablePML, Absorber, AbsorberSpec
 from .structure import Structure
 from .source import SourceType, PlaneWave, GaussianBeam, AstigmaticGaussianBeam, CustomFieldSource
@@ -1561,6 +1561,18 @@ class Simulation(AbstractSimulation):
                     "source is only meaningful if field decay occurs."
                 )
 
+        return val
+
+    @pydantic.validator("grid_spec", always=True)
+    @skip_if_fields_missing(["size"])
+    def _no_custom_grid_along_zero_dims(cls, val, values):
+        """Check that a custom grid is not assigned for a zero-size dimension."""
+
+        size = values["size"]
+
+        for s, grid_spec_axis in zip(size, [val.grid_x, val.grid_y, val.grid_z]):
+            if s == 0 and isinstance(grid_spec_axis, CustomGrid):
+                raise SetupError("'CustomGrid' is not supported along zero-size dimensions.")
         return val
 
     """ Post-init validators """
@@ -3695,12 +3707,8 @@ class Simulation(AbstractSimulation):
             grid_spec = self.grid_spec
         elif isinstance(grid_spec, str) and grid_spec == "identical":
             # create a custom grid from existing one
-            grids_1d = self.grid.boundaries
-            grid_spec = GridSpec(
-                grid_x=CustomGrid(dl=tuple(np.diff(grids_1d.x)), custom_offset=grids_1d.x[0]),
-                grid_y=CustomGrid(dl=tuple(np.diff(grids_1d.y)), custom_offset=grids_1d.y[0]),
-                grid_z=CustomGrid(dl=tuple(np.diff(grids_1d.z)), custom_offset=grids_1d.z[0]),
-            )
+
+            grids_1d = self.grid.boundaries.to_list
 
             # adjust region bounds to perfectly coincide with the grid
             # note, sometimes (when a box already seems to perfrecty align with the grid)
@@ -3711,18 +3719,21 @@ class Simulation(AbstractSimulation):
             aux_box = Box(center=center, size=size)
             grid_inds = self.grid.discretize_inds(box=aux_box)
 
-            new_bounds = [
-                [
-                    grids_1d.x[grid_inds[0][0]],
-                    grids_1d.y[grid_inds[1][0]],
-                    grids_1d.z[grid_inds[2][0]],
-                ],
-                [
-                    grids_1d.x[grid_inds[0][1]],
-                    grids_1d.y[grid_inds[1][1]],
-                    grids_1d.z[grid_inds[2][1]],
-                ],
-            ]
+            new_grids = []
+
+            for dim in range(3):
+                if new_bounds[0][dim] == new_bounds[1][dim]:  # preserve zero size dimensions
+                    # custom grid + zero-size dimension causes errors, so do a uniform instead
+                    new_grids.append(UniformGrid(dl=np.diff(grids_1d[dim])[0]))
+                else:
+                    # adjust boundaries only in non-zero-size dimensions
+                    new_bounds[0][dim] = grids_1d[dim][grid_inds[dim][0]]
+                    new_bounds[1][dim] = grids_1d[dim][grid_inds[dim][1]]
+                    new_grids.append(
+                        CustomGrid(dl=tuple(np.diff(grids_1d[dim])), custom_offset=grids_1d[dim][0])
+                    )
+
+            grid_spec = GridSpec(grid_x=new_grids[0], grid_y=new_grids[1], grid_z=new_grids[2])
 
         # if symmetry is not overriden we inherit it from the original simulation where is needed
         if symmetry is None:
@@ -3770,6 +3781,18 @@ class Simulation(AbstractSimulation):
 
         if boundary_spec is None:
             boundary_spec = self.boundary_spec
+
+        # set boundary conditions in zero-size dimension to periodic
+        for dim in range(3):
+            if new_bounds[0][dim] == new_bounds[1][dim] and not isinstance(
+                boundary_spec.to_list[dim][0], Periodic
+            ):
+                axis_name = "xyz"[dim]
+                log.warning(
+                    f"The resulting simulation subsection has size zero along axis '{axis_name}'. "
+                    "Periodic boundary conditions are automatically set along this dimension."
+                )
+                boundary_spec = boundary_spec.updated_copy(**{"xyz"[dim]: Boundary.periodic()})
 
         # reduction of custom medium data
         new_sim_medium = self.medium

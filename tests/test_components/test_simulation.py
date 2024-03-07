@@ -2310,6 +2310,8 @@ def test_to_gds(tmp_path):
 
 def test_sim_subsection():
     region = td.Box(size=(0.3, 0.5, 0.7), center=(0.1, 0.05, 0.02))
+    region_xy = td.Box(size=(0.3, 0.5, 0), center=(0.1, 0.05, 0.02))
+    region_yz = td.Box(size=(0, 0.5, 0.7), center=(0.1, 0.05, 0.02))
 
     sim_red = SIM_FULL.subsection(region=region)
     assert sim_red.structures != SIM_FULL.structures
@@ -2375,6 +2377,47 @@ def test_sim_subsection():
         ind = np.argmax(np.logical_and(full_grid >= start - tol, full_grid <= start + tol))
         # compare
         assert np.allclose(red_grid, full_grid[ind : ind + len(red_grid)])
+
+    sim_red = SIM_FULL.subsection(
+        region=region_xy,
+        grid_spec="identical",
+        boundary_spec=td.BoundarySpec.all_sides(td.Periodic()),
+    )
+    assert sim_red.size[2] == 0
+    assert isinstance(sim_red.boundary_spec.z.minus, td.Periodic)
+    assert isinstance(sim_red.boundary_spec.z.plus, td.Periodic)
+
+    # check behavior for zero-size dimensions
+    sim_2d = SIM.updated_copy(
+        size=(SIM.size[0], 0, SIM.size[2]),
+        boundary_spec=td.BoundarySpec.pml(x=True, z=True),
+    )
+    sim_2d_red = sim_2d.subsection(
+        region=region, remove_outside_structures=True, remove_outside_custom_mediums=True
+    )
+    assert sim_2d_red.size[1] == 0
+
+    sim_red = sim_2d.subsection(
+        region=region_xy,
+        grid_spec="identical",
+        boundary_spec=td.BoundarySpec.all_sides(td.Periodic()),
+    )
+    assert sim_red.size[1] == 0
+    assert sim_red.size[2] == 0
+    assert isinstance(sim_red.boundary_spec.y.minus, td.Periodic)
+    assert isinstance(sim_red.boundary_spec.y.plus, td.Periodic)
+    assert isinstance(sim_red.boundary_spec.z.minus, td.Periodic)
+    assert isinstance(sim_red.boundary_spec.z.plus, td.Periodic)
+
+    sim_1d = SIM.updated_copy(
+        size=(0, SIM.size[1], 0),
+        boundary_spec=td.BoundarySpec.pml(y=True),
+    )
+    sim_1d_red = sim_1d.subsection(
+        region=region, remove_outside_structures=True, remove_outside_custom_mediums=True
+    )
+    assert sim_1d_red.size[0] == 0
+    assert sim_1d_red.size[2] == 0
 
 
 def test_2d_material_subdivision():
