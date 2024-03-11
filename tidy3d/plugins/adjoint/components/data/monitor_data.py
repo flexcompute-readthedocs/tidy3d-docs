@@ -241,7 +241,7 @@ class JaxFieldData(JaxMonitorData, FieldData):
                     omega0 = 2 * np.pi * freq0
                     scaling_factor = 1 / (MU_0 * omega0)
 
-                    forward_amp = complex(field_component.sel(f=freq0).values)
+                    forward_amp = complex(jnp.squeeze(field_component.sel(f=freq0).values))
 
                     adj_phase = 3 * np.pi / 2 + np.angle(forward_amp)
 
@@ -407,6 +407,9 @@ class JaxDiffractionData(JaxMonitorData, DiffractionData):
 
         adjoint_sources = []
         for amp, order_x, order_y, freq, pol in zip(amp_vals, orders_x, orders_y, freqs, pols):
+            if jnp.isnan(amp):
+                continue
+
             # select the propagation angles from the data
             angle_sel_kwargs = dict(orders_x=int(order_x), orders_y=int(order_y), f=float(freq))
             angle_theta = float(theta_data.sel(**angle_sel_kwargs))

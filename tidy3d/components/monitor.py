@@ -233,6 +233,23 @@ class AbstractFieldMonitor(Monitor, ABC):
         "primal grid nodes).",
     )
 
+    def _storage_size_solver(self, num_cells: int, tmesh: ArrayFloat1D) -> int:
+        """Size of intermediate data recorded by the monitor during a solver run."""
+        final_data_size = self.storage_size(num_cells=num_cells, tmesh=tmesh)
+        if len(self.fields) == 0:
+            return 0
+
+        # internally solver stores all E components if any one is requested, and same for H
+        field_components_factor = 0
+        if any(comp[0] == "E" for comp in self.fields):
+            field_components_factor += 3
+        if any(comp[0] == "H" for comp in self.fields):
+            field_components_factor += 3
+
+        # take out the stored field components factor and use the solver factor instead
+        solver_data_size = final_data_size / len(self.fields) * field_components_factor
+        return solver_data_size
+
 
 class PlanarMonitor(Monitor, ABC):
     """:class:`Monitor` that has a planar geometry."""
@@ -252,6 +269,12 @@ class AbstractModeMonitor(PlanarMonitor, FreqMonitor):
         ...,
         title="Mode Specification",
         description="Parameters to feed to mode solver which determine modes measured by monitor.",
+    )
+
+    store_fields_direction: Direction = pydantic.Field(
+        None,
+        title="Store Fields",
+        description="Propagation direction for the mode field profiles stored from mode solving.",
     )
 
     def plot(
@@ -599,11 +622,11 @@ class ModeMonitor(AbstractModeMonitor):
     ------
 
         The fields recorded by frequency monitors (and hence also mode monitors) are automatically
-        normalized by the power amplitude spectrum of the source. For multiple sources, the user can select which
-        source to use for the normalization too.
+        normalized by the power amplitude spectrum of the source. For multiple sources, the user can
+        select which source to use for the normalization too.
 
-        We can also use the mode amplitudes recorded in the mode monitor to reveal the decomposition of the radiated
-        power into forward- and backward-propagating modes, respectively.
+        We can also use the mode amplitudes recorded in the mode monitor to reveal the decomposition
+        of the radiated power into forward- and backward-propagating modes, respectively.
 
         .. TODO give an example of how to extract the data from this mode.
 
@@ -640,8 +663,13 @@ class ModeMonitor(AbstractModeMonitor):
 
     def storage_size(self, num_cells: int, tmesh: int) -> int:
         """Size of monitor storage given the number of points after discretization."""
-        # stores 3 complex numbers per frequency, per mode.
-        return 3 * BYTES_COMPLEX * len(self.freqs) * self.mode_spec.num_modes
+        amps_size = 3 * BYTES_COMPLEX * len(self.freqs) * self.mode_spec.num_modes
+        fields_size = 0
+        if self.store_fields_direction is not None:
+            fields_size = 6 * BYTES_COMPLEX * num_cells * len(self.freqs) * self.mode_spec.num_modes
+            if self.mode_spec.precision == "double":
+                fields_size *= 2
+        return amps_size + fields_size
 
 
 class ModeSolverMonitor(AbstractModeMonitor):
@@ -672,6 +700,20 @@ class ModeSolverMonitor(AbstractModeMonitor):
         description="Toggle whether fields should be colocated to grid cell boundaries (i.e. "
         "primal grid nodes).",
     )
+
+    @pydantic.root_validator(skip_on_failure=True)
+    def set_store_fields(cls, values):
+        """Ensure 'store_fields_direction' is compatible with 'direction'."""
+        store_fields_direction = values["store_fields_direction"]
+        direction = values["direction"]
+        if store_fields_direction is None:
+            values["store_fields_direction"] = direction
+        elif store_fields_direction != direction:
+            raise ValidationError(
+                f"The values of 'direction' ({direction}) and 'store_fields_direction' "
+                f"({store_fields_direction}) must be equal."
+            )
+        return values
 
     def storage_size(self, num_cells: int, tmesh: int) -> int:
         """Size of monitor storage given the number of points after discretization."""
@@ -716,7 +758,7 @@ class FieldProjectionSurface(Tidy3dBaseModel):
 
     @pydantic.validator("monitor", always=True)
     def is_plane(cls, val):
-        """Ensures that the monitor is a plane, i.e., its `size` attribute has exactly 1 zero"""
+        """Ensures that the monitor is a plane, i.e., its ``size`` attribute has exactly 1 zero"""
         size = val.size
         if size.count(0.0) != 1:
             raise ValidationError(f"Monitor '{val.name}' must be planar, given size={size}")
@@ -1346,6 +1388,10 @@ class DiffractionMonitor(PlanarMonitor, FreqMonitor):
         """Size of monitor storage given the number of points after discretization."""
         # assumes 1 diffraction order per frequency; actual size will be larger
         return BYTES_COMPLEX * len(self.freqs)
+
+    def _storage_size_solver(self, num_cells: int, tmesh: ArrayFloat1D) -> int:
+        """Size of intermediate data recorded by the monitor during a solver run."""
+        return BYTES_COMPLEX * num_cells * len(self.freqs) * 6
 
 
 # types of monitors that are accepted by simulation

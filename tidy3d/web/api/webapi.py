@@ -66,7 +66,7 @@ def run(
         Http PUT url to receive simulation finish event. The body content is a json file with
         fields ``{'id', 'status', 'name', 'workUnit', 'solverVersion'}``.
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback_upload : Callable[[float], None] = None
         Optional callback function called when uploading file with ``bytes_in_chunk`` as argument.
     progress_callback_download : Callable[[float], None] = None
@@ -166,7 +166,7 @@ def upload(
         Http PUT url to receive simulation finish event. The body content is a json file with
         fields ``{'id', 'status', 'name', 'workUnit', 'solverVersion'}``.
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback : Callable[[float], None] = None
         Optional callback function called when uploading file with ``bytes_in_chunk`` as argument.
     simulation_type : str
@@ -210,8 +210,8 @@ def upload(
         )
         if task_type == "HEAT":
             console.log(
-                "Tidy3D's heat solver is currently in the beta stage. All heat simulations are "
-                "charged a flat fee of 0.025 FlexCredit."
+                "Tidy3D's heat solver is currently in the beta stage. Cost of heat simulations "
+                "is subject to change in the future."
             )
         else:
             url = _get_url(task.task_id)
@@ -233,7 +233,7 @@ def get_info(task_id: TaskId, verbose: bool = True) -> TaskInfo:
     task_id : str
         Unique identifier of task on server.  Returned by :meth:`upload`.
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     Returns
     -------
     :class:`TaskInfo`
@@ -262,7 +262,6 @@ def start(
         target solver version.
     worker_group: str = None
         worker group
-
     Note
     ----
     To monitor progress, can call :meth:`monitor` after starting simulation.
@@ -311,7 +310,10 @@ def get_status(task_id) -> str:
     if status == "visualize":
         return "success"
     if status == "error":
-        raise WebError("Error running task!")
+        raise WebError(
+            f"Error running task {task_id}! Use 'web.download_log(task_id)' to "
+            "download and examine the solver log, and/or contact customer support for help."
+        )
     return status
 
 
@@ -333,7 +335,7 @@ def monitor(task_id: TaskId, verbose: bool = True) -> None:
     task_id : str
         Unique identifier of task on server.  Returned by :meth:`upload`.
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
 
     Note
     ----
@@ -359,9 +361,6 @@ def monitor(task_id: TaskId, verbose: bool = True) -> None:
                 prev_status = status
             time.sleep(0.5)
             status = get_status(task_id)
-
-        if status == "error":
-            raise WebError(f"Error running {solver_name} solver.")
 
         log.log(log_level, f"{solver_name} solver status: {status}")
         if verbose:
@@ -423,7 +422,12 @@ def monitor(task_id: TaskId, verbose: bool = True) -> None:
 
         # preprocessing
         if verbose:
-            with console.status(f"[bold green]Starting '{task_name}'...", spinner="runner"):
+            console.log(
+                "To cancel the simulation, use 'web.abort(task_id)' or 'web.delete(task_id)' "
+                "or abort/delete the task in the web "
+                "UI. Terminating the Python script will not stop the job running on the cloud."
+            )
+            with console.status(f"[bold green]Waiting for '{task_name}'...", spinner="runner"):
                 monitor_preprocess()
         else:
             monitor_preprocess()
@@ -441,11 +445,6 @@ def monitor(task_id: TaskId, verbose: bool = True) -> None:
         if verbose:
             # verbose case, update progressbar
             console.log("running solver")
-            console.log(
-                "To cancel the simulation, use 'web.abort(task_id)' or 'web.delete(task_id)' "
-                "or abort/delete the task in the web "
-                "UI. Terminating the Python script will not stop the job running on the cloud."
-            )
             with Progress(console=console) as progress:
                 pbar_pd = progress.add_task("% done", total=100)
                 perc_done, _ = get_run_info(task_id)
@@ -508,7 +507,7 @@ def download(
     path : str = "simulation_data.hdf5"
         Download path to .hdf5 data file (including filename).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
 
@@ -519,7 +518,7 @@ def download(
 
 @wait_for_connection
 def download_json(task_id: TaskId, path: str = SIM_FILE_JSON, verbose: bool = True) -> None:
-    """Download the `.json` file associated with the :class:`.Simulation` of a given task.
+    """Download the ``.json`` file associated with the :class:`.Simulation` of a given task.
 
     Parameters
     ----------
@@ -528,7 +527,7 @@ def download_json(task_id: TaskId, path: str = SIM_FILE_JSON, verbose: bool = Tr
     path : str = "simulation.json"
         Download path to .json file of simulation (including filename).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
 
     """
 
@@ -543,7 +542,7 @@ def download_hdf5(
     verbose: bool = True,
     progress_callback: Callable[[float], None] = None,
 ) -> None:
-    """Download the `.hdf5` file associated with the :class:`.Simulation` of a given task.
+    """Download the ``.hdf5`` file associated with the :class:`.Simulation` of a given task.
 
     Parameters
     ----------
@@ -552,7 +551,7 @@ def download_hdf5(
     path : str = "simulation.hdf5"
         Download path to .hdf5 file of simulation (including filename).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
 
@@ -565,7 +564,7 @@ def download_hdf5(
 def load_simulation(
     task_id: TaskId, path: str = SIM_FILE_JSON, verbose: bool = True
 ) -> SimulationType:
-    """Download the `.json` file of a task and load the associated simulation.
+    """Download the ``.json`` file of a task and load the associated simulation.
 
     Parameters
     ----------
@@ -574,7 +573,7 @@ def load_simulation(
     path : str = "simulation.json"
         Download path to .json file of simulation (including filename).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
 
     Returns
     -------
@@ -603,13 +602,13 @@ def download_log(
     path : str = "tidy3d.log"
         Download path to log file (including filename).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
 
     Note
     ----
-    To load downloaded results into data, call :meth:`load` with option `replace_existing=False`.
+    To load downloaded results into data, call :meth:`load` with option ``replace_existing=False``.
     """
     task = SimulationTask(taskId=task_id)
     task.get_log(path, verbose=verbose, progress_callback=progress_callback)
@@ -648,7 +647,7 @@ def load(
     replace_existing: bool = True
         Downloads the data even if path exists (overwriting the existing).
     verbose : bool = True
-        If `True`, will print progressbars and status, otherwise, will run silently.
+        If ``True``, will print progressbars and status, otherwise, will run silently.
     progress_callback : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
 
@@ -929,14 +928,16 @@ def real_cost(task_id: str, verbose=True) -> float:
 
 @wait_for_connection
 def test() -> None:
-    """Confirm whether Tidy3D authentication is configured. Raises exception if not."""
+    """
+    Confirm whether Tidy3D authentication is configured. Raises exception if not.
+    """
     try:
         # note, this is a little slow, but the only call that doesn't require providing a task id.
         get_tasks(num_tasks=0)
         console = get_logging_console()
         console.log("Authentication configured successfully!")
     except (WebError, HTTPError) as e:
-        url = "https://docs.flexcompute.com/projects/tidy3d/en/latest/quickstart.html"
+        url = "https://docs.flexcompute.com/projects/tidy3d/en/latest/index.html"
 
         raise WebError(
             "Tidy3D not configured correctly. Please refer to our documentation for installation "

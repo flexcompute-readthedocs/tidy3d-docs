@@ -44,7 +44,7 @@ class Tidy3dStub(BaseModel, TaskStub):
         Returns
         -------
         Union[:class:`.Simulation`, :class:`.HeatSimulation`]
-            An instance of the component class calling `load`.
+            An instance of the component class calling ``load``.
 
         Example
         -------
@@ -112,7 +112,7 @@ class Tidy3dStub(BaseModel, TaskStub):
         Returns
         -------
         :class:`TaskType`
-            An instance Type of the component class calling `load`.
+            An instance Type of the component class calling ``load``.
         """
         if isinstance(self.simulation, Simulation):
             return TaskType.FDTD.name
@@ -146,7 +146,7 @@ class Tidy3dStubData(BaseModel, TaskStubData):
         Returns
         -------
         Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
-            An instance of the component class calling `load`.
+            An instance of the component class calling ``load``.
         """
         extension = _get_valid_extension(file_path)
         if extension == ".json":
@@ -197,17 +197,28 @@ class Tidy3dStubData(BaseModel, TaskStubData):
         Returns
         -------
         Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
-            An instance of the component class calling `load`.
+            An instance of the component class calling ``load``.
         """
         stub_data = Tidy3dStubData.from_file(file_path)
+
+        check_log_msg = "For more information, check 'SimulationData.log' or use "
+        check_log_msg += "'web.download_log(task_id)'."
+        warned_about_warnings = False
 
         if isinstance(stub_data, SimulationData):
             final_decay_value = stub_data.final_decay_value
             shutoff_value = stub_data.simulation.shutoff
-            if (shutoff_value != 0) and (final_decay_value > shutoff_value):
+            if stub_data.diverged:
+                log.warning("The simulation has diverged! " + check_log_msg)
+                warned_about_warnings = True
+            elif (shutoff_value != 0) and (final_decay_value > shutoff_value):
                 log.warning(
                     f"Simulation final field decay value of {final_decay_value} is greater than "
                     f"the simulation shutoff threshold of {shutoff_value}. Consider running the "
                     "simulation again with a larger 'run_time' duration for more accurate results."
                 )
+
+        if "WARNING" in stub_data.log and not warned_about_warnings:
+            log.warning("Warning messages were found in the solver log. " + check_log_msg)
+
         return stub_data

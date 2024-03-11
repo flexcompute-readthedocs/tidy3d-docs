@@ -14,6 +14,7 @@ from ..api import webapi as web
 from ..core.task_info import TaskInfo, RunInfo
 from ..core.constants import TaskId, TaskName
 from ...components.base import Tidy3dBaseModel
+from ...components.types import annotate_type
 from ...log import log, get_logging_console
 
 from ...exceptions import DataError
@@ -418,7 +419,7 @@ class Batch(WebContainer):
         * `Inverse taper edge coupler <../../notebooks/EdgeCoupler.html>`_
     """
 
-    simulations: Dict[TaskName, SimulationType] = pd.Field(
+    simulations: Dict[TaskName, annotate_type(SimulationType)] = pd.Field(
         ...,
         title="Simulations",
         description="Mapping of task names to Simulations to run as a batch.",
@@ -493,9 +494,11 @@ class Batch(WebContainer):
         ----
         A typical usage might look like:
 
-        >>> batch_data = batch.run()
-        >>> for task_name, sim_data in batch_data.items():
-        ...     # do something with data.
+        >>> from tidy3d.web.api.container import Batch
+        >>> custom_batch = Batch()
+        >>> batch_data = custom_batch.run() # doctest: +SKIP
+        >>> for task_name, sim_data in batch_data.items(): # doctest: +SKIP
+        ...     # do something with data. # doctest: +SKIP
 
         ``bach_data`` does not store all of the data objects in memory,
         rather it iterates over the task names and loads the corresponding

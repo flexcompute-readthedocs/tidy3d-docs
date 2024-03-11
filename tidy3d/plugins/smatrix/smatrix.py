@@ -63,8 +63,8 @@ class SMatrixDataArray(DataArray):
     >>> mode_index_out = [0, 1]
     >>> f = [2e14]
     >>> coords = dict(
-    ...     port_in=ports_in,
-    ...     port_out=ports_out,
+    ...     port_in=port_in,
+    ...     port_out=port_out,
     ...     mode_index_in=mode_index_in,
     ...     mode_index_out=mode_index_out,
     ...     f=f
@@ -511,7 +511,7 @@ class ComponentModeler(Tidy3dBaseModel):
         return self._construct_smatrix(batch_data=batch_data)
 
     def load(self, path_dir: str = DEFAULT_DATA_DIR) -> SMatrixDataArray:
-        """Load a scattering matrix from saved `BatchData` object."""
+        """Load a scattering matrix from saved :class:`BatchData` object."""
         path_dir = self.get_path_dir(path_dir)
 
         batch_data = BatchData.load(path_dir=path_dir)

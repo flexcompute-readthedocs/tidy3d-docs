@@ -1,4 +1,6 @@
 """Defines Geometric objects with Medium properties."""
+from __future__ import annotations
+
 from typing import Union, Tuple, Optional
 import pydantic.v1 as pydantic
 import numpy as np
@@ -160,6 +162,15 @@ class Structure(AbstractStructure):
 
         return val
 
+    def _compatible_with(self, other: Structure) -> bool:
+        """Whether these two structures are compatible."""
+        # note: if the first condition fails, the second won't get triggered
+        if not self.medium._compatible_with(other.medium) and self.geometry.intersects(
+            other.geometry
+        ):
+            return False
+        return True
+
     def eps_comp(self, row: Axis, col: Axis, frequency: float, coords: Coords) -> complex:
         """Single component of the complex-valued permittivity tensor as a function of frequency.
 
@@ -216,7 +227,7 @@ class Structure(AbstractStructure):
         Return
         ------
         List
-            List of `gdstk.Polygon`
+            List of ``gdstk.Polygon``
         """
 
         polygons = self.geometry.to_gdstk(x=x, y=y, z=z, gds_layer=gds_layer, gds_dtype=gds_dtype)
@@ -277,7 +288,7 @@ class Structure(AbstractStructure):
         Return
         ------
         List
-            List of `gdspy.Polygon` and `gdspy.PolygonSet`.
+            List of ``gdspy.Polygon`` and ``gdspy.PolygonSet``.
         """
 
         if isinstance(self.medium, AbstractCustomMedium):
