@@ -20,4 +20,5 @@ Simulations
    faq/how-do-i-print-the-task-log-file
    faq/What-are-the-units-used-in-the-simulation
    faq/how-to-run-a-2d-simulation-in-tidy3d
+   faq/why-the-simulation-time-for-the-exact-same-simulation-can-vary
    faq/how-long-should-i-run-the-simulation

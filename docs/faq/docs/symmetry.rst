@@ -10,3 +10,4 @@ Symmetry
    faq/what-does-odd-i-e-pec-symmetry-mean
    faq/what-does-even-i-e-pmc-symmetry-mean
    faq/how-do-i-filter-out-waveguide-modes-using-symmetry
+   faq/does-tidy3d-support-continuous-and-discrete-rotational-symmetries

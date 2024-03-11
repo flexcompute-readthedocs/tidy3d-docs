@@ -7,6 +7,7 @@ Sources
    faq/what-source-bandwidth-should-i-use-for-my-simulation
    faq/how-do-i-set-the-source-frequency-and-bandwidth
    faq/how-can-i-plot-the-source-spectrum-and-time-dependence
+   faq/how-can-i-plot-the-source-spectrum
    faq/How-are-results-normalized
    faq/how-do-i-set-a-pointdipole-source
    faq/how-do-i-calculate-the-power-radiated-by-a-pointdipole-source
