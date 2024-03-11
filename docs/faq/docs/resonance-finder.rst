@@ -8,4 +8,5 @@ Resonance Finder
    faq/how-do-i-get-resonance-quality-factors
    faq/how-do-i-calculate-photonic-band-diagrams-using-the-resonancefinder
    faq/how-do-i-calculate-the-effective-mode-volume
+   faq/how-to-ensure-the-calculated-quality-factor-is-accurate
    faq/how-do-i-calculate-the-purcell-factor

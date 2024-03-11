@@ -44,6 +44,7 @@
       "_faqs/how-do-i-print-the-task-log-file.md",
       "_faqs/What-are-the-units-used-in-the-simulation.md",
       "_faqs/how-to-run-a-2d-simulation-in-tidy3d.md",
+      "_faqs/why-the-simulation-time-for-the-exact-same-simulation-can-vary.md",
       "_faqs/how-long-should-i-run-the-simulation.md"
     ]
   },
@@ -53,6 +54,7 @@
     "faqs": [
       "_faqs/how-do-i-run-a-parameter-sweep.md",
       "_faqs/how-do-i-submit-multiple-simulations.md",
+      "_faqs/how-to-load-a-batch-result.md",
       "_faqs/how-do-i-loop-through-tidy3d-web-batchdata-without-loading-all-of-the-data-into-memory.md",
       "_faqs/how-do-i-save-or-load-a-tidy3d-web-batch-so-i-can-work-with-it-later.md"
     ]
@@ -102,6 +104,11 @@
       "_faqs/how-do-i-create-a-polygon.md",
       "_faqs/how-do-i-create-a-geometry-group.md",
       "_faqs/how-do-i-combine-multiple-geometries.md",
+      "_faqs/when-two-structures-overlap-what-is-the-priority-determined.md",
+      "_faqs/how-to-rotate-a-geometry.md",
+      "_faqs/how-to-translate-a-geometry.md",
+      "_faqs/how-to-scale-a-geometry.md",
+      "_faqs/how-can-i-apply-transformations-to-a-geometry.md",
       "_faqs/how-do-i-use-clip-operations.md",
       "_faqs/which-features-can-i-use-to-create-geometries-in-tidy3d.md",
       "_faqs/how-do-i-define-complex-geometries-using-trimesh.md",
@@ -116,6 +123,7 @@
       "_faqs/what-source-bandwidth-should-i-use-for-my-simulation.md",
       "_faqs/how-do-i-set-the-source-frequency-and-bandwidth.md",
       "_faqs/how-can-i-plot-the-source-spectrum-and-time-dependence.md",
+      "_faqs/how-can-i-plot-the-source-spectrum.md",
       "_faqs/How-are-results-normalized.md",
       "_faqs/how-do-i-set-a-pointdipole-source.md",
       "_faqs/how-do-i-calculate-the-power-radiated-by-a-pointdipole-source.md",
@@ -173,7 +181,8 @@
       "_faqs/how-do-i-identify-the-symmetry-planes-of-my-simulation.md",
       "_faqs/what-does-odd-i-e-pec-symmetry-mean.md",
       "_faqs/what-does-even-i-e-pmc-symmetry-mean.md",
-      "_faqs/how-do-i-filter-out-waveguide-modes-using-symmetry.md"
+      "_faqs/how-do-i-filter-out-waveguide-modes-using-symmetry.md",
+      "_faqs/does-tidy3d-support-continuous-and-discrete-rotational-symmetries.md"
     ]
   },
   {
@@ -262,6 +271,7 @@
       "_faqs/how-do-i-get-resonance-quality-factors.md",
       "_faqs/how-do-i-calculate-photonic-band-diagrams-using-the-resonancefinder.md",
       "_faqs/how-do-i-calculate-the-effective-mode-volume.md",
+      "_faqs/how-to-ensure-the-calculated-quality-factor-is-accurate.md",
       "_faqs/how-do-i-calculate-the-purcell-factor.md"
     ]
   },
