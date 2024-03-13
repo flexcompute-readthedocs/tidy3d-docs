@@ -9,4 +9,3 @@ Mediums
     ../../FullyAnisotropic
     ../../Gyrotropic
     ../../CustomMediumTutorial
-    ../../TimeModulationTutorial

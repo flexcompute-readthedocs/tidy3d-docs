@@ -30,4 +30,3 @@ Passive Photonic Integrated Circuit Components
     ../../PlasmonicWaveguideCO2Sensor
     ../../BilayerSiNEdgeCoupler
     ../../ScaleInvariantWaveguide
-    ../../WaveguideGratingAntenna
