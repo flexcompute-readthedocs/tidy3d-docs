@@ -5,7 +5,7 @@
 | 2023-12-11 18:47:30 | Sources |
 
 
-When you define a source, you need to specify a source time profile, which is typically Gaussian. For example, we can define a plane wave as
+When defining a source, you must specify a source time profile, typically Gaussian. For example, we can define a plane wave as
 
 
 
@@ -23,7 +23,7 @@ plane_wave = td.PlaneWave(
 
 
 
-Here the source time is a Gaussian pulse with central frequency `freq0` and frequency width `0.5 * freqw`. To visualize the spectrum it gives, we can use the `plot_spectrum` method by
+Here, the source time is a Gaussian pulse with central frequency `freq0` and frequency width `0.5 * freqw`. To visualize the spectrum it gives, we can use the `plot_spectrum` method by
 
 
 
@@ -38,4 +38,4 @@ plt.show()
 
 
 
-Here we need to specify the sampled time instances. To ensure the source spectrum is plotted correctly, we need to ensure the time sampling is sufficiently fine and the end time is sufficiently long compared to the pulse width.
+Here, we need to specify the sampled time instances. To ensure the source spectrum is plotted correctly, we need to ensure the time sampling is sufficiently fine and the end time is sufficiently long compared to the pulse width.

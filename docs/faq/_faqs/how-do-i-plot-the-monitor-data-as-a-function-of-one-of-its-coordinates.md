@@ -1,6 +1,6 @@
 ---
 _schema: default
-title: "How do I plot the\_monitor data\_as a function of one of its coordinates?"
+title: "How do I plot the monitor data as a function of one of its coordinates?"
 date: 2023-12-19 15:52:31
 enabled: true
 category: Data Visualization and Postprocessing

@@ -5,7 +5,7 @@
 | 2023-12-19 17:11:46 | Monitors |
 
 
-records the diagonal components of the complex-valued relative permittivity tensor in the frequency domain. You can define a PermittivityMonitor object by
+The `PermittivityMonitor` records the diagonal components of the complex-valued relative permittivity tensor in the frequency domain. You can define a PermittivityMonitor object by
 
 
 
@@ -21,4 +21,4 @@ monitor = PermittivityMonitor(
 
 
 
-For details, please refer to the[API reference](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PermittivityMonitor.html).
+For details, please refer to the [API reference](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PermittivityMonitor.html).

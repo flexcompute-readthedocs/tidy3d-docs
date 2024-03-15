@@ -34,4 +34,4 @@ flux = Sz.integrate(coord=["x", "y"])
 {% include copy-button.html %}
 </div>
 
-This effectively achieves the same thing as putting a FluxMonitor object at the same plane and extracting the flux result from the monitor data.&nbsp;
+This effectively achieves the same as putting a FluxMonitor object at the same plane and extracting the flux result from the monitor data.&nbsp;

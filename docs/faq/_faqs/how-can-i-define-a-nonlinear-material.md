@@ -4,7 +4,7 @@ date: 2023-12-05 20:35:00
 enabled: true
 category: "Mediums"
 ---
-To create nonlinear material you should specify a [tidy3d.NonlinearSusceptibility](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.NonlinearSusceptibility.html#tidy3d.NonlinearSusceptibility){: target="_blank" rel="noopener"}&nbsp;to the&nbsp;`nonlinear_spec`&nbsp;parameter of any medium. For example:
+To create nonlinear material, you should specify a [tidy3d.NonlinearSusceptibility](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.NonlinearSusceptibility.html#tidy3d.NonlinearSusceptibility){: target="_blank" rel="noopener"}&nbsp;to the&nbsp;`nonlinear_spec`&nbsp;parameter of any medium. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 

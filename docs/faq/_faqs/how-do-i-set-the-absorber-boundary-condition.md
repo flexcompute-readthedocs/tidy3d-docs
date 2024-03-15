@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-The [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber){: target="_blank" rel="noopener"} boundary condition specifies an adiabatic absorber along a single dimension. This absorber is well-suited for dispersive materials intersecting with absorbing edges of the simulation at the expense of more layers. The example below shows how to set up an Aborbing boundary.
+The [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber){: target="_blank" rel="noopener"} boundary condition specifies an adiabatic absorber along a single dimension. This absorber is well-suited for dispersive materials intersecting with absorbing edges of the simulation at the expense of more layers. The example below shows how to set up an absorbing boundary.
 
 <div markdown class="code-snippet">{% highlight python %}
 

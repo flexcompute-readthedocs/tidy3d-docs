@@ -4,7 +4,7 @@ date: 2024-01-17 15:53:00
 enabled: true
 category: "Mediums"
 ---
-To export a spatially varying medium dataset to a HDF5 file you should use the `to_hdf5(filename)` method. In the example below we illustrate how to do that after creating a [tidy3d.CustomMedium](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomMedium.html#tidy3d.CustomMedium){: target="_blank" rel="noopener"}.
+To export a spatially varying medium dataset to a HDF5 file you should use the `to_hdf5(filename)` method. In the example below, we illustrate how to do that after creating a [tidy3d.CustomMedium](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomMedium.html#tidy3d.CustomMedium){: target="_blank" rel="noopener"}.
 
 <div markdown class="code-snippet">{% highlight python %}
 

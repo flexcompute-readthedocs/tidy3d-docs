@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-To inject an optical mode in an angled waveguide you must set the `angle_theta` and `angle_phi` parameters of&nbsp;[tidy3d.ModeSpec](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec){: target="_blank" rel="noopener"}. For example:
+To inject an optical mode in an angled waveguide, you must set the `angle_theta` and `angle_phi` parameters of&nbsp;[tidy3d.ModeSpec](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec){: target="_blank" rel="noopener"}. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 

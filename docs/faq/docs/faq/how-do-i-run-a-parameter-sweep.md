@@ -48,4 +48,4 @@ for task_name, sim_data in batch_results.items():
 
 ```
 
-In <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ParameterScan/">this notebook</a>, you will find a detailed example of how to run parameter sweeps.v
+In <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ParameterScan/">this notebook</a> you will find a detailed example of how to run parameter sweeps.v

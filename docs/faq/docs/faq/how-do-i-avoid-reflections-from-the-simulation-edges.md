@@ -33,6 +33,6 @@ sim = tidy3d.Simulation(
 
 
 
-In some cases, such as when an angled structure or dispersive materials lie within the PML, use [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber) instead. The absorber functions similarly to PML such that it absorbs the outgoing radiation to mimic the infinite space. However, the absorber has a slightly higher reflection and requires a bit more computation than PML but it is numerically much more stable.
+In some cases, such as when an angled structure or dispersive materials lie within the PML, use [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber) instead. The absorber functions similarly to PML, absorbing the outgoing radiation to mimic the infinite space. However, the absorber has a slightly higher reflection and requires a bit more computation than PML, but it is numerically much more stable.
 
 See this [notebook](https://www.flexcompute.com/tidy3d/examples/notebooks/BoundaryConditions/) for more details on setting up boundary conditions.

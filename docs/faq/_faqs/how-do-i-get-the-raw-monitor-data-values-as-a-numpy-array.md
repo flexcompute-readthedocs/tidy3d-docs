@@ -1,6 +1,6 @@
 ---
 _schema: default
-title: "How do I get the raw monitor data values as a\_numpy\_array?"
+title: "How do I get the raw monitor data values as a numpy array?"
 date: 2023-12-19 15:40:09
 enabled: true
 category: Data Visualization and Postprocessing
@@ -24,9 +24,9 @@ _inputs:
         text:
           - key: category_name
 ---
-The simulation data is stored as a&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html)&nbsp;object using the&nbsp;[xarray](https://xarray.pydata.org/en/stable/)&nbsp;package. You can think of it as a dataset where data is stored as a large, multi-dimensional array (like a numpy array) and the coordinates along each of the dimensions are specified so it is easy to work with.
+The simulation data is stored as a&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html)&nbsp;object using the&nbsp;[xarray](https://xarray.pydata.org/en/stable/)&nbsp;package. You can think of it as a dataset where data is stored as a large multi-dimensional array (like a `numpy` array) and the coordinates along each of the dimensions are specified, so it is easy to work with.
 
-The example below shows how to get the raw monitor data as numpy arrays.
+The example below shows how to get the raw monitor data as `numpy` arrays.
 
 <div><div markdown class="code-snippet">{% highlight python %}
 

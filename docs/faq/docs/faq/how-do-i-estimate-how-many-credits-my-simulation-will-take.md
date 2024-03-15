@@ -5,7 +5,7 @@
 | 2023-12-03 14:38:36 | Simulations |
 
 
-We can get the cost estimate of running the task before actually running it. This prevents us from accidentally running large jobs that we set up by mistake. The estimated cost is the maximum cost corresponding to running all the time steps. To do so, run  a code like below:
+We can get the cost estimate of running the task before running it. This prevents us from accidentally running large jobs we set up by mistake. The estimated cost is the maximum cost corresponding to running all the time steps. To do so, run  a code like below:
 
 
 

@@ -5,7 +5,7 @@
 | 2023-12-19 15:46:44 | Data Visualization and Postprocessing |
 
 
-Some of the available convenience methods provided by the [DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html) can be used to get a specific field component from a FieldMonitor or FieldTimeMonitor? For instance:
+Some of the available convenience methods provided by the [DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html) can be used to get a specific field component from a `FieldMonitor` or `FieldTimeMonitor`. For instance:
 
 
 

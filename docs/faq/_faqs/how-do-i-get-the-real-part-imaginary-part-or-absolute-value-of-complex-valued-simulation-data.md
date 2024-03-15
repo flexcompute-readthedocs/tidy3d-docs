@@ -26,7 +26,7 @@ _inputs:
         text:
           - key: category_name
 ---
-The simulation data is stored as a&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html)&nbsp;object using the&nbsp;[xarray](https://xarray.pydata.org/en/stable/)&nbsp;package. You can think of it as a dataset where data is stored as a large, multi-dimensional array (like a numpy array) and the coordinates along each of the dimensions are specified so it is easy to work with.
+The simulation data is stored as a&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html)&nbsp;object using the&nbsp;[xarray](https://xarray.pydata.org/en/stable/)&nbsp;package. You can think of it as a dataset where data is stored as a large multi-dimensional array (like a `numpy` array) and the coordinates along each of the dimensions are specified, so it is easy to work with.
 
 Some of the available convenience methods provided by&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html) can be used to obtain the real, imaginary, or absolute value of complex-valued simulation data. For instance:
 

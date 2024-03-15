@@ -38,4 +38,4 @@ for task_name, sim_data in batch_results.items():
   sim_data.append(sim_data)
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>In <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ParameterScan/">this notebook</a>, you will find a detailed example of how to run parameter sweeps.v</p></div>
+{% include copy-button.html %}</div><p>In <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ParameterScan/">this notebook</a> you will find a detailed example of how to run parameter sweeps.v</p></div>

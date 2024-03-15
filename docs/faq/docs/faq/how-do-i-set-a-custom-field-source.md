@@ -5,7 +5,7 @@
 | 2023-12-11 15:31:59 | Sources |
 
 
-The [tidy3d.CustomFieldSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomFieldSource.html) source can be used to inject a specific (`E`, `H`) field distribution on a plane, e.g. coming from another simulation. Internally, we use the equivalence principle to compute the actual source currents (all sources in FDTD have to be converted to current sources). Because of this, the custom field source will only produce reliable results if the provided fields decay by the edges of the source plane, or if they extend through the simulation boundaries, and are well-matched to those boundaries.
+The [tidy3d.CustomFieldSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomFieldSource.html) source can be used to inject a specific (`E`, `H`) field distribution on a plane, e.g. coming from another simulation. Internally, we use the equivalence principle to compute the actual source currents (all sources in FDTD have to be converted to current sources). Because of this, the custom field source will only produce reliable results if the provided fields decay by the edges of the source plane, or if they extend through the simulation boundaries and are well-matched to those boundaries.
 
 The example below illustrates how to define the [tidy3d.CustomFieldSource](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.CustomFieldSource.html) using a dataset containing the `E` and `H` fields to describe a Gaussian field profile.
 

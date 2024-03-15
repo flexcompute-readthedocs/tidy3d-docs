@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-You can access the data of a specific monitor by its name. For instance, supposing you have a field monitor and set its name to "field", after running the simulation you can refer to this name to get the monitor's data.&nbsp;
+You can access the data of a specific monitor by its name. For instance, supposing you have a field monitor and set its name to "field", you can refer to this name after running the simulation to get the monitor's data.&nbsp;
 
 <div><div markdown class="code-snippet">{% highlight python %}
 

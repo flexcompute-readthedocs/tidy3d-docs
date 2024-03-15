@@ -24,9 +24,9 @@ _inputs:
         text:
           - key: category_name
 ---
-The&nbsp;[tidy3d.plugins.resonance.ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder.html){: target="_blank" rel="noopener"}&nbsp;plugin allows one to find resonances and extract their information from time domain field monitors without the necessity of waiting for the fields to completely decay. The&nbsp;`ResonanceFinder`&nbsp;plugin needs&nbsp;[tidy3d.FieldTimeMonitor](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html){: target="_blank" rel="noopener"}&nbsp;to record the field as a function of time. Importantly, you should start the monitors after the source pulse has decayed.
+The&nbsp;[tidy3d.plugins.resonance.ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder.html){: target="_blank" rel="noopener"}&nbsp;plugin allows one to find resonances and extract their information from time domain field monitors without the necessity of waiting for the fields to decay completely. The&nbsp;`ResonanceFinder`&nbsp;plugin needs&nbsp;[tidy3d.FieldTimeMonitor](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html){: target="_blank" rel="noopener"}&nbsp;to record the field as a function of time. Importantly, you should start the monitors after the source pulse has decayed.
 
-After setting up and running the simulation you should construct a&nbsp;`ResonanceFinder`&nbsp;object and then call&nbsp;`run()`&nbsp;on the list of&nbsp;`FieldTimeData`&nbsp;objects. This will add up the signals from all field time monitors included in simulation before searching for resonances.
+After setting up and running the simulation, you should construct a&nbsp;`ResonanceFinder`&nbsp;object and then call&nbsp;`run()`&nbsp;on the list of&nbsp;`FieldTimeData`&nbsp;objects. This will add up the signals from all field time monitors included in the simulation before searching for resonances.
 
 <div markdown class="code-snippet">{% highlight python %}
 from tidy3d.plugins.resonance import ResonanceFinder

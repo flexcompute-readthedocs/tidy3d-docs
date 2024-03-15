@@ -5,7 +5,7 @@
 | 2023-12-20 16:57:31 | Scattering Matrix |
 
 
-To compute scattering matrix parameters you need to create a base [tidy3d.Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Simulation.html) (without the modal sources or monitors used to compute S-parameters) and include [tidy3d.plugins.smatrix.Port](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.smatrix.Port.html) objects. These ports will be converted into modal sources  and monitors later, so they require both some mode specification and a definition of the direction that points into the system. You should also give them names to refer to later. For example:
+To compute scattering matrix parameters, you need to create a base [tidy3d.Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Simulation.html) (without the modal sources or monitors used to compute S-parameters) and include [tidy3d.plugins.smatrix.Port](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.smatrix.Port.html) objects. These ports will be converted into modal sources  and monitors later, so they require a mode specification and a definition of the direction that points into the system. You should also give them names to refer to later. For example:
 
 
 
@@ -51,7 +51,7 @@ modeler.plot_sim(z=0)
 
 
 
-With the component modeler defined, you should call it's `.solve()` method to run a batch of simulations to compute the S matrix. The tool will loop through each port and create one simulation per mode index (as defined by the mode specifications) where a unique modal source is injected. Each of the ports will also be converted to mode monitors to measure the mode amplitudes and normalization.
+With the component modeler defined, you should call it's `.solve()` method to run a batch of simulations to compute the S matrix. The tool will loop through each port and create one simulation per mode index (as defined by the mode specifications), where a unique modal source is injected. Each of the ports will also be converted to mode monitors to measure the mode amplitudes and normalization.
 
 
 

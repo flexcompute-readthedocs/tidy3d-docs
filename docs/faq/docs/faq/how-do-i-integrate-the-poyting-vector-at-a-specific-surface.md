@@ -17,4 +17,4 @@ flux = Sz.integrate(coord=["x", "y"])
 
 
 
-This effectively achieves the same thing as putting a FluxMonitor object at the same plane and extracting the flux result from the monitor data. 
+This effectively achieves the same as putting a FluxMonitor object at the same plane and extracting the flux result from the monitor data. 

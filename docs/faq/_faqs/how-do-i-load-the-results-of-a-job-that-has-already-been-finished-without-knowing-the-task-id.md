@@ -6,7 +6,7 @@ date: 2023-12-03 20:42:45
 enabled: true
 category: "Simulations"
 ---
-The `job` container has a convenient method to save and load the results of a job that has already finished, without needing to know the&nbsp;`task_id`, as below:
+The `job` container has a convenient method to save and load the results of a job that has already finished without needing to know the&nbsp;`task_id`, as below:
 
 <div markdown class="code-snippet">{% highlight python %}
 

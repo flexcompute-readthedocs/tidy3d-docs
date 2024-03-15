@@ -28,7 +28,7 @@ _inputs:
 
 <div> </div>
 
-<div>To create time-domain animation you can use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html#tidy3d.FieldTimeMonitor">tidy3d.FieldTimeMonitor</a> or the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FluxTimeMonitor.html#tidy3d.FluxTimeMonitor">tidy3d.FluxTimeMonitor</a> to record the time-domain fields along the FDTD time-stepping process. Then, use&nbsp;<code>matplotlib</code>'s&nbsp;<a target="_blank" rel="noopener" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.animation.FuncAnimation.html">FuncAnimation</a>&nbsp;to create the animation.</div>
+<div>To create time-domain animation, you can use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html#tidy3d.FieldTimeMonitor">tidy3d.FieldTimeMonitor</a> or the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FluxTimeMonitor.html#tidy3d.FluxTimeMonitor">tidy3d.FluxTimeMonitor</a> to record the time-domain fields along the FDTD time-stepping process. Then, use&nbsp;<code>matplotlib</code>'s&nbsp;<a target="_blank" rel="noopener" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.animation.FuncAnimation.html">FuncAnimation</a>&nbsp;to create the animation.</div>
 
 <div> </div>
 

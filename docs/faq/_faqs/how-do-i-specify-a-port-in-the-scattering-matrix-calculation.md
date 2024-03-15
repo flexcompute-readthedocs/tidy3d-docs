@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-To compute scattering matrix parameters you need to create a base [tidy3d.Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Simulation.html){: target="_blank" rel="noopener"}&nbsp;(without the modal sources or monitors used to compute S-parameters) and include&nbsp;[tidy3d.plugins.smatrix.Port](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.smatrix.Port.html){: target="_blank" rel="noopener"} objects. These ports will be converted into modal sources&nbsp; and monitors later, so they require both some mode specification and a definition of the direction that points into the system. You should also give them names to refer to later. For example:
+To compute scattering matrix parameters, you need to create a base [tidy3d.Simulation](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Simulation.html){: target="_blank" rel="noopener"}&nbsp;(without the modal sources or monitors used to compute S-parameters) and include&nbsp;[tidy3d.plugins.smatrix.Port](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.smatrix.Port.html){: target="_blank" rel="noopener"} objects. These ports will be converted into modal sources&nbsp; and monitors later, so they require both some mode specification and a definition of the direction that points into the system. You should also give them names to refer to later. For example:
 
 <div markdown class="code-snippet">{% highlight python %}
 from tidy3d.plugins.smatrix.smatrix import Port
