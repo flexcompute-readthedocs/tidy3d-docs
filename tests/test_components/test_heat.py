@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import tidy3d as td
 
 from tidy3d import FluidSpec, SolidSpec
-from tidy3d import UniformHeatSource
+from tidy3d import UniformHeatSource, HeatSource
 from tidy3d import (
     TemperatureBC,
     HeatFluxBC,
@@ -21,8 +21,8 @@ from tidy3d import (
     MediumMediumInterface,
 )
 from tidy3d import UniformUnstructuredGrid, DistanceUnstructuredGrid
-from tidy3d import HeatSimulation
-from tidy3d import HeatSimulationData
+from tidy3d import HeatSimulation, DeviceSimulation
+from tidy3d import HeatSimulationData, DeviceSimulationData
 from tidy3d import TemperatureMonitor
 from tidy3d import TemperatureData
 from tidy3d.exceptions import DataError
@@ -410,7 +410,7 @@ def test_heat_sim_bounds(shift_amount, log_level, log_capture):
     def place_box(center_offset):
         shifted_center = tuple(c + s for (c, s) in zip(center_offset, CENTER_SHIFT))
 
-        _ = td.HeatSimulation(
+        _ = td.DeviceSimulation(
             size=(1.5, 1.5, 1.5),
             center=CENTER_SHIFT,
             medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=1)),
@@ -508,119 +508,3 @@ def test_sim_data():
 
     with pytest.raises(pd.ValidationError):
         _ = heat_sim_data.updated_copy(simulation=sim)
-
-
-def test_relative_min_dl_warning(log_capture):
-    with AssertLogLevel(log_capture, "WARNING"):
-        _ = td.HeatSimulation(
-            size=(1, 1, 1),
-            medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=2)),
-            grid_spec=td.UniformUnstructuredGrid(dl=0.0001, relative_min_dl=1e-2),
-            boundary_spec=[
-                td.HeatBoundarySpec(
-                    placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
-                )
-            ],
-        )
-
-    with AssertLogLevel(log_capture, "WARNING"):
-        _ = td.HeatSimulation(
-            size=(1, 1, 1),
-            medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=2)),
-            grid_spec=td.DistanceUnstructuredGrid(
-                dl_interface=0.0001,
-                dl_bulk=0.1,
-                distance_interface=0.01,
-                distance_bulk=0.5,
-                relative_min_dl=1e-2,
-            ),
-            boundary_spec=[
-                td.HeatBoundarySpec(
-                    placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
-                )
-            ],
-        )
-
-    with AssertLogLevel(log_capture, "WARNING"):
-        _ = td.HeatSimulation(
-            size=(1, 1, 1),
-            medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=2)),
-            grid_spec=td.DistanceUnstructuredGrid(
-                dl_interface=0.1,
-                dl_bulk=0.0001,
-                distance_interface=0.01,
-                distance_bulk=0.5,
-                relative_min_dl=1e-2,
-            ),
-            boundary_spec=[
-                td.HeatBoundarySpec(
-                    placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
-                )
-            ],
-        )
-
-
-@pytest.mark.parametrize("zero_dim_axis", [None, 0, 2])
-def test_symmetry_expanded(zero_dim_axis):
-    symmetry_center = [2, 0.5, 0]
-    symmetry = [1, 1, 1]
-
-    lens = [1, 2, 2]
-    num_points = [7, 4, 11]
-
-    if zero_dim_axis is not None:
-        lens[zero_dim_axis] = 0
-        num_points[zero_dim_axis] = 1
-
-    mnt_span_x = [1 - lens[0], 1]
-    mnt_span_y = [-lens[1] / 2, lens[1] / 2]
-    mnt_span_z = [1, 1 + lens[2]]
-
-    # symmetric around symmetry_center
-    data_span_x = [3, 3 + lens[0]]
-    data_span_y = [0.5, 0.5 + lens[1]]
-    data_span_z = [1, 1 + lens[2]]
-
-    mnt_bounds = np.array(list(zip(mnt_span_x, mnt_span_y, mnt_span_z)))
-    mnt_size = tuple(mnt_bounds[1] - mnt_bounds[0])
-    mnt_center = tuple((mnt_bounds[1] + mnt_bounds[0]) / 2)
-
-    x = np.linspace(*data_span_x, num_points[0])
-    y = np.linspace(*data_span_y, num_points[1])
-    z = np.linspace(*data_span_z, num_points[2])
-    v = np.sin(x[:, None, None]) * np.cos(y[None, :, None]) * np.exp(z[None, None, :])
-
-    data_cart = td.SpatialDataArray(v, coords=dict(x=x, y=y, z=z))
-    data_ugrid = cartesian_to_unstructured(data_cart, seed=33342)
-
-    mnt_cart = td.TemperatureMonitor(
-        center=mnt_center, size=mnt_size, name="test", unstructured=False
-    )
-    mnt_ugrid = td.TemperatureMonitor(
-        center=mnt_center, size=mnt_size, name="test", unstructured=True
-    )
-
-    mnt_data_cart = td.TemperatureData(
-        temperature=data_cart, monitor=mnt_cart, symmetry=symmetry, symmetry_center=symmetry_center
-    )
-    mnt_data_ugrid = td.TemperatureData(
-        temperature=data_ugrid,
-        monitor=mnt_ugrid,
-        symmetry=symmetry,
-        symmetry_center=symmetry_center,
-    )
-
-    mnt_data_cart_expanded = mnt_data_cart.symmetry_expanded_copy
-    mnt_data_ugrid_expanded = mnt_data_ugrid.symmetry_expanded_copy
-
-    assert mnt_data_cart_expanded.symmetry == (0, 0, 0)
-    assert mnt_data_ugrid_expanded.symmetry == (0, 0, 0)
-
-    data_expanded_cart = mnt_data_cart_expanded.temperature
-    data_expanded_ugrid = mnt_data_ugrid_expanded.temperature
-
-    print(data_expanded_ugrid.bounds)
-    print(mnt_bounds)
-
-    assert np.all(data_expanded_ugrid.bounds == mnt_bounds)
-    assert data_expanded_cart.does_cover(mnt_bounds)

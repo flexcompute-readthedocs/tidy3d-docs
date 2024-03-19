@@ -13,11 +13,11 @@ from ..types import TYPE_TAG_STR
 from ...constants import KELVIN, HEAT_FLUX, HEAT_TRANSFER_COEFF
 
 
-class HeatBC(ABC, Tidy3dBaseModel):
-    """Abstract thermal boundary conditions."""
+class DeviceBC(ABC, Tidy3dBaseModel):
+    """Abstract device boundary conditions."""
 
 
-class TemperatureBC(HeatBC):
+class TemperatureBC(DeviceBC):
     """Constant temperature thermal boundary conditions.
 
     Example
@@ -32,7 +32,7 @@ class TemperatureBC(HeatBC):
     )
 
 
-class HeatFluxBC(HeatBC):
+class HeatFluxBC(DeviceBC):
     """Constant flux thermal boundary conditions.
 
     Example
@@ -47,7 +47,7 @@ class HeatFluxBC(HeatBC):
     )
 
 
-class ConvectionBC(HeatBC):
+class ConvectionBC(DeviceBC):
     """Convective thermal boundary conditions.
 
     Example
@@ -68,11 +68,55 @@ class ConvectionBC(HeatBC):
     )
 
 
-HeatBoundaryConditionType = Union[TemperatureBC, HeatFluxBC, ConvectionBC]
+class VoltageBC(DeviceBC):
+    """Electric potential (voltage) boundary condition.
+    Sets a potential at the specified boundary.
+
+    Example
+    -------
+    >>> bc = VoltageBC(potential=2)
+    """
+
+    voltage: pd.FiniteFloat = pd.Field(
+        title="Voltage",
+        description="Electric potential to be applied at the specified boundary.",
+        units=VOLT,
+    )
 
 
-class HeatBoundarySpec(Tidy3dBaseModel):
-    """Heat boundary conditions specification.
+class CurrentBC(DeviceBC):
+    """Current boundary conditions.
+
+    Example
+    -------
+    >>> bc = CurrentBC(current_density=1)
+    """
+
+    current_density: pd.FiniteFloat = pd.Field(
+        title="Current density",
+        description=f"Current density in units of {CURRENT_DENSITY}.",
+        units=CURRENT_DENSITY,
+    )
+
+
+class InsulatingBC(DeviceBC):
+    """Insulation boundary condition.
+    Ensures electric fields as well as the surface recombination current density
+    are set to zero.
+
+    Example
+    -------
+    >>> bc = InsulatingBC()
+    """
+
+
+DeviceBoundaryConditionType = Union[
+    TemperatureBC, HeatFluxBC, ConvectionBC, VoltageBC, CurrentBC, InsulatingBC
+]
+
+
+class DeviceBoundarySpec(Tidy3dBaseModel):
+    """Device boundary conditions specification.
 
     Example
     -------
@@ -86,11 +130,15 @@ class HeatBoundarySpec(Tidy3dBaseModel):
     placement: BCPlacementType = pd.Field(
         title="Boundary Conditions Placement",
         description="Location to apply boundary conditions.",
-        discriminator=TYPE_TAG_STR,
     )
 
-    condition: HeatBoundaryConditionType = pd.Field(
+    condition: DeviceBoundaryConditionType = pd.Field(
         title="Boundary Conditions",
         description="Boundary conditions to apply at the selected location.",
         discriminator=TYPE_TAG_STR,
     )
+
+
+HeatBoundarySpec = Union[DeviceBoundarySpec]
+"""Heat BC specification
+NOTE: here for backward-compatibility only."""

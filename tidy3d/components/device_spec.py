@@ -7,15 +7,15 @@ import pydantic.v1 as pd
 
 from .types import Union
 from .base import Tidy3dBaseModel
-from ..constants import SPECIFIC_HEAT_CAPACITY, THERMAL_CONDUCTIVITY
+from ..constants import SPECIFIC_HEAT_CAPACITY, THERMAL_CONDUCTIVITY, CONDUCTIVITY
 
 
 # Liquid class
-class AbstractHeatSpec(ABC, Tidy3dBaseModel):
+class AbstractDeviceSpec(ABC, Tidy3dBaseModel):
     """Abstract heat material specification."""
 
 
-class FluidSpec(AbstractHeatSpec):
+class FluidSpec(AbstractDeviceSpec):
     """Fluid medium.
 
     Example
@@ -24,8 +24,8 @@ class FluidSpec(AbstractHeatSpec):
     """
 
 
-class SolidSpec(AbstractHeatSpec):
-    """Solid medium.
+class SolidSpec(AbstractDeviceSpec):
+    """Solid medium for heat simulations.
 
     Example
     -------
@@ -48,4 +48,29 @@ class SolidSpec(AbstractHeatSpec):
     )
 
 
-HeatSpecType = Union[FluidSpec, SolidSpec]
+class InsulatorSpec(AbstractDeviceSpec):
+    """Insulating medium.
+
+    Example
+    -------
+    >>> solid = InsulatingSpec()
+    """
+
+
+class ConductorSpec(AbstractDeviceSpec):
+    """Conductor medium for conduction simulations
+
+    Example
+    -------
+    >>> solid = ConductorSpec(conductivity=3)
+    """
+
+    conductivity: pd.PositiveFloat = pd.Field(
+        title="Electric conductivity",
+        description=f"Electric conductivity of material in units of {CONDUCTIVITY}.",
+        units=CONDUCTIVITY,
+    )
+
+
+ThermalSpecType = Union[FluidSpec, SolidSpec]
+ElectricSpecType = Union[InsulatorSpec, ConductorSpec]
