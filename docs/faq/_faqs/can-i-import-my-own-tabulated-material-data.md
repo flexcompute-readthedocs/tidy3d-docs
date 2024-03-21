@@ -4,6 +4,7 @@ date: 2023-12-04 19:01:40
 enabled: true
 category: "Mediums"
 ---
+
 Yes, users can import their own tabulated material data and fit it using one of Tidy3D's dispersion fitting tools. The [FastDispersionFitter](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.dispersion.FastDispersionFitter.html){: rel="nofollow"}&nbsp;tool performs an optimization to find a medium defined as a dispersive PoleResidue model that minimizes the RMS error between the model results and the data. The user can provide data through one of the following methods:
 
 * Numpy arrays directly by specifying&nbsp;`wvl_um`,&nbsp;`n_data`, and optionally&nbsp;`k_data`.

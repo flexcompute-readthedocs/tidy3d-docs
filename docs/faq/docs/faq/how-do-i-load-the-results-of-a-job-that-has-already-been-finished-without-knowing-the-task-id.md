@@ -5,7 +5,7 @@
 | 2023-12-03 20:42:45 | Simulations |
 
 
-The `job` container has a convenient method to save and load the results of a job that has already finished, without needing to know the `task_id`, as below:
+The `job` container has a convenient method to save and load the results of a job that has already finished without needing to know the `task_id`, as below:
 
 
 
