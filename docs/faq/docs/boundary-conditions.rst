@@ -16,3 +16,4 @@ Boundary Conditions
    faq/what-is-the-ideal-distance-between-the-geometry-and-absorbing-layers
    faq/how-do-i-avoid-reflections-from-the-simulation-edges
    faq/how-do-i-simulate-periodic-structures-in-tidy3d
+   faq/what-is-the-difference-between-periodic-and-bloch-boundaries

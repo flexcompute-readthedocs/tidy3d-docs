@@ -11,7 +11,7 @@ We generally assume the following physical units in component definitions:
 > * Frequency: Hertz ($Hz$)
 > * Electric conductivity: Siemens per micron ($S/μm$)
 
-Thus, the user should be careful, for example to use the speed of light in μm/s when converting between wavelength and frequency. The built-in speed of light [C\_0](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.C_0.html#tidy3d.C_0){: .color-primary-hover} has a unit of μm/s.
+Thus, the user should be careful, for example, to use the speed of light in μm/s when converting between wavelength and frequency. The built-in speed of light [C\_0](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.C_0.html#tidy3d.C_0){: .color-primary-hover} has a unit of μm/s.
 
 For example:
 
@@ -34,6 +34,6 @@ Output quantities are also returned in physical units, with the same base units 
 > * Magnetic field: Ampere per micron ($A/μm$)
 > * Flux: Watt ($W$)
 > * Poynting vector: Watt per micron squared ($W/μm^{2}$​​​​​)
-> * Modal amplitude: Sqare root of watt ($W^{1/2}$​​​​​)
+> * Modal amplitude: Square root of watt ($W^{1/2}$​​​​​)
 
 If the source normalization is not applied, the electric field, magnetic field, and modal amplitudes are divided by Hz, while the flux and Poynting vector are divided by $Hz^{2}$.

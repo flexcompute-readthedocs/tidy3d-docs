@@ -5,9 +5,9 @@
 | 2023-12-19 17:25:24 | Monitors |
 
 
-Apodization applies a windowing function to the Fourier transform of the time-domain fields into frequency-domain ones, and can be used to truncate the beginning and/or end of the time signal, for example to eliminate the source pulse when studying the eigenmodes of a system. Note that apodization affects the normalization of the frequency-domain fields.
+Apodization applies a windowing function to the Fourier transform of the time-domain fields into frequency-domain ones. It can be used to truncate the beginning and/or end of the time signal, for example, to eliminate the source pulse when studying the eigenmodes of a system. Note that apodization affects the normalization of the frequency-domain fields.
 
-To apply anodization, we first need to define a ApodizationSpec object and then add it to the monitor. For example,
+To apply anodization, we first need to define an `ApodizationSpec` object and then add it to the monitor. For example,
 
 
 

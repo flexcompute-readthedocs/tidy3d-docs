@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-A ModeMonitor object records complex amplitudes from modal decomposition of fields on plane. The amplitudes are defined as&nbsp;`mode_solver_data.dot(recorded_field) / mode_solver_data.dot(mode_solver_data)`, where&nbsp;`recorded_field`&nbsp;is the field data recorded in the FDTD simulation at the monitor frequencies, and&nbsp;`mode_solver_data`&nbsp;is the mode data from the mode solver at the monitor plane. This gives the power amplitude of&nbsp;`recorded_field`&nbsp;carried by each mode. You can define a ModeMonitor object by
+A ModeMonitor object records complex amplitudes from the modal decomposition of fields on a plane. The amplitudes are defined as&nbsp;`mode_solver_data.dot(recorded_field) / mode_solver_data.dot(mode_solver_data)`, where&nbsp;`recorded_field`&nbsp;is the field data recorded in the FDTD simulation at the monitor frequencies, and&nbsp;`mode_solver_data`&nbsp;is the mode data from the mode solver at the monitor plane. This gives the power amplitude of&nbsp;`recorded_field`&nbsp;carried by each mode. You can define a ModeMonitor object by
 
 <div markdown class="code-snippet">{% highlight python %}
 

@@ -5,7 +5,7 @@
 | 2023-12-08 15:10:49 | Sources |
 
 
-To inject an optical mode in a waveguide bend you must set the `bend_radius` and `bend_axis` parameters of [tidy3d.ModeSpec](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec). For example:
+To inject an optical mode in a waveguide bend, you must set the `bend_radius` and `bend_axis` parameters of [tidy3d.ModeSpec](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec). For example:
 
 
 

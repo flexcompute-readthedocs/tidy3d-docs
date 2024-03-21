@@ -4,7 +4,7 @@ date: 2023-12-05 20:06:53
 enabled: true
 category: "Mediums"
 ---
-You can create a 2D material using the&nbsp;[tidy3d.Medium2D](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Medium2D.html){: target="_blank" rel="noopener"}&nbsp;object. This is specialy helpful to build very thin materials, like metal layers.
+You can create a 2D material using the&nbsp;[tidy3d.Medium2D](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Medium2D.html){: target="_blank" rel="noopener"}&nbsp;object. This is especially helpful for building very thin materials, like metal layers.
 
 <div markdown class="code-snippet">{% highlight python %}
 

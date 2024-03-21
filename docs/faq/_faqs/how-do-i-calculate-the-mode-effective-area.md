@@ -77,4 +77,4 @@ print(np.asarray(mode_data.mode_area).squeeze())
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-<div><p>For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>
+<div><p>For more details on how to set up, run, and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p></div>

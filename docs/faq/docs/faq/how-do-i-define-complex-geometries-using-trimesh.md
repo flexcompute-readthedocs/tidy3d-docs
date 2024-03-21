@@ -23,7 +23,7 @@ ring_mesh.show()
 
 
 
-To use this geometry in a Tidy3D simulation, you need to convert the mesh into a [tidy3d.TriangleMesh](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.TriangleMesh.html) geometry. Use the `from_trimesh()` method to conviently convert the mesh to a Tidy3D geometry. From there, you can further define Tidy3D structure and put it into a simulation.
+To use this geometry in a Tidy3D simulation, you need to convert the mesh into a [tidy3d.TriangleMesh](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.TriangleMesh.html) geometry. Use the `from_trimesh()` method to conviently convert the mesh to a Tidy3D geometry. From there, you can further define the Tidy3D structure and put it into a simulation.
 
 
 

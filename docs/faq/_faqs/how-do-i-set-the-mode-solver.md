@@ -48,7 +48,7 @@ sim = tidy3d.Simulation(
 {% endhighlight %}
 {% include copy-button.html %}</div>
 
-<div><p>You can use a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Box.html#tidy3d.Box">Box</a> object to define the plane where you want to solve the modes. We use a plane perpendicular to the waveguide propagation axis in this example. Symmetries are applied if they are defined in the simulation and the mode plane center sits on the simulation center. Then, use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec">tidy3d.ModeSpec</a>&nbsp;object to specify the number of modes (<code>num_modes</code>), the initial effective index guess (<code>target_neff</code>), polarization, and other characteristics of the modes you are looking for. Make&nbsp;<code>group_index_step=True</code> to enable mode group index calculation.</p><div markdown class="code-snippet">{% highlight python %}
+<div><p>You can use a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Box.html#tidy3d.Box">Box</a> object to define the plane where you want to solve the modes. In this example, we use a plane perpendicular to the waveguide propagation axis. Symmetries are applied if they are defined in the simulation and the mode plane center sits on the simulation center. Then, use the&nbsp;<a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.ModeSpec.html#tidy3d.ModeSpec">tidy3d.ModeSpec</a>&nbsp;object to specify the number of modes (<code>num_modes</code>), the initial effective index guess (<code>target_neff</code>), polarization, and other characteristics of the modes you are looking for. Make&nbsp;<code>group_index_step=True</code> to enable mode group index calculation.</p><div markdown class="code-snippet">{% highlight python %}
 
 # Plane we want to solve the modes.
 plane = tidy3d.Box(center=(0, 0, 0), size=(0, 2.5, 1.5))
@@ -61,7 +61,7 @@ mode_spec = tidy3d.ModeSpec(
 )
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>Now you can create and execute the mode solver, which returns the results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p><div markdown class="code-snippet">{% highlight python %}
+{% include copy-button.html %}</div><p>Now you can create and execute the mode solver, which returns the results in a <a target="_blank" rel="noopener" href="https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.mode.ModeSolverData.html#tidy3d.plugins.mode.ModeSolverData">ModeSolverData</a> object. For more details on how to set up, run, and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.</p><div markdown class="code-snippet">{% highlight python %}
 from tidy3d.plugins.mode import ModeSolver
 from tidy3d.plugins.mode.web import run as run_mode_solver
 
@@ -78,4 +78,4 @@ mode_solver = ModeSolver(
 mode_data = run_mode_solver(mode_solver)
 
 {% endhighlight %}
-{% include copy-button.html %}</div><p>If you prefer, you can run the local version of mode solver through the code <code>mode_data=mode_solver.solve()</code>. This means that the solver will run on your own computer and will not require any credits. However, it's important to note that the local version will not include the group index calculation or subpixel-smoothing, even if these options are specified in the simulation. As a result, the local version's results will not perfectly match the server-side ones.</p></div>
+{% include copy-button.html %}</div><p>If you prefer, you can run the local version of mode solver through the code <code>mode_data=mode_solver.solve()</code>. This means that the solver will run on your own computer and will not require any credits. However, it's important to note that the local version will not include the group index calculation or subpixel smoothing, even if these options are specified in the simulation. As a result, the local version's results will not perfectly match the server-side ones.</p></div>

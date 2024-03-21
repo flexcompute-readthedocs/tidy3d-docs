@@ -22,5 +22,5 @@ batch_results = batch.load(path_dir=“data”)
 {% endhighlight %}
 {% include copy-button.html %}</div></div></div>
 
-Then you can further extract the result for each simulation from`batch_results`.
+Then, you can further extract the result for each simulation from `batch_results`.
 

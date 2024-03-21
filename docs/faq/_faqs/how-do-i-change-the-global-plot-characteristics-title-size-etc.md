@@ -24,4 +24,4 @@ _inputs:
         text:
           - key: category_name
 ---
-<div><div><div>The plotting function return a matplotlib <code>Axes</code>, wihch can be manipulated, for example <code>ax = obj.plot(x=0); &nbsp;ax.set_title('my_title')</code>.</div></div></div>
+<div><div><div>The plotting function return a matplotlib <code>Axes</code>, which can be manipulated, for example <code>ax = obj.plot(x=0); &nbsp;ax.set_title('my_title')</code>.</div></div></div>

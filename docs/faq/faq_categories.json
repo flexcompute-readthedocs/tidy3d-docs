@@ -169,7 +169,8 @@
       "_faqs/can-my-geometry-lie-within-the-boundary-layers.md",
       "_faqs/what-is-the-ideal-distance-between-the-geometry-and-absorbing-layers.md",
       "_faqs/how-do-i-avoid-reflections-from-the-simulation-edges.md",
-      "_faqs/how-do-i-simulate-periodic-structures-in-tidy3d.md"
+      "_faqs/how-do-i-simulate-periodic-structures-in-tidy3d.md",
+      "_faqs/what-is-the-difference-between-periodic-and-bloch-boundaries.md"
     ]
   },
   {

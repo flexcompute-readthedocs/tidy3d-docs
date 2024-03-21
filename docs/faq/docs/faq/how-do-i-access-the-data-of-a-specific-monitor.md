@@ -5,7 +5,7 @@
 | 2023-12-18 23:02:06 | Data Visualization and Postprocessing |
 
 
-You can access the data of a specific monitor by its name. For instance, supposing you have a field monitor and set its name to "field", after running the simulation you can refer to this name to get the monitor's data. 
+You can access the data of a specific monitor by its name. For instance, supposing you have a field monitor and set its name to "field", you can refer to this name after running the simulation to get the monitor's data. 
 
 
 
