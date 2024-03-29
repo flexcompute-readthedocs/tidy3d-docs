@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-Some of the available convenience methods provided by the&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html) can be used to get a specific field component from a FieldMonitor or FieldTimeMonitor? For instance:
+Some of the available convenience methods provided by the&nbsp;[DataArray](https://xarray.pydata.org/en/stable/generated/xarray.DataArray.html) can be used to get a specific field component from a `FieldMonitor` or `FieldTimeMonitor`. For instance:
 
 <div><div markdown class="code-snippet">{% highlight python %}
 

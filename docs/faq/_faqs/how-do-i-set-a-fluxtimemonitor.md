@@ -24,7 +24,7 @@ _inputs:
         text:
           - key: category_name
 ---
-A FluxTimeMonitor object records power flux in the time domain. If the monitor geometry is a 2D box, the total flux through this plane is returned, with a positive sign corresponding to power flow in the positive direction along the axis normal to the plane. If the geometry is a 3D box, the total power coming out of the box is returned by integrating the flux over all box surfaces (excpet the ones defined in&nbsp;`exclude_surfaces`). You can define a FluxTimeMonitor object by&nbsp;
+A FluxTimeMonitor object records power flux in the time domain. If the monitor geometry is a 2D box, the total flux through this plane is returned, with a positive sign corresponding to power flow in the positive direction along the axis normal to the plane. If the geometry is a 3D box, the total power coming out of the box is returned by integrating the flux over all box surfaces (except the ones defined in `exclude_surfaces`). You can define a FluxTimeMonitor object by&nbsp;
 
 <div markdown class="code-snippet">{% highlight python %}
 

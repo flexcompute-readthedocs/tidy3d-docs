@@ -30,4 +30,4 @@ mode_data = mode_solver.solve()
 
 
 
-This means that the solver will run on your own computer and will not require any credits. However, it's important to note that the local version will not include the group index calculation or subpixel-smoothing, even if these options are specified in the simulation. As a result, the local version's results will not perfectly match the server-side ones. For more details on how to set up, run and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.
+This means that the solver will run on your own computer and will not require any credits. However, it's important to note that the local version will not include the group index calculation or subpixel smoothing, even if these options are specified in the simulation. As a result, the local version's results will not perfectly match the server-side ones. For more details on how to set up, run, and visualize the solver results, please refer to this <a href="https://www.flexcompute.com/tidy3d/examples/notebooks/ModeSolver/">notebook</a>.

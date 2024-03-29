@@ -5,7 +5,7 @@
 | 2023-12-19 17:29:25 | Monitors |
 
 
-The Poynting vector quantifies the directional energy flux of an electromagnetic field, representing the rate of energy transfer per unit area per unit time, and thus characterizing the power flow within the field.
+The Poynting vector quantifies the directional energy flux of an electromagnetic field, representing the rate of energy transfer per unit area per unit time and thus characterizing the power flow within the field.
 
 The Poynting vector at a specific plane can be calculated by first placing a FieldMonitor object at that plane to obtain the fields. Then the Poynting vector can be calculated as $\boldsymbol{S} = \boldsymbol{E} \times \boldsymbol{H}$
 

@@ -5,16 +5,16 @@
 | 2023-10-24 14:48:15 | Simulations |
 
 
-The cost of a simulation is primarily affected by the number of grid points and time steps. To reduce the simulation cost, you can take certain actions. However, it's important to first gather relevant information about the simulation to help you in this process.
+The cost of a simulation is primarily affected by the number of grid points and time steps. To reduce the simulation cost, you can take specific actions. However, it's essential to gather relevant information about the simulation first to help you in this process.
 
 
 
 ```python
 
-# Initializes job, puts task on server (but doesnt run it).
+# Initializes job, puts task on server (but doesn't run it).
 job = tidy3d.web.Job(simulation=sim, task_name="job", verbose=verbose)
 
-# Estimate the maximum cost before runningg the simulation.
+# Estimate the maximum cost before running the simulation.
 estimated_cost = tidy3d.web.estimate_cost(job.task_id)
 print(f'The estimated maximum cost is {estimated_cost:.3f} Flex Credits.')
 
@@ -38,11 +38,11 @@ To reduce the number of grid points (and time steps) in a simulation, you can ad
 
 ##### Shutoff
 
-By default, Tidy3D checks periodically the total field intensity left in the simulation, and compares that to the maximum total field intensity recorded at previous times. If it is found that the ratio of these two values is smaller than​​​ $$10^{-5}$$​​, the simulation is terminated as the fields remaining in the simulation are deemed negligible. The shutoff value can be controlled using the `tidy3d.Simulation.shutoff` parameter, or completely turned off by setting it to zero. In most cases, the default behavior ensures that results are correct, while avoiding unnecessarily long run times. The Flex Unit cost of the simulation is also proportionally scaled down when early termination is encountered.
+By default, Tidy3D periodically checks the total field intensity left in the simulation and compares that to the maximum total field intensity recorded at previous times. If it is found that the ratio of these two values is smaller than​​​ $$10^{-5}$$​​, the simulation is terminated as the fields remaining in the simulation are deemed negligible. The shutoff value can be controlled using the `tidy3d.Simulation.shutoff` parameter, or completely turned off by setting it to zero. In most cases, the default behavior ensures that results are correct while avoiding unnecessarily long run times. The Flex Unit cost of the simulation is also proportionally scaled down when early termination is encountered.
 
 ##### Boundary Conditions
 
-When running simulations, it's important to use appropriate boundary conditions to accurately absorb incoming waves and minimize reflection. The [tidy3d.PML](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PML.html#tidy3d.PML) boundary condition is generally the best choice, as it can absorb waves from all angles with minimal reflection. However, in certain cases where an angled structure or dispersive materials are present within the PML, you may need to use the [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber) instead. While the absorber performs a similar function to the PML, it has a slightly higher reflection rate and requires more computation, resulting in higher simulation costs.
+When running simulations, it's important to use appropriate boundary conditions to absorb incoming waves and minimize reflection accurately. The [tidy3d.PML](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.PML.html#tidy3d.PML) boundary condition is generally the best choice, as it can absorb waves from all angles with minimal reflection. However, in some instances where an angled structure or dispersive materials are present within the PML, you may need to use the [tidy3d.Absorber](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.Absorber.html#tidy3d.Absorber) instead. While the absorber performs a similar function to the PML, it has a slightly higher reflection rate and requires more computation, resulting in higher simulation costs.
 
 See this [notebook](https://www.flexcompute.com/tidy3d/examples/notebooks/BoundaryConditions/) for more details on setting up boundary conditions.
 

@@ -24,6 +24,6 @@ _inputs:
         text:
           - key: category_name
 ---
-To create a dispersive material from model parameters, you only need to instantiate the medium object and provide their parameters. For example `debye_medium = td.Debye(eps_inf=2.0, coeffs=[(1,2),(3,4)])`.
+To create a dispersive material from model parameters, you only need to instantiate the medium object and provide its parameters. For example, `debye_medium = td.Debye(eps_inf=2.0, coeffs=[(1,2),(3,4)])`.
 
 <div> </div>

@@ -5,9 +5,9 @@
 | 2023-12-20 18:38:31 | Resonance Finder |
 
 
-The [tidy3d.plugins.resonance.ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder.html) plugin allows one to find resonances and extract their information from time domain field monitors without the necessity of waiting for the fields to completely decay. The `ResonanceFinder` plugin needs [tidy3d.FieldTimeMonitor](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html) to record the field as a function of time. Importantly, you should start the monitors after the source pulse has decayed.
+The [tidy3d.plugins.resonance.ResonanceFinder](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.plugins.resonance.ResonanceFinder.html#tidy3d.plugins.resonance.ResonanceFinder.html) plugin allows one to find resonances and extract their information from time domain field monitors without the necessity of waiting for the fields to decay completely. The `ResonanceFinder` plugin needs [tidy3d.FieldTimeMonitor](https://docs.flexcompute.com/projects/tidy3d/en/latest/api/_autosummary/tidy3d.FieldTimeMonitor.html) to record the field as a function of time. Importantly, you should start the monitors after the source pulse has decayed.
 
-After setting up and running the simulation you should construct a `ResonanceFinder` object and then call `run()` on the list of `FieldTimeData` objects. This will add up the signals from all field time monitors included in simulation before searching for resonances.
+After setting up and running the simulation, you should construct a `ResonanceFinder` object and then call `run()` on the list of `FieldTimeData` objects. This will add up the signals from all field time monitors included in the simulation before searching for resonances.
 
 
 
