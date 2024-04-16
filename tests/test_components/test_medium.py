@@ -610,7 +610,7 @@ def test_nonlinear_medium(log_capture):
         nonlinear_spec=td.NonlinearSpec(
             models=[
                 td.NonlinearSusceptibility(chi3=1.5),
-                td.TwoPhotonAbsorption(beta=1),
+                td.TwoPhotonAbsorption(beta=1, sigma=1, tau=1, e_e=1, e_h=0.8, c_e=1, c_h=1),
                 td.KerrNonlinearity(n2=1),
             ],
             num_iters=20,
@@ -622,7 +622,6 @@ def test_nonlinear_medium(log_capture):
         nonlinear_spec=td.NonlinearSpec(
             models=[
                 td.KerrNonlinearity(n2=-1 + 1j, n0=1),
-                td.TwoPhotonAbsorption(beta=1 + 1j, n0=1),
             ],
             num_iters=20,
         )
@@ -672,7 +671,7 @@ def test_nonlinear_medium(log_capture):
     # active materials
     with pytest.raises(ValidationError):
         med = td.Medium(
-            nonlinear_spec=td.NonlinearSpec(models=[td.TwoPhotonAbsorption(beta=-1 + 1j, n0=1)])
+            nonlinear_spec=td.NonlinearSpec(models=[td.TwoPhotonAbsorption(beta=-1, n0=1)])
         )
 
     with pytest.raises(ValidationError):
@@ -683,7 +682,7 @@ def test_nonlinear_medium(log_capture):
         allow_gain=True,
     )
 
-    # automatic detection of n0
+    # automatic detection of n0 and freq0
     n0 = 2
     freq0 = td.C_0 / 1
     nonlinear_spec = td.NonlinearSpec(models=[td.KerrNonlinearity(n2=1)])
@@ -703,6 +702,7 @@ def test_nonlinear_medium(log_capture):
         structures=[structure],
     )
     assert n0 == nonlinear_spec.models[0]._get_n0(n0=None, medium=medium, freqs=[freq0])
+    assert freq0 == nonlinear_spec.models[0]._get_freq0(freq0=None, freqs=[freq0])
 
     # can't detect n0 with different source freqs
     source_time2 = source_time.updated_copy(freq0=2 * freq0)
@@ -722,3 +722,61 @@ def test_nonlinear_medium(log_capture):
     with pytest.raises(ValidationError):
         structure = structure.updated_copy(medium=medium_active)
         sim.updated_copy(structures=[structure])
+
+    # nonlinear or time-modulation on medium2d
+    # time-modulated
+    FREQ_MODULATE = 1e12
+    AMP_TIME = 1.1
+    PHASE_TIME = 0
+    CW = td.ContinuousWaveTimeModulation(freq0=FREQ_MODULATE, amplitude=AMP_TIME, phase=PHASE_TIME)
+    ST = td.SpaceTimeModulation(
+        time_modulation=CW,
+    )
+    MODULATION_SPEC = td.ModulationSpec()
+    modulation_spec = MODULATION_SPEC.updated_copy(permittivity=ST)
+    modulated = td.Medium(permittivity=2, modulation_spec=modulation_spec)
+    with pytest.raises(ValidationError):
+        medium2d = td.Medium2D(ss=medium, tt=medium)
+    with pytest.raises(ValidationError):
+        medium2d = td.Medium2D(ss=modulated, tt=modulated)
+
+
+def test_lumped_resistor():
+    resistor = td.LumpedResistor(
+        resistance=50.0,
+        center=[0, 0, 0],
+        size=[2, 0, 3],
+        voltage_axis=0,
+        name="R",
+    )
+    _ = resistor.sheet_conductance
+    normal_axis = resistor.normal_axis
+    assert normal_axis == 1
+
+    # error if voltage axis is not in plane with the resistor
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[2, 0, 3],
+            voltage_axis=1,
+            name="R",
+        )
+
+    # error if not planar
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[0, 0, 3],
+            voltage_axis=2,
+            name="R",
+        )
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[2, 1, 3],
+            voltage_axis=2,
+            name="R",
+        )

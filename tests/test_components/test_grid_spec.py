@@ -114,9 +114,11 @@ def test_autogrid_2dmaterials():
         grid_spec=td.GridSpec.auto(),
         run_time=1e-12,
     )
-    assert np.isclose(sim.volumetric_structures[0].geometry.center[2], 1, rtol=RTOL)
+    assert np.isclose(sim.volumetric_structures[0].geometry.bounding_box.center[2], 1, rtol=RTOL)
     grid_dl = sim.discretize(box.geometry).sizes.z[0]
-    assert np.isclose(sim.volumetric_structures[0].geometry.size[2], grid_dl, rtol=RTOL)
+    assert np.isclose(
+        sim.volumetric_structures[0].geometry.bounding_box.size[2], grid_dl, rtol=RTOL
+    )
 
     # now if we increase conductivity, the in-plane grid size should decrease
     sigma2 = 4.5
@@ -158,3 +160,86 @@ def test_autogrid_2dmaterials():
     # Commented until inplane AutoGrid for 2D materials is enabled
     # with pytest.raises(ValidationError):
     #    _ = sim.grid
+
+
+def test_zerosize_dimensions():
+    wvl = 1.55
+    res = 20
+    dl = wvl / res
+
+    # auto grid
+    sim = td.Simulation(
+        size=(0, 10, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec.auto(wavelength=wvl, min_steps_per_wvl=res),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.x, [-dl / 2, dl / 2])
+
+    # uniform grid
+    sim = td.Simulation(
+        size=(5, 0, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec.uniform(dl=dl),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.y, [0, dl])
+
+    # custom grid
+    custom_grid = td.CustomGrid(dl=tuple([0.25] * 40))
+    sim = td.Simulation(
+        size=(5, 0, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec(
+            grid_x=custom_grid, grid_y=td.CustomGrid(dl=(dl,)), grid_z=custom_grid
+        ),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.y, [-dl / 2, dl / 2])
+
+    with pytest.raises(SetupError):
+        sim = td.Simulation(
+            size=(5, 0, 10),
+            boundary_spec=td.BoundarySpec.pec(
+                x=True,
+                y=True,
+                z=True,
+            ),
+            grid_spec=td.GridSpec(
+                grid_x=custom_grid,
+                grid_y=td.CustomGrid(dl=(dl,), custom_offset=10),
+                grid_z=custom_grid,
+            ),
+            run_time=1e-12,
+        )
+
+    with pytest.raises(SetupError):
+        sim = td.Simulation(
+            size=(5, 3, 10),
+            boundary_spec=td.BoundarySpec.pec(
+                x=True,
+                y=True,
+                z=True,
+            ),
+            grid_spec=td.GridSpec(
+                grid_x=custom_grid.updated_copy(custom_offset=20),
+                grid_y=custom_grid,
+                grid_z=custom_grid,
+            ),
+            run_time=1e-12,
+        )

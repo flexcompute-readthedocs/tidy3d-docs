@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Tuple, List, Dict
 from matplotlib import cm
+import numpy as np
 
 import pydantic.v1 as pd
 
@@ -22,7 +23,9 @@ from ..structure import Structure
 from ..geometry.base import Box, GeometryGroup
 from ..geometry.primitives import Sphere, Cylinder
 from ..geometry.polyslab import PolySlab
+from ..geometry.mesh import TriangleMesh
 from ..scene import Scene
+from ..heat_spec import SolidSpec
 
 from ..bc_placement import StructureBoundary, StructureStructureInterface
 from ..bc_placement import StructureSimulationBoundary, SimulationBoundary
@@ -35,7 +38,7 @@ from ...log import log
 
 HEAT_BACK_STRUCTURE_STR = "<<<HEAT_BACKGROUND_STRUCTURE>>>"
 
-HeatSingleGeometryType = (Box, Cylinder, Sphere, PolySlab)
+HeatSingleGeometryType = (Box, Cylinder, Sphere, PolySlab, TriangleMesh)
 
 
 class HeatSimulation(AbstractSimulation):
@@ -107,7 +110,13 @@ class HeatSimulation(AbstractSimulation):
     @pd.validator("structures", always=True)
     def check_unsupported_geometries(cls, val):
         """Error if structures contain unsupported yet geometries."""
-        for structure in val:
+        for ind, structure in enumerate(val):
+            bbox = structure.geometry.bounding_box
+            if any(s == 0 for s in bbox.size):
+                raise SetupError(
+                    f"'HeatSimulation' does not currently support structures with dimensions of zero size ('structures[{ind}]')."
+                )
+
             if isinstance(structure.geometry, GeometryGroup):
                 geometries = structure.geometry.geometries
             else:
@@ -115,13 +124,13 @@ class HeatSimulation(AbstractSimulation):
             for geom in geometries:
                 if isinstance(geom, (GeometryGroup)):
                     raise SetupError(
-                        "'HeatSimulation' does not currently support recursive 'GeometryGroup's."
+                        "'HeatSimulation' does not currently support recursive 'GeometryGroup's ('structures[{ind}]')."
                     )
                 if not isinstance(geom, HeatSingleGeometryType):
                     geom_names = [f"'{cl.__name__}'" for cl in HeatSingleGeometryType]
                     raise SetupError(
                         "'HeatSimulation' does not currently support geometries of type "
-                        f"'{geom.type}'. Allowed geometries are "
+                        f"'{geom.type}'  ('structures[{ind}]'). Allowed geometries are "
                         f"{', '.join(geom_names)}, "
                         "and non-recursive 'GeometryGroup'."
                     )
@@ -131,10 +140,20 @@ class HeatSimulation(AbstractSimulation):
     def check_zero_dim_domain(cls, val, values):
         """Error if heat domain have zero dimensions."""
 
-        if any(length == 0 for length in val):
-            raise SetupError(
-                "'HeatSimulation' does not currently support domains with dimensions of zero size."
-            )
+        dim_names = ["x", "y", "z"]
+        zero_dimensions = [False, False, False]
+        zero_dim_str = ""
+        for n, v in enumerate(val):
+            if v == 0:
+                zero_dimensions[n] = True
+                zero_dim_str += f"{dim_names[n]}- "
+
+        num_zero_dims = np.sum(zero_dimensions)
+
+        if num_zero_dims > 1:
+            mssg = f"Your current HeatSimulation has zero size along the {zero_dim_str}dimensions. "
+            mssg += "Only 2- and 3-D simulations are currently supported."
+            raise SetupError(mssg)
 
         return val
 
@@ -175,6 +194,17 @@ class HeatSimulation(AbstractSimulation):
                         )
         return val
 
+    @pd.validator("boundary_spec", always=True)
+    def not_all_neumann(cls, val):
+        """Error if all boundary conditions are Neumann bc."""
+
+        if len(val) == 0 or all(isinstance(bc_spec.condition, HeatFluxBC) for bc_spec in val):
+            raise SetupError(
+                "Heat simulation contains only 'HeatFluxBC' (Neumann) boundary conditions. Steady-state solution is undefined in this case."
+            )
+
+        return val
+
     @pd.validator("grid_spec", always=True)
     @skip_if_fields_missing(["structures"])
     def names_exist_grid_spec(cls, val, values):
@@ -207,6 +237,21 @@ class HeatSimulation(AbstractSimulation):
                         "is not found among simulation structures."
                     )
         return val
+
+    @pd.root_validator(skip_on_failure=True)
+    def check_medium_heat_spec(cls, values):
+        """Error if no structures with SolidSpec."""
+        medium = values["medium"]
+        structures = values["structures"]
+        if not (
+            isinstance(medium.heat_spec, SolidSpec)
+            or any(isinstance(struct.medium.heat_spec, SolidSpec) for struct in structures)
+        ):
+            raise SetupError(
+                "No solid materials ('SolidSpec') are detected in heat simulation. Solution domain is empty."
+            )
+
+        return values
 
     @equal_aspect
     @add_ax_if_none
@@ -813,13 +858,24 @@ class HeatSimulation(AbstractSimulation):
         ... )
         >>> scene = Scene(
         ...     structures=[box],
-        ...     medium=Medium(permittivity=3),
+        ...     medium=Medium(
+        ...         permittivity=3,
+        ...         heat_spec=SolidSpec(
+        ...             conductivity=1, capacity=1,
+        ...         ),
+        ...     ),
         ... )
         >>> sim = HeatSimulation.from_scene(
         ...     scene=scene,
         ...     center=(0, 0, 0),
         ...     size=(5, 6, 7),
         ...     grid_spec=UniformUnstructuredGrid(dl=0.4),
+        ...     boundary_spec=[
+        ...         HeatBoundarySpec(
+        ...             placement=SimulationBoundary(),
+        ...             condition=TemperatureBC(temperature=300)
+        ...         )
+        ...     ],
         ... )
         """
 

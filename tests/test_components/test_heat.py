@@ -226,7 +226,9 @@ def make_heat_source():
 
 
 def test_heat_source():
-    _ = make_heat_source()
+    source = make_heat_source()
+    with pytest.raises(pd.ValidationError):
+        _ = source.updated_copy(structures=[])
 
 
 def make_heat_sim():
@@ -301,15 +303,14 @@ def test_heat_sim():
     structure = structure.updated_copy(geometry=p, name="polyslab")
     _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
 
-    # test unsupported yet geometries
+    # stl support
     structure = structure.updated_copy(geometry=STL_GEO, name="stl")
-    with pytest.raises(pd.ValidationError):
-        _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
+    _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [structure])
 
-    # test unsupported yet zero dimension domains
-    with pytest.raises(pd.ValidationError):
-        _ = heat_sim.updated_copy(center=(0, 0, 0), size=(0, 2, 2))
+    # run 2D case
+    _ = heat_sim.updated_copy(center=(0, 0, 0), size=(0, 2, 2))
 
+    # test unsupported 1D heat domains
     with pytest.raises(pd.ValidationError):
         _ = heat_sim.updated_copy(center=(0, 0, 0), size=(1, 0, 0))
 
@@ -328,8 +329,42 @@ def test_heat_sim():
     _ = heat_sim.plot_heat_conductivity(z=0, colorbar="source")
     plt.close()
 
+    # no negative symmetry
     with pytest.raises(pd.ValidationError):
         _ = heat_sim.updated_copy(symmetry=(-1, 0, 1))
+
+    # no SolidSpec in the entire simulation
+    bc_spec = td.HeatBoundarySpec(
+        placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
+    )
+    solid_med = heat_sim.structures[1].medium
+
+    _ = heat_sim.updated_copy(structures=[], medium=solid_med, sources=[], boundary_spec=[bc_spec])
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(structures=[], sources=[], boundary_spec=[bc_spec])
+
+    _ = heat_sim.updated_copy(
+        structures=[heat_sim.structures[0]], medium=solid_med, boundary_spec=[bc_spec], sources=[]
+    )
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(
+            structures=[heat_sim.structures[0]], boundary_spec=[bc_spec], sources=[]
+        )
+
+    # 1D and 2D structures
+    struct_1d = td.Structure(
+        geometry=td.Box(size=(1, 0, 0)),
+        medium=solid_med,
+    )
+    struct_2d = td.Structure(
+        geometry=td.Box(size=(1, 0, 1)),
+        medium=heat_sim.medium,
+    )
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [struct_1d])
+
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(structures=list(heat_sim.structures) + [struct_2d])
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
@@ -345,9 +380,15 @@ def test_heat_sim_bounds(shift_amount, log_level, log_capture):
         _ = td.HeatSimulation(
             size=(1.5, 1.5, 1.5),
             center=CENTER_SHIFT,
+            medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=1)),
             structures=[
                 td.Structure(
                     geometry=td.Box(size=(1, 1, 1), center=shifted_center), medium=td.Medium()
+                )
+            ],
+            boundary_spec=[
+                td.HeatBoundarySpec(
+                    placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
                 )
             ],
             grid_spec=td.UniformUnstructuredGrid(dl=0.1),
@@ -383,7 +424,13 @@ def test_sim_structure_extent(log_capture, box_size, log_level):
     box = td.Structure(geometry=td.Box(size=box_size), medium=td.Medium(permittivity=2))
     _ = td.HeatSimulation(
         size=(1, 1, 1),
+        medium=td.Medium(heat_spec=td.SolidSpec(conductivity=1, capacity=1)),
         structures=[box],
+        boundary_spec=[
+            td.HeatBoundarySpec(
+                placement=td.SimulationBoundary(), condition=td.TemperatureBC(temperature=300)
+            )
+        ],
         grid_spec=td.UniformUnstructuredGrid(dl=0.1),
     )
 

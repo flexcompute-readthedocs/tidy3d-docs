@@ -1,6 +1,6 @@
 """Storing tidy3d data at it's most fundamental level as xr.DataArray objects"""
 from __future__ import annotations
-from typing import Dict, List
+from typing import Dict, List, Union
 from abc import ABC
 
 import xarray as xr
@@ -28,6 +28,11 @@ DIM_ATTRS = {
     "t": {"units": SECOND, "long_name": "time"},
     "direction": {"long_name": "propagation direction"},
     "mode_index": {"long_name": "mode index"},
+    "eme_port_index": {"long_name": "EME port index"},
+    "eme_cell_index": {"long_name": "EME cell index"},
+    "mode_index_in": {"long_name": "mode index in"},
+    "mode_index_out": {"long_name": "mode index out"},
+    "sweep_index": {"long_name": "sweep index"},
     "theta": {"units": RADIAN, "long_name": "elevation angle"},
     "phi": {"units": RADIAN, "long_name": "azimuth angle"},
     "ux": {"long_name": "normalized kx"},
@@ -139,12 +144,24 @@ class DataArray(xr.DataArray):
         """Absolute value of data array."""
         return abs(self)
 
-    def to_hdf5(self, fname: str, group_path: str) -> None:
-        """Save an xr.DataArray to the hdf5 file with a given path to the group."""
-        sub_group = fname.create_group(group_path)
+    def to_hdf5(self, fname: Union[str, h5py.File], group_path: str) -> None:
+        """Save an xr.DataArray to the hdf5 file or file handle with a given path to the group."""
+
+        # file name passed
+        if isinstance(fname, str):
+            with h5py.File(fname, "w") as f_handle:
+                self.to_hdf5_handle(f_handle=f_handle, group_path=group_path)
+
+        # file handle passed
+        else:
+            self.to_hdf5_handle(f_handle=fname, group_path=group_path)
+
+    def to_hdf5_handle(self, f_handle: h5py.File, group_path: str) -> None:
+        """Save an xr.DataArray to the hdf5 file handle with a given path to the group."""
+
+        sub_group = f_handle.create_group(group_path)
         sub_group[DATA_ARRAY_VALUE_NAME] = self.values
         for key, val in self.coords.items():
-            # sub_group[key] = val
             if val.dtype == "<U1":
                 sub_group[key] = val.values.tolist()
             else:
@@ -156,11 +173,11 @@ class DataArray(xr.DataArray):
         with h5py.File(fname, "r") as f:
             sub_group = f[group_path]
             values = np.array(sub_group[DATA_ARRAY_VALUE_NAME])
-            coords = {dim: np.array(sub_group[dim]) for dim in cls._dims}
+            coords = {dim: np.array(sub_group[dim]) for dim in cls._dims if dim in sub_group}
             for key, val in coords.items():
                 if val.dtype == "O":
                     coords[key] = [byte_string.decode() for byte_string in val.tolist()]
-            return cls(values, coords=coords)
+            return cls(values, coords=coords, dims=cls._dims)
 
     @classmethod
     def from_file(cls, fname: str, group_path: str) -> DataArray:
@@ -638,6 +655,130 @@ class HeatDataArray(DataArray):
     _dims = "T"
 
 
+class EMEScalarModeFieldDataArray(AbstractSpatialDataArray):
+    """Spatial distribution of a mode in frequency-domain as a function of mode index
+    and EME cell index.
+
+    Example
+    -------
+    >>> x = [1,2]
+    >>> y = [2,3,4]
+    >>> z = [3]
+    >>> f = [2e14, 3e14]
+    >>> mode_index = np.arange(5)
+    >>> eme_cell_index = np.arange(5)
+    >>> coords = dict(x=x, y=y, z=z, f=f, mode_index=mode_index, eme_cell_index=eme_cell_index)
+    >>> fd = EMEScalarModeFieldDataArray((1+1j) * np.random.random((2,3,1,2,5,5)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("x", "y", "z", "f", "mode_index", "eme_cell_index")
+
+
+class EMEFreqModeDataArray(DataArray):
+    """Array over frequency, mode index, and EME cell index.
+
+    Example
+    -------
+    >>> f = [2e14, 3e14]
+    >>> mode_index = np.arange(5)
+    >>> eme_cell_index = np.arange(5)
+    >>> coords = dict(f=f, mode_index=mode_index, eme_cell_index=eme_cell_index)
+    >>> fd = EMEFreqModeDataArray((1+1j) * np.random.random((2, 5, 5)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("f", "mode_index", "eme_cell_index")
+
+
+class EMEScalarFieldDataArray(AbstractSpatialDataArray):
+    """Spatial distribution of a field excited from an EME port in frequency-domain as a
+    function of mode index at the EME port and the EME port index.
+
+    Example
+    -------
+    >>> x = [1,2]
+    >>> y = [2,3,4]
+    >>> z = [3,4,5,6]
+    >>> f = [2e14, 3e14]
+    >>> mode_index = np.arange(5)
+    >>> eme_port_index = [0, 1]
+    >>> coords = dict(x=x, y=y, z=z, f=f, mode_index=mode_index, eme_port_index=eme_port_index)
+    >>> fd = EMEScalarFieldDataArray((1+1j) * np.random.random((2,3,4,2,5,2)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("x", "y", "z", "f", "mode_index", "eme_port_index")
+
+
+class EMECoefficientDataArray(DataArray):
+    """EME expansion coefficient of the mode `mode_index_out` in the EME cell
+    `eme_cell_index`, when excited from mode `mode_index_in` of EME port `eme_port_index`.
+
+    Example
+    -------
+    >>> mode_index_in = [0, 1]
+    >>> mode_index_out = [0, 1]
+    >>> eme_cell_index = np.arange(5)
+    >>> eme_port_index = [0, 1]
+    >>> f = [2e14]
+    >>> coords = dict(
+    ...     f=f,
+    ...     mode_index_out=mode_index_out,
+    ...     mode_index_in=mode_index_in,
+    ...     eme_cell_index=eme_cell_index,
+    ...     eme_port_index=eme_port_index
+    ... )
+    >>> fd = EMESMatrixDataArray((1 + 1j) * np.random.random((1, 2, 2, 5, 2)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("f", "mode_index_out", "mode_index_in", "eme_cell_index", "eme_port_index")
+    _data_attrs = {"long_name": "mode expansion coefficient"}
+
+
+class EMESMatrixDataArray(DataArray):
+    """Scattering matrix elements for a fixed pair of ports, possibly with an extra
+    sweep index.
+
+    Example
+    -------
+    >>> mode_index_in = [0, 1]
+    >>> mode_index_out = [0, 1, 2]
+    >>> f = [2e14]
+    >>> sweep_index = np.arange(10)
+    >>> coords = dict(
+    ...     f=f,
+    ...     mode_index_out=mode_index_out,
+    ...     mode_index_in=mode_index_in,
+    ...     sweep_index=sweep_index
+    ... )
+    >>> fd = EMESMatrixDataArray((1 + 1j) * np.random.random((1, 3, 2, 10)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("f", "mode_index_out", "mode_index_in", "sweep_index")
+    _data_attrs = {"long_name": "scattering matrix element"}
+
+
+class EMEModeIndexDataArray(DataArray):
+    """Complex-valued effective propagation index of an EME mode,
+    also indexed by EME cell.
+
+    Example
+    -------
+    >>> f = [2e14, 3e14]
+    >>> mode_index = np.arange(4)
+    >>> eme_cell_index = np.arange(5)
+    >>> coords = dict(f=f, mode_index=mode_index, eme_cell_index=eme_cell_index)
+    >>> data = EMEModeIndexDataArray((1+1j) * np.random.random((2,4,5)), coords=coords)
+    """
+
+    __slots__ = ()
+    _dims = ("f", "mode_index", "eme_cell_index")
+    _data_attrs = {"long_name": "Propagation index"}
+
+
 class ChargeDataArray(DataArray):
     """Charge data array.
 
@@ -653,13 +794,19 @@ class ChargeDataArray(DataArray):
 
 
 class PointDataArray(DataArray):
-    """Indexed data array.
+    """A two-dimensional array that stores coordinates of a collection of points.
+    Dimension ``index`` denotes the index of a point in the collection, and dimension ``axis``
+    denotes the point's coordinate along that axis.
 
     Example
     -------
     >>> point_array = PointDataArray(
     ...     (1+1j) * np.random.random((5, 3)), coords=dict(index=np.arange(5), axis=np.arange(3)),
     ... )
+    >>> # get coordinates of a point number 3
+    >>> point3 = point_array.sel(index=3)
+    >>> # get x coordinates of all points
+    >>> x_coords = point_array.sel(axis=0)
     """
 
     __slots__ = ()
@@ -667,7 +814,11 @@ class PointDataArray(DataArray):
 
 
 class CellDataArray(DataArray):
-    """Cell connection data array.
+    """A two-dimensional array that stores indices of points composing each cell in a collection of
+    cells of the same type (for example: triangles, tetrahedra, etc). Dimension ``cell_index``
+    denotes the index of a cell in the collection, and dimension ``vertex_index`` denotes placement
+    (index) of a point in a cell (for example: 0, 1, or 2 for triangles; 0, 1, 2, or 3 for
+    tetrahedra).
 
     Example
     -------
@@ -675,6 +826,10 @@ class CellDataArray(DataArray):
     ...     (1+1j) * np.random.random((4, 3)),
     ...     coords=dict(cell_index=np.arange(4), vertex_index=np.arange(3)),
     ... )
+    >>> # get indices of points composing cell number 3
+    >>> cell3 = cell_array.sel(cell_index=3)
+    >>> # get indices of points that represent the first vertex in each cell
+    >>> first_vertices = cell_array.sel(vertex_index=0)
     """
 
     __slots__ = ()
@@ -682,7 +837,9 @@ class CellDataArray(DataArray):
 
 
 class IndexedDataArray(DataArray):
-    """Indexed data array.
+    """Stores a one-dimensional array enumerated by coordinate ``index``. It is typically used
+    in conjuction with a ``PointDataArray`` to store point-associated data or a ``CellDataArray``
+    to store cell-associated data.
 
     Example
     -------
@@ -716,6 +873,12 @@ DATA_ARRAY_TYPES = [
     FreqModeDataArray,
     TriangleMeshDataArray,
     HeatDataArray,
+    EMEScalarFieldDataArray,
+    EMEScalarModeFieldDataArray,
+    EMESMatrixDataArray,
+    EMECoefficientDataArray,
+    EMEModeIndexDataArray,
+    EMEFreqModeDataArray,
     ChargeDataArray,
     PointDataArray,
     CellDataArray,

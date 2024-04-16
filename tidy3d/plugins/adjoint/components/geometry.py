@@ -20,8 +20,9 @@ from ....components.data.data_array import ScalarFieldDataArray
 from ....components.monitor import FieldMonitor, PermittivityMonitor
 from ....constants import fp_eps, MICROMETER
 from ....exceptions import AdjointError
+from ....log import log
 
-from .base import JaxObject
+from .base import JaxObject, WEB_ADJOINT_MESSAGE
 from .types import JaxFloat
 
 # number of integration points per unit wavelength in material
@@ -280,9 +281,17 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
 
     @pd.validator("sidewall_angle", always=True)
     def no_sidewall(cls, val):
-        """Don't allow sidewall."""
+        """Warn if sidewall angle present."""
         if not np.isclose(val, 0.0):
-            raise AdjointError("'JaxPolySlab' does not support slanted sidewall.")
+            log.warning(
+                "'JaxPolySlab' does not yet perform the full adjoint gradient treatment "
+                "for slanted sidewalls. "
+                "A straight sidewall angle is assumed when computing the gradient with respect "
+                "to shifting boundaries of the geometry. Therefore, as 'sidewall_angle' becomes "
+                "further from '0.0', the gradient error can be significant. "
+                "If high gradient accuracy is needed, please either reduce your 'sidewall_angle' "
+                "or wait until this feature is supported fully in a later version."
+            )
         return val
 
     @pd.validator("dilation", always=True)
@@ -292,14 +301,17 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
             raise AdjointError("'JaxPolySlab' does not support dilation.")
         return val
 
-    @pd.validator("vertices", always=True)
-    def limit_number_of_vertices(cls, val):
+    def _validate_web_adjoint(self) -> None:
+        """Run validators for this component, only if using ``tda.web.run()``."""
+        self._limit_number_of_vertices()
+
+    def _limit_number_of_vertices(self) -> None:
         """Limit the maximum number of vertices."""
-        if len(val) > MAX_NUM_VERTICES:
+        if len(self.vertices_jax) > MAX_NUM_VERTICES:
             raise AdjointError(
-                f"For performance, a maximum of {MAX_NUM_VERTICES} are allowed in 'JaxPolySlab'."
+                f"For performance, a maximum of {MAX_NUM_VERTICES} are allowed in 'JaxPolySlab'. "
+                + WEB_ADJOINT_MESSAGE
             )
-        return val
 
     def edge_contrib(
         self,
@@ -313,7 +325,7 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
         eps_out: complex,
         eps_in: complex,
     ) -> Coordinate2D:
-        """Gradient w.r.t change in `vertex_grad` connected to `vertex_stat`."""
+        """Gradient w.r.t change in ``vertex_grad`` connected to ``vertex_stat``."""
 
         # TODO: (later) compute these grabbing from grad_data_eps at some distance away
         delta_eps_12 = eps_in - eps_out
@@ -324,6 +336,10 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
         vertex_stat = np.array(jax.lax.stop_gradient(vertex_stat))
         edge = vertex_stat - vertex_grad
         length_edge = np.linalg.norm(edge)
+
+        # if the edge length is 0 (overlapping vertices), there is no gradient contrib for this edge
+        if np.isclose(length_edge, 0.0):
+            return 0.0
 
         # get normalized vectors tangent to and perpendicular to edge in global caresian basis
         tx, ty = edge / length_edge
@@ -354,7 +370,7 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
             return cmp_t, cmp_n, cmp_z
 
         def compute_integrand(s: np.array, z: np.array) -> np.array:
-            """Get integrand at positions `(s, z)` along the edge."""
+            """Get integrand at positions ``(s, z)`` along the edge."""
 
             # grab the position along edge and make dictionary of coords to interp with (s, z)
             x, y = edge_position(s=s)
@@ -521,7 +537,7 @@ class JaxPolySlab(JaxGeometry, PolySlab, JaxObject):
         eps_out: complex,
         eps_in: complex,
     ) -> tuple:
-        """Generate arguments for `vertex_vjp`."""
+        """Generate arguments for ``vertex_vjp``."""
 
         num_verts = len(self.vertices)
         args = [range(num_verts)]
@@ -620,7 +636,7 @@ class JaxGeometryGroup(JaxGeometry, GeometryGroup, JaxObject):
         eps_in: complex,
         num_proc: int = 1,
     ) -> JaxGeometryGroup:
-        """Returns a `JaxGeometryGroup` where the `.geometries` store the gradient info."""
+        """Returns a ``JaxGeometryGroup`` where the ``.geometries`` store the gradient info."""
 
         map_args = (
             self.geometries,

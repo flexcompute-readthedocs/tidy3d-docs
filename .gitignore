@@ -56,7 +56,6 @@ instance/
 .webassets-cache
 
 # HDF5 files
-*.h5
 *.hdf5
 *.hdf5.gz
 
@@ -130,3 +129,4 @@ htmlcov/
 
 # Specific file and folder exclusions
 .idea
+.vscode

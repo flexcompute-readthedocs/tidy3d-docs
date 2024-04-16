@@ -1,6 +1,7 @@
 """ Simulation Level Data """
 from __future__ import annotations
 from typing import Callable, Tuple, Union
+from abc import ABC
 
 import pathlib
 import xarray as xr
@@ -26,8 +27,9 @@ DATA_TYPE_MAP = {data.__fields__["monitor"].type_: data for data in MonitorDataT
 DATA_TYPE_NAME_MAP = {val.__fields__["monitor"].type_.__name__: val for val in MonitorDataTypes}
 
 
-class SimulationData(AbstractSimulationData):
-    """Stores data from a collection of :class:`.Monitor` objects in a :class:`.Simulation`.
+class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
+    """Data from an :class:`.AbstractYeeGridSimulation` involving
+    electromagnetic fields on a Yee grid.
 
     Notes
     -----
@@ -37,152 +39,7 @@ class SimulationData(AbstractSimulationData):
 
         More importantly, the ``SimulationData`` contains a reference to the data for each of the monitors within the
         original :class:`.Simulation`. This data can be accessed directly using the name given to the monitors initially.
-
-    Examples
-    --------
-
-    Standalone example:
-
-    >>> import tidy3d as td
-    >>> num_modes = 5
-    >>> x = [-1,1,3]
-    >>> y = [-2,0,2,4]
-    >>> z = [-3,-1,1,3,5]
-    >>> f = [2e14, 3e14]
-    >>> coords = dict(x=x[:-1], y=y[:-1], z=z[:-1], f=f)
-    >>> grid = td.Grid(boundaries=td.Coords(x=x, y=y, z=z))
-    >>> scalar_field = td.ScalarFieldDataArray((1+1j) * np.random.random((2,3,4,2)), coords=coords)
-    >>> field_monitor = td.FieldMonitor(
-    ...     size=(2,4,6),
-    ...     freqs=[2e14, 3e14],
-    ...     name='field',
-    ...     fields=['Ex'],
-    ...     colocate=True,
-    ... )
-    >>> sim = Simulation(
-    ...     size=(2, 4, 6),
-    ...     grid_spec=td.GridSpec(wavelength=1.0),
-    ...     monitors=[field_monitor],
-    ...     run_time=2e-12,
-    ...     sources=[
-    ...         td.UniformCurrentSource(
-    ...             size=(0, 0, 0),
-    ...             center=(0, 0.5, 0),
-    ...             polarization="Hx",
-    ...             source_time=td.GaussianPulse(
-    ...                 freq0=2e14,
-    ...                 fwidth=4e13,
-    ...             ),
-    ...         )
-    ...     ],
-    ... )
-    >>> field_data = td.FieldData(monitor=field_monitor, Ex=scalar_field, grid_expanded=grid)
-    >>> sim_data = td.SimulationData(simulation=sim, data=(field_data,))
-
-    To save and load the :class:`SimulationData` object.
-
-    .. code-block:: python
-
-        sim_data.to_file(fname='path/to/file.hdf5') # Save a SimulationData object to a HDF5 file
-        sim_data = SimulationData.from_file(fname='path/to/file.hdf5') # Load a SimulationData object from a HDF5 file.
-
-    See Also
-    --------
-
-    **Notebooks:**
-        * `Quickstart <../../notebooks/StartHere.html>`_: Usage in a basic simulation flow.
-        * `Performing visualization of simulation data <../../notebooks/VizData.html>`_
-        * `Advanced monitor data manipulation and visualization <../../notebooks/XarrayTutorial.html>`_
-
     """
-
-    simulation: Simulation = pd.Field(
-        ...,
-        title="Simulation",
-        description="Original :class:`.Simulation` associated with the data.",
-    )
-
-    data: Tuple[annotate_type(MonitorDataType), ...] = pd.Field(
-        ...,
-        title="Monitor Data",
-        description="List of :class:`.MonitorData` instances "
-        "associated with the monitors of the original :class:`.Simulation`.",
-    )
-
-    diverged: bool = pd.Field(
-        False,
-        title="Diverged",
-        description="A boolean flag denoting whether the simulation run diverged.",
-    )
-
-    @property
-    def final_decay_value(self) -> float:
-        """Returns value of the field decay at the final time step."""
-        log_str = self.log
-        if log_str is None:
-            raise DataError(
-                "No log string in the SimulationData object, can't find final decay value."
-            )
-        lines = log_str.split("\n")
-        decay_lines = [line for line in lines if "field decay" in line]
-        final_decay = 1.0
-        if len(decay_lines) > 0:
-            final_decay_line = decay_lines[-1]
-            final_decay = float(final_decay_line.split("field decay: ")[-1])
-        return final_decay
-
-    def source_spectrum(self, source_index: int) -> Callable:
-        """Get a spectrum normalization function for a given source index."""
-
-        if source_index is None or len(self.simulation.sources) == 0:
-            return np.ones_like
-
-        source = self.simulation.sources[source_index]
-        source_time = source.source_time
-        times = self.simulation.tmesh
-        dt = self.simulation.dt
-
-        # plug in mornitor_data frequency domain information
-        def source_spectrum_fn(freqs):
-            """Source amplitude as function of frequency."""
-            spectrum = source_time.spectrum(times, freqs, dt)
-
-            # Remove user defined amplitude and phase from the normalization
-            # such that they would still have an effect on the output fields.
-            # In other words, we are only normalizing out the arbitrary part of the spectrum
-            # that depends on things like freq0, fwidth and offset.
-            return spectrum / source_time.amplitude / np.exp(1j * source_time.phase)
-
-        return source_spectrum_fn
-
-    def renormalize(self, normalize_index: int) -> SimulationData:
-        """Return a copy of the :class:`.SimulationData` with a different source used for the
-        normalization."""
-
-        num_sources = len(self.simulation.sources)
-        if normalize_index == self.simulation.normalize_index or num_sources == 0:
-            # already normalized to that index
-            return self.copy()
-
-        if normalize_index and (normalize_index < 0 or normalize_index >= num_sources):
-            # normalize index out of bounds for source list
-            raise DataError(
-                f"normalize_index {normalize_index} out of bounds for list of sources "
-                f"of length {num_sources}"
-            )
-
-        def source_spectrum_fn(freqs):
-            """Normalization function that also removes previous normalization if needed."""
-            new_spectrum_fn = self.source_spectrum(normalize_index)
-            old_spectrum_fn = self.source_spectrum(self.simulation.normalize_index)
-            return new_spectrum_fn(freqs) / old_spectrum_fn(freqs)
-
-        # Make a new monitor_data dictionary with renormalized data
-        data_normalized = [mnt_data.normalize(source_spectrum_fn) for mnt_data in self.data]
-
-        simulation = self.simulation.copy(update=dict(normalize_index=normalize_index))
-
-        return self.copy(update=dict(simulation=simulation, data=data_normalized))
 
     def load_field_monitor(self, monitor_name: str) -> AbstractFieldData:
         """Load monitor and raise exception if not a field monitor."""
@@ -357,11 +214,12 @@ class SimulationData(AbstractSimulationData):
             field_components = (dataset[c] for c in required_components)
 
             # Apply the requested transformation
-            if val == "real":
+            val = val.lower()
+            if val in ("real", "re"):
                 derived_data = sum(f.real**2 for f in field_components) ** 0.5
                 derived_data.name = f"|Re{{{field_name}}}|"
 
-            elif val == "imag":
+            elif val in ("imag", "im"):
                 derived_data = sum(f.imag**2 for f in field_components) ** 0.5
                 derived_data.name = f"|Im{{{field_name}}}|"
 
@@ -376,6 +234,12 @@ class SimulationData(AbstractSimulationData):
 
             elif val == "phase":
                 raise Tidy3dKeyError(f"Phase is not defined for complex vector {field_name}")
+
+            else:
+                raise Tidy3dKeyError(
+                    f"'val' of {val} not supported. "
+                    "Must be one of 'real', 'imag', 'abs', 'abs^2', or 'phase'."
+                )
 
             return derived_data
 
@@ -411,18 +275,18 @@ class SimulationData(AbstractSimulationData):
         fname : str
             Full path to an hdf5 file containing :class:`.SimulationData` data.
         mnt_name : str, optional
-            `.name` of the monitor to load the data from.
+            ``.name`` of the monitor to load the data from.
         **parse_obj_kwargs
             Keyword arguments passed to either pydantic's ``parse_obj`` function when loading model.
 
         Returns
         -------
         :class:`MonitorData`
-            Monitor data corresponding to the `mnt_name` type.
+            Monitor data corresponding to the ``mnt_name`` type.
 
         Example
         -------
-        >>> field_data = SimulationData.from_file(fname='folder/data.hdf5', mnt_name="field") # doctest: +SKIP
+        >>> field_data = your_simulation_data.from_file(fname='folder/data.hdf5', mnt_name="field") # doctest: +SKIP
         """
 
         if pathlib.Path(fname).suffix != ".hdf5":
@@ -494,9 +358,9 @@ class SimulationData(AbstractSimulationData):
             Name of :class:`.FieldMonitor`, :class:`.FieldTimeData`, or :class:`.ModeSolverData`
             to plot.
         field_name : str
-            Name of `field` component to plot (eg. `'Ex'`).
-            Also accepts `'E'` and `'H'` to plot the vector magnitudes of the electric and
-            magnetic fields, and `'S'` for the Poynting vector.
+            Name of ``field`` component to plot (eg. `'Ex'`).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
         val : Literal['real', 'imag', 'abs', 'abs^2', 'phase'] = 'real'
             Which part of the field to plot.
         scale : Literal['lin', 'dB']
@@ -512,19 +376,19 @@ class SimulationData(AbstractSimulationData):
             to compute the color limits. This helps in visualizing the field patterns especially
             in the presence of a source.
         vmin : float = None
-            The lower bound of data range that the colormap covers. If `None`, they are
+            The lower bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         vmax : float = None
-            The upper bound of data range that the colormap covers. If `None`, they are
+            The upper bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         ax : matplotlib.axes._subplots.Axes = None
             matplotlib axes to plot on, if not specified, one is created.
-        sel_kwargs : keyword arguments used to perform `.sel()` selection in the monitor data.
-            These kwargs can select over the spatial dimensions (`x`, `y`, `z`),
-            frequency or time dimensions (`f`, `t`) or `mode_index`, if applicable.
+        sel_kwargs : keyword arguments used to perform ``.sel()`` selection in the monitor data.
+            These kwargs can select over the spatial dimensions (``x``, ``y``, ``z``),
+            frequency or time dimensions (``f``, ``t``) or ``mode_index``, if applicable.
             For the plotting to work appropriately, the resulting data after selection must contain
             only two coordinates with len > 1.
-            Furthermore, these should be spatial coordinates (`x`, `y`, or `z`).
+            Furthermore, these should be spatial coordinates (``x``, ``y``, or ``z``).
 
         Returns
         -------
@@ -576,7 +440,7 @@ class SimulationData(AbstractSimulationData):
                 if val == "phase"
                 else (
                     "divergent"
-                    if len(field_name) == 2 and val in ("real", "imag")
+                    if len(field_name) == 2 and val in ("real", "imag", "re", "im")
                     else "sequential"
                 )
             )
@@ -589,6 +453,8 @@ class SimulationData(AbstractSimulationData):
             if monitor.size[dim] == 0 and "xyz"[dim] not in sel_kwargs
         }
         for axis, pos in thin_dims.items():
+            if axis not in field_data.coords:
+                continue
             if field_data.coords[axis].size <= 1:
                 field_data = field_data.sel(**{axis: pos}, method="nearest")
             else:
@@ -612,7 +478,11 @@ class SimulationData(AbstractSimulationData):
 
         # select the extra coordinates out of the data from user-specified kwargs
         for coord_name, coord_val in sel_kwargs.items():
-            if field_data.coords[coord_name].size <= 1:
+            if (
+                field_data.coords[coord_name].size <= 1
+                or coord_name == "eme_port_index"
+                or coord_name == "mode_index"
+            ):
                 field_data = field_data.sel(**{coord_name: coord_val}, method=None)
             else:
                 field_data = field_data.interp(
@@ -653,7 +523,10 @@ class SimulationData(AbstractSimulationData):
         # get the spatial coordinate corresponding to the plane
         planar_coord = [name for name, c in spatial_coords_in_data.items() if c is False][0]
         axis = "xyz".index(planar_coord)
-        position = float(field_data.coords[planar_coord])
+        if planar_coord in field_data.coords:
+            position = float(field_data.coords[planar_coord])
+        else:
+            position = monitor.center[axis]
 
         return self.plot_scalar_array(
             field_data=field_data,
@@ -772,3 +645,162 @@ class SimulationData(AbstractSimulationData):
         ax.set_ylim(min(y_coord_values), max(y_coord_values))
 
         return ax
+
+
+class SimulationData(AbstractYeeGridSimulationData):
+    """Stores data from a collection of :class:`.Monitor` objects in a :class:`.Simulation`.
+
+    Notes
+    -----
+
+        The ``SimulationData`` objects store a copy of the original :class:`.Simulation`:, so it can be recovered if the
+        ``SimulationData`` is loaded in a new session and the :class:`.Simulation` is no longer in memory.
+
+        More importantly, the ``SimulationData`` contains a reference to the data for each of the monitors within the
+        original :class:`.Simulation`. This data can be accessed directly using the name given to the monitors initially.
+
+    Examples
+    --------
+
+    Standalone example:
+
+    >>> import tidy3d as td
+    >>> num_modes = 5
+    >>> x = [-1,1,3]
+    >>> y = [-2,0,2,4]
+    >>> z = [-3,-1,1,3,5]
+    >>> f = [2e14, 3e14]
+    >>> coords = dict(x=x[:-1], y=y[:-1], z=z[:-1], f=f)
+    >>> grid = td.Grid(boundaries=td.Coords(x=x, y=y, z=z))
+    >>> scalar_field = td.ScalarFieldDataArray((1+1j) * np.random.random((2,3,4,2)), coords=coords)
+    >>> field_monitor = td.FieldMonitor(
+    ...     size=(2,4,6),
+    ...     freqs=[2e14, 3e14],
+    ...     name='field',
+    ...     fields=['Ex'],
+    ...     colocate=True,
+    ... )
+    >>> sim = td.Simulation(
+    ...     size=(2, 4, 6),
+    ...     grid_spec=td.GridSpec(wavelength=1.0),
+    ...     monitors=[field_monitor],
+    ...     run_time=2e-12,
+    ...     sources=[
+    ...         td.UniformCurrentSource(
+    ...             size=(0, 0, 0),
+    ...             center=(0, 0.5, 0),
+    ...             polarization="Hx",
+    ...             source_time=td.GaussianPulse(
+    ...                 freq0=2e14,
+    ...                 fwidth=4e13,
+    ...             ),
+    ...         )
+    ...     ],
+    ... )
+    >>> field_data = td.FieldData(monitor=field_monitor, Ex=scalar_field, grid_expanded=grid)
+    >>> sim_data = td.SimulationData(simulation=sim, data=(field_data,))
+
+    To save and load the :class:`SimulationData` object.
+
+    .. code-block:: python
+
+        sim_data.to_file(fname='path/to/file.hdf5') # Save a SimulationData object to a HDF5 file
+        sim_data = SimulationData.from_file(fname='path/to/file.hdf5') # Load a SimulationData object from a HDF5 file.
+
+    See Also
+    --------
+
+    **Notebooks:**
+        * `Quickstart <../../notebooks/StartHere.html>`_: Usage in a basic simulation flow.
+        * `Performing visualization of simulation data <../../notebooks/VizData.html>`_
+        * `Advanced monitor data manipulation and visualization <../../notebooks/XarrayTutorial.html>`_
+
+    """
+
+    simulation: Simulation = pd.Field(
+        ...,
+        title="Simulation",
+        description="Original :class:`.Simulation` associated with the data.",
+    )
+
+    data: Tuple[annotate_type(MonitorDataType), ...] = pd.Field(
+        ...,
+        title="Monitor Data",
+        description="List of :class:`.MonitorData` instances "
+        "associated with the monitors of the original :class:`.Simulation`.",
+    )
+
+    diverged: bool = pd.Field(
+        False,
+        title="Diverged",
+        description="A boolean flag denoting whether the simulation run diverged.",
+    )
+
+    @property
+    def final_decay_value(self) -> float:
+        """Returns value of the field decay at the final time step."""
+        log_str = self.log
+        if log_str is None:
+            raise DataError(
+                "No log string in the SimulationData object, can't find final decay value."
+            )
+        lines = log_str.split("\n")
+        decay_lines = [line for line in lines if "field decay" in line]
+        final_decay = 1.0
+        if len(decay_lines) > 0:
+            final_decay_line = decay_lines[-1]
+            final_decay = float(final_decay_line.split("field decay: ")[-1])
+        return final_decay
+
+    def source_spectrum(self, source_index: int) -> Callable:
+        """Get a spectrum normalization function for a given source index."""
+
+        if source_index is None or len(self.simulation.sources) == 0:
+            return np.ones_like
+
+        source = self.simulation.sources[source_index]
+        source_time = source.source_time
+        times = self.simulation.tmesh
+        dt = self.simulation.dt
+
+        # plug in mornitor_data frequency domain information
+        def source_spectrum_fn(freqs):
+            """Source amplitude as function of frequency."""
+            spectrum = source_time.spectrum(times, freqs, dt)
+
+            # Remove user defined amplitude and phase from the normalization
+            # such that they would still have an effect on the output fields.
+            # In other words, we are only normalizing out the arbitrary part of the spectrum
+            # that depends on things like freq0, fwidth and offset.
+            return spectrum / source_time.amplitude / np.exp(1j * source_time.phase)
+
+        return source_spectrum_fn
+
+    def renormalize(self, normalize_index: int) -> SimulationData:
+        """Return a copy of the :class:`.SimulationData` with a different source used for the
+        normalization."""
+
+        num_sources = len(self.simulation.sources)
+        if normalize_index == self.simulation.normalize_index or num_sources == 0:
+            # already normalized to that index
+            return self.copy()
+
+        if normalize_index and (normalize_index < 0 or normalize_index >= num_sources):
+            # normalize index out of bounds for source list
+            raise DataError(
+                f"normalize_index {normalize_index} out of bounds for list of sources "
+                f"of length {num_sources}"
+            )
+
+        def source_spectrum_fn(freqs):
+            """Normalization function that also removes previous normalization if needed."""
+            new_spectrum_fn = self.source_spectrum(normalize_index)
+            old_spectrum_fn = self.source_spectrum(self.simulation.normalize_index)
+            return new_spectrum_fn(freqs) / old_spectrum_fn(freqs)
+
+        # Make a new monitor_data dictionary with renormalized data
+        data_normalized = [mnt_data.normalize(source_spectrum_fn) for mnt_data in self.data]
+
+        simulation = self.simulation.copy(update=dict(normalize_index=normalize_index))
+
+        return self.copy(update=dict(simulation=simulation, data=data_normalized))

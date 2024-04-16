@@ -142,15 +142,15 @@ class ModeSolver(Tidy3dBaseModel):
         return solver_sym
 
     def _get_solver_grid(
-        self, preserve_layer_behind: bool = False, truncate_symmetry: bool = True
+        self, keep_additional_layers: bool = False, truncate_symmetry: bool = True
     ) -> Grid:
         """Grid for the mode solver, not snapped to plane or simulation zero dims, and optionally
         corrected for symmetries.
 
         Parameters
         ----------
-        preserve_layer_behind : bool = False
-            Do not discard the layer of cells behind the main layer of cells. Together they
+        keep_additional_layers : bool = False
+            Do not discard layers of cells in front and behind the main layer of cells. Together they
             represent the region where custom medium data is needed for proper subpixel.
         truncate_symmetry : bool = True
             Truncate to symmetry quadrant if symmetry present.
@@ -166,9 +166,9 @@ class ModeSolver(Tidy3dBaseModel):
         span_inds = self.simulation._discretize_inds_monitor(monitor)
 
         # Remove extension along monitor normal
-        if not preserve_layer_behind:
+        if not keep_additional_layers:
             span_inds[self.normal_axis, 0] += 1
-        span_inds[self.normal_axis, 1] -= 1
+            span_inds[self.normal_axis, 1] -= 1
 
         # Do not extend if simulation has a single pixel along a dimension
         for dim, num_cells in enumerate(self.simulation.grid.num_cells):
@@ -192,7 +192,7 @@ class ModeSolver(Tidy3dBaseModel):
         plane normal dimension and dimensions where the simulation domain is 2D will be correctly
         set after the solve."""
 
-        return self._get_solver_grid(preserve_layer_behind=False, truncate_symmetry=True)
+        return self._get_solver_grid(keep_additional_layers=False, truncate_symmetry=True)
 
     @cached_property
     def _num_cells_freqs_modes(self) -> Tuple[int, int, int]:
@@ -448,36 +448,65 @@ class ModeSolver(Tidy3dBaseModel):
         ]
         return np.stack(eps_tensor, axis=0)
 
+    def _tensorial_material_profile_modal_plane_tranform(
+        self, mat_data: ArrayComplex4D
+    ) -> ArrayComplex4D:
+        """For tensorial material response function such as epsilon and mu, pick and tranform it to
+        modal plane with normal axis rotated to z.
+        """
+        # get rid of normal axis
+        mat_tensor = np.take(mat_data, indices=[0], axis=1 + self.normal_axis)
+        mat_tensor = np.squeeze(mat_tensor, axis=1 + self.normal_axis)
+
+        # convert to into 3-by-3 representation for easier axis swap
+        flat_shape = np.shape(mat_tensor)  # 9 components flat
+        tensor_shape = [3, 3] + list(flat_shape[1:])  # 3-by-3 matrix
+        mat_tensor = mat_tensor.reshape(tensor_shape)
+
+        # swap axes to plane coordinates (normal_axis goes to z)
+        if self.normal_axis == 0:
+            # swap x and y
+            mat_tensor[[0, 1], :, ...] = mat_tensor[[1, 0], :, ...]
+            mat_tensor[:, [0, 1], ...] = mat_tensor[:, [1, 0], ...]
+        if self.normal_axis <= 1:
+            # swap x (normal_axis==0) or y (normal_axis==1) and z
+            mat_tensor[[1, 2], :, ...] = mat_tensor[[2, 1], :, ...]
+            mat_tensor[:, [1, 2], ...] = mat_tensor[:, [2, 1], ...]
+
+        # back to "flat" representation
+        mat_tensor = mat_tensor.reshape(flat_shape)
+
+        # construct to feed to mode solver
+        return mat_tensor
+
+    def _diagonal_material_profile_modal_plane_tranform(
+        self, mat_data: ArrayComplex4D
+    ) -> ArrayComplex3D:
+        """For diagonal material response function such as epsilon and mu, pick and tranform it to
+        modal plane with normal axis rotated to z.
+        """
+        # get rid of normal axis
+        mat_tensor = np.take(mat_data, indices=[0], axis=1 + self.normal_axis)
+        mat_tensor = np.squeeze(mat_tensor, axis=1 + self.normal_axis)
+
+        # swap axes to plane coordinates (normal_axis goes to z)
+        if self.normal_axis == 0:
+            # swap x and y
+            mat_tensor[[0, 1], :, ...] = mat_tensor[[1, 0], :, ...]
+        if self.normal_axis <= 1:
+            # swap x (normal_axis==0) or y (normal_axis==1) and z
+            mat_tensor[[1, 2], :, ...] = mat_tensor[[2, 1], :, ...]
+
+        # construct to feed to mode solver
+        return mat_tensor
+
     def _solver_eps(self, freq: float) -> ArrayComplex4D:
         """Diagonal permittivity in the shape needed by solver, with normal axis rotated to z."""
 
         # Get diagonal epsilon components in the plane
         eps_tensor = self._get_epsilon(freq)
-
-        # get rid of normal axis
-        eps_tensor = np.take(eps_tensor, indices=[0], axis=1 + self.normal_axis)
-        eps_tensor = np.squeeze(eps_tensor, axis=1 + self.normal_axis)
-
-        # convert to into 3-by-3 representation for easier axis swap
-        flat_shape = np.shape(eps_tensor)  # 9 components flat
-        tensor_shape = [3, 3] + list(flat_shape[1:])  # 3-by-3 matrix
-        eps_tensor = eps_tensor.reshape(tensor_shape)
-
-        # swap axes to plane coordinates (normal_axis goes to z)
-        if self.normal_axis == 0:
-            # swap x and y
-            eps_tensor[[0, 1], :, ...] = eps_tensor[[1, 0], :, ...]
-            eps_tensor[:, [0, 1], ...] = eps_tensor[:, [1, 0], ...]
-        if self.normal_axis <= 1:
-            # swap x (normal_axis==0) or y (normal_axis==1) and z
-            eps_tensor[[1, 2], :, ...] = eps_tensor[[2, 1], :, ...]
-            eps_tensor[:, [1, 2], ...] = eps_tensor[:, [2, 1], ...]
-
-        # back to "flat" representation
-        eps_tensor = eps_tensor.reshape(flat_shape)
-
-        # construct eps to feed to mode solver
-        return eps_tensor
+        # tranformation
+        return self._tensorial_material_profile_modal_plane_tranform(eps_tensor)
 
     def _solve_all_freqs(
         self,
@@ -498,6 +527,22 @@ class ModeSolver(Tidy3dBaseModel):
             eps_spec.append(eps_spec_freq)
 
         return n_complex, fields, eps_spec
+
+    def _postprocess_solver_fields(self, solver_fields):
+        """Postprocess `solver_fields` from `compute_modes` to proper coordinate"""
+        fields = {key: [] for key in ("Ex", "Ey", "Ez", "Hx", "Hy", "Hz")}
+        for mode_index in range(self.mode_spec.num_modes):
+            # Get E and H fields at the current mode_index
+            ((Ex, Ey, Ez), (Hx, Hy, Hz)) = self._process_fields(solver_fields, mode_index)
+
+            # Note: back in original coordinates
+            fields_mode = {"Ex": Ex, "Ey": Ey, "Ez": Ez, "Hx": Hx, "Hy": Hy, "Hz": Hz}
+            for field_name, field in fields_mode.items():
+                fields[field_name].append(field)
+
+        for field_name, field in fields.items():
+            fields[field_name] = np.stack(field, axis=-1)
+        return fields
 
     def _solve_single_freq(
         self,
@@ -522,19 +567,7 @@ class ModeSolver(Tidy3dBaseModel):
             direction=self.direction,
         )
 
-        fields = {key: [] for key in ("Ex", "Ey", "Ez", "Hx", "Hy", "Hz")}
-        for mode_index in range(self.mode_spec.num_modes):
-            # Get E and H fields at the current mode_index
-            ((Ex, Ey, Ez), (Hx, Hy, Hz)) = self._process_fields(solver_fields, mode_index)
-
-            # Note: back in original coordinates
-            fields_mode = {"Ex": Ex, "Ey": Ey, "Ez": Ez, "Hx": Hx, "Hy": Hy, "Hz": Hz}
-            for field_name, field in fields_mode.items():
-                fields[field_name].append(field)
-
-        for field_name, field in fields.items():
-            fields[field_name] = np.stack(field, axis=-1)
-
+        fields = self._postprocess_solver_fields(solver_fields)
         return n_complex, fields, eps_spec
 
     def _rotate_field_coords(self, field: FIELD) -> FIELD:
@@ -903,9 +936,9 @@ class ModeSolver(Tidy3dBaseModel):
         Parameters
         ----------
         field_name : str
-            Name of `field` component to plot (eg. `'Ex'`).
-            Also accepts `'E'` and `'H'` to plot the vector magnitudes of the electric and
-            magnetic fields, and `'S'` for the Poynting vector.
+            Name of ``field`` component to plot (eg. ``'Ex'``).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
         val : Literal['real', 'imag', 'abs', 'abs^2', 'dB'] = 'real'
             Which part of the field to plot.
         eps_alpha : float = 0.2
@@ -973,8 +1006,9 @@ class ModeSolver(Tidy3dBaseModel):
         This might significantly reduce upload time in the presence of custom mediums.
         """
 
-        # we preserve extracells along the normal direction to ensure
-        extended_grid = self._get_solver_grid(preserve_layer_behind=True, truncate_symmetry=False)
+        # we preserve extra cells along the normal direction to ensure there is enough data for
+        # subpixel
+        extended_grid = self._get_solver_grid(keep_additional_layers=True, truncate_symmetry=False)
         grids_1d = extended_grid.boundaries
         new_sim_box = Box.from_bounds(
             rmin=(grids_1d.x[0], grids_1d.y[0], grids_1d.z[0]),
@@ -986,7 +1020,7 @@ class ModeSolver(Tidy3dBaseModel):
 
         new_bspec_dict = {}
         for axis in "xyz":
-            bcomp = bspec["x"]
+            bcomp = bspec[axis]
             for bside, sign in zip([bcomp.plus, bcomp.minus], "+-"):
                 if isinstance(bside, (PML, StablePML, Absorber)):
                     new_bspec_dict[axis + sign] = PECBoundary()

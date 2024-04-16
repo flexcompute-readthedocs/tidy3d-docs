@@ -22,9 +22,11 @@ from ...components.simulation import Simulation
 from ...plugins.mode.mode_solver import ModeSolver
 from ...components.heat.simulation import HeatSimulation
 from ...components.heat.data.sim_data import HeatSimulationData
+from ...components.eme.simulation import EMESimulation
+from ...components.eme.data.sim_data import EMESimulationData
 
-SimulationType = Union[Simulation, HeatSimulation]
-SimulationDataType = Union[SimulationData, HeatSimulationData]
+SimulationType = Union[Simulation, HeatSimulation, EMESimulation]
+SimulationDataType = Union[SimulationData, HeatSimulationData, EMESimulationData]
 
 
 class Tidy3dStub(BaseModel, TaskStub):
@@ -32,19 +34,19 @@ class Tidy3dStub(BaseModel, TaskStub):
 
     @classmethod
     def from_file(cls, file_path: str) -> SimulationType:
-        """Loads a Union[:class:`.Simulation`, :class:`.HeatSimulation`]
+        """Loads a Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`]
         from .yaml, .json, or .hdf5 file.
 
         Parameters
         ----------
         file_path : str
             Full path to the .yaml or .json or .hdf5 file to load the
-            Union[:class:`.Simulation`, :class:`.HeatSimulation`] from.
+            Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] from.
 
         Returns
         -------
-        Union[:class:`.Simulation`, :class:`.HeatSimulation`]
-            An instance of the component class calling `load`.
+        Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`]
+            An instance of the component class calling ``load``.
 
         Example
         -------
@@ -66,6 +68,8 @@ class Tidy3dStub(BaseModel, TaskStub):
             sim = ModeSolver.from_file(file_path)
         elif "HeatSimulation" == type_:
             sim = HeatSimulation.from_file(file_path)
+        elif "EMESimulation" == type_:
+            sim = EMESimulation.from_file(file_path)
 
         return sim
 
@@ -73,7 +77,7 @@ class Tidy3dStub(BaseModel, TaskStub):
         self,
         file_path: str,
     ):
-        """Exports Union[:class:`.Simulation`, :class:`.HeatSimulation`] instance to .yaml, .json,
+        """Exports Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] instance to .yaml, .json,
         or .hdf5 file
 
         Parameters
@@ -88,13 +92,13 @@ class Tidy3dStub(BaseModel, TaskStub):
         self.simulation.to_file(file_path)
 
     def to_hdf5_gz(self, fname: str, custom_encoders: List[Callable] = None) -> None:
-        """Exports Union[:class:`.Simulation`, :class:`.HeatSimulation`] instance to .hdf5.gz file.
+        """Exports Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] instance to .hdf5.gz file.
 
         Parameters
         ----------
         fname : str
             Full path to the .hdf5.gz file to save
-            the Union[:class:`.Simulation`, :class:`.HeatSimulation`] to.
+            the Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] to.
         custom_encoders : List[Callable]
             List of functions accepting (fname: str, group_path: str, value: Any) that take
             the ``value`` supplied and write it to the hdf5 ``fname`` at ``group_path``.
@@ -112,7 +116,7 @@ class Tidy3dStub(BaseModel, TaskStub):
         Returns
         -------
         :class:`TaskType`
-            An instance Type of the component class calling `load`.
+            An instance Type of the component class calling ``load``.
         """
         if isinstance(self.simulation, Simulation):
             return TaskType.FDTD.name
@@ -120,6 +124,8 @@ class Tidy3dStub(BaseModel, TaskStub):
             return TaskType.MODE_SOLVER.name
         elif isinstance(self.simulation, HeatSimulation):
             return TaskType.HEAT.name
+        elif isinstance(self.simulation, EMESimulation):
+            return TaskType.EME.name
 
     def validate_pre_upload(self, source_required) -> None:
         """Perform some pre-checks on instances of component"""
@@ -134,19 +140,19 @@ class Tidy3dStubData(BaseModel, TaskStubData):
 
     @classmethod
     def from_file(cls, file_path: str) -> SimulationDataType:
-        """Loads a Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
+        """Loads a Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
         from .yaml, .json, or .hdf5 file.
 
         Parameters
         ----------
         file_path : str
             Full path to the .yaml or .json or .hdf5 file to load the
-            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] from.
+            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] from.
 
         Returns
         -------
-        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
-            An instance of the component class calling `load`.
+        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
+            An instance of the component class calling ``load``.
         """
         extension = _get_valid_extension(file_path)
         if extension == ".json":
@@ -164,18 +170,20 @@ class Tidy3dStubData(BaseModel, TaskStubData):
             sim_data = ModeSolverData.from_file(file_path)
         elif "HeatSimulationData" == type_:
             sim_data = HeatSimulationData.from_file(file_path)
+        elif "EMESimulationData" == type_:
+            sim_data = EMESimulationData.from_file(file_path)
 
         return sim_data
 
     def to_file(self, file_path: str):
-        """Exports Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] instance
+        """Exports Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] instance
         to .yaml, .json, or .hdf5 file
 
         Parameters
         ----------
         file_path : str
             Full path to the .yaml or .json or .hdf5 file to save the
-            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] to.
+            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] to.
 
         Example
         -------
@@ -186,28 +194,39 @@ class Tidy3dStubData(BaseModel, TaskStubData):
     @classmethod
     def postprocess(cls, file_path: str) -> SimulationDataType:
         """Load .yaml, .json, or .hdf5 file to
-        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] instance.
+        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] instance.
 
         Parameters
         ----------
         file_path : str
             Full path to the .yaml or .json or .hdf5 file to save the
-            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] to.
+            Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] to.
 
         Returns
         -------
-        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
-            An instance of the component class calling `load`.
+        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
+            An instance of the component class calling ``load``.
         """
         stub_data = Tidy3dStubData.from_file(file_path)
+
+        check_log_msg = "For more information, check 'SimulationData.log' or use "
+        check_log_msg += "'web.download_log(task_id)'."
+        warned_about_warnings = False
 
         if isinstance(stub_data, SimulationData):
             final_decay_value = stub_data.final_decay_value
             shutoff_value = stub_data.simulation.shutoff
-            if (shutoff_value != 0) and (final_decay_value > shutoff_value):
+            if stub_data.diverged:
+                log.warning("The simulation has diverged! " + check_log_msg)
+                warned_about_warnings = True
+            elif (shutoff_value != 0) and (final_decay_value > shutoff_value):
                 log.warning(
                     f"Simulation final field decay value of {final_decay_value} is greater than "
                     f"the simulation shutoff threshold of {shutoff_value}. Consider running the "
                     "simulation again with a larger 'run_time' duration for more accurate results."
                 )
+
+        if "WARNING" in stub_data.log and not warned_about_warnings:
+            log.warning("Warning messages were found in the solver log. " + check_log_msg)
+
         return stub_data

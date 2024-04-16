@@ -14,6 +14,7 @@ from ..api import webapi as web
 from ..core.task_info import TaskInfo, RunInfo
 from ..core.constants import TaskId, TaskName
 from ...components.base import Tidy3dBaseModel
+from ...components.types import annotate_type
 from ...log import log, get_logging_console
 
 from ...exceptions import DataError
@@ -171,7 +172,7 @@ class Job(WebContainer):
 
         Returns
         -------
-        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
+        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
             Object containing simulation results.
         """
 
@@ -264,7 +265,7 @@ class Job(WebContainer):
 
         Returns
         -------
-        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
+        Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
             Object containing simulation results.
         """
         return web.load(task_id=self.task_id, path=path, verbose=self.verbose)
@@ -306,7 +307,7 @@ class Job(WebContainer):
         Cost is calculated assuming the simulation runs for
         the full ``run_time``. If early shut-off is triggered, the cost is adjusted proportionately.
         """
-        return web.estimate_cost(self.task_id, verbose=verbose)
+        return web.estimate_cost(self.task_id, verbose=verbose, solver_version=self.solver_version)
 
 
 class BatchData(Tidy3dBaseModel):
@@ -382,8 +383,8 @@ class BatchData(Tidy3dBaseModel):
         Returns
         ------
         :class:`BatchData`
-            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`]
-            for each Union[:class:`.Simulation`, :class:`.HeatSimulation`] in :class:`Batch`.
+            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`]
+            for each Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] in :class:`Batch`.
         """
 
         batch_file = Batch._batch_path(path_dir=path_dir)
@@ -418,7 +419,7 @@ class Batch(WebContainer):
         * `Inverse taper edge coupler <../../notebooks/EdgeCoupler.html>`_
     """
 
-    simulations: Dict[TaskName, SimulationType] = pd.Field(
+    simulations: Dict[TaskName, annotate_type(SimulationType)] = pd.Field(
         ...,
         title="Simulations",
         description="Mapping of task names to Simulations to run as a batch.",
@@ -486,16 +487,18 @@ class Batch(WebContainer):
         Returns
         ------
         :class:`BatchData`
-            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] for
-            each Union[:class:`.Simulation`, :class:`.HeatSimulation`] in :class:`Batch`.
+            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData] for
+            each Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] in :class:`Batch`.
 
         Note
         ----
         A typical usage might look like:
 
-        >>> batch_data = batch.run()
-        >>> for task_name, sim_data in batch_data.items():
-        ...     # do something with data.
+        >>> from tidy3d.web.api.container import Batch
+        >>> custom_batch = Batch()
+        >>> batch_data = custom_batch.run() # doctest: +SKIP
+        >>> for task_name, sim_data in batch_data.items(): # doctest: +SKIP
+        ...     # do something with data. # doctest: +SKIP
 
         ``bach_data`` does not store all of the data objects in memory,
         rather it iterates over the task names and loads the corresponding
@@ -704,7 +707,7 @@ class Batch(WebContainer):
         ----
         To load and iterate through the data, use :meth:`Batch.items()`.
 
-        The data for each task will be named as ``{path_dir}/{task_name}.hdf5``.
+        The data for each task will be named as ``{path_dir}/{task_id}.hdf5``.
         The :class:`Batch` hdf5 file will be automatically saved as ``{path_dir}/batch.hdf5``,
         allowing one to load this :class:`Batch` later using ``batch = Batch.from_file()``.
         """
@@ -731,8 +734,8 @@ class Batch(WebContainer):
         Returns
         ------
         :class:`BatchData`
-            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`] for each
-            Union[:class:`.Simulation`, :class:`.HeatSimulation`] in :class:`Batch`.
+            Contains Union[:class:`.SimulationData`, :class:`.HeatSimulationData`, :class:`.EMESimulationData`] for each
+            Union[:class:`.Simulation`, :class:`.HeatSimulation`, :class:`.EMESimulation`] in :class:`Batch`.
 
         The :class:`Batch` hdf5 file will be automatically saved as ``{path_dir}/batch.hdf5``,
         allowing one to load this :class:`Batch` later using ``batch = Batch.from_file()``.
