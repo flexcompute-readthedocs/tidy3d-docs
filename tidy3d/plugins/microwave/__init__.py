@@ -6,10 +6,12 @@ from .path_integrals import (
     CurrentIntegralAxisAligned,
 )
 from .impedance_calculator import ImpedanceCalculator
+from . import models
 
 __all__ = [
     "AxisAlignedPathIntegral",
     "VoltageIntegralAxisAligned",
     "CurrentIntegralAxisAligned",
     "ImpedanceCalculator",
+    "models",
 ]
