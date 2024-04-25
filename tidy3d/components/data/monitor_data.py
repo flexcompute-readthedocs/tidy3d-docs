@@ -1882,6 +1882,20 @@ class AbstractFieldProjectionData(MonitorData):
             return 1.0
         return -1j * k * np.exp(1j * k * dist) / (4 * np.pi * dist)
 
+    @staticmethod
+    def propagation_phase_2d(dist: Union[float, None], k: complex) -> complex:
+        """Phase associated with propagation of a distance with a given wavenumber."""
+        if dist is None:
+            return 1.0
+        return -np.exp(1j * k * dist) * np.sqrt(1j * k / (8 * np.pi * dist))
+
+    @staticmethod
+    def propagation_phase_3d(dist: Union[float, None], k: complex) -> complex:
+        """Phase associated with propagation of a distance with a given wavenumber."""
+        if dist is None:
+            return 1.0
+        return -1j * k * np.exp(1j * k * dist) / (4 * np.pi * dist)
+
     @property
     def fields_spherical(self) -> xr.Dataset:
         """Get all field components in spherical coordinates relative to the monitor's
@@ -1967,6 +1981,32 @@ class AbstractFieldProjectionData(MonitorData):
             phase = 1.0
         else:
             phase = self.propagation_phase(dist=coords_sph["r"][..., None], k=k)
+        Etheta = self.Etheta.values / phase
+        Ephi = self.Ephi.values / phase
+        rcs_data = constant * (np.abs(Etheta) ** 2 + np.abs(Ephi) ** 2)
+
+        return self.make_data_array(data=rcs_data)
+
+    @property
+    def radar_cross_section_2d(self) -> xr.DataArray:
+        """Radar cross section in units of incident power."""
+
+        _, index_k = self.nk
+        if not np.all(index_k == 0):
+            raise SetupError("Can't compute RCS for a lossy background medium.")
+
+        k = self.k[None, None, None, ...]
+        eta = self.eta[None, None, None, ...]
+
+        # 2D constant
+        constant = k**2 / (16 * np.pi * eta)
+
+        # normalize fields by the distance-based phase factor
+        coords_sph = self.coords_spherical
+        if coords_sph["r"] is None:
+            phase = 1.0
+        else:
+            phase = self.propagation_phase_2d(dist=coords_sph["r"][..., None], k=k)
         Etheta = self.Etheta.values / phase
         Ephi = self.Ephi.values / phase
         rcs_data = constant * (np.abs(Etheta) ** 2 + np.abs(Ephi) ** 2)

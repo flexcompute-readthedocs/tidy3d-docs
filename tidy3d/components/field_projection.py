@@ -337,6 +337,15 @@ class FieldProjector(Tidy3dBaseModel):
         currents = currents.colocate(*colocation_points)
         return currents
 
+    def integrate_1d(
+        self,
+        function: np.ndarray,
+        phase: np.ndarray,
+        pts_u: np.ndarray,
+    ):
+        """Trapezoidal integration in two dimensions."""
+        return np.trapz(np.squeeze(function) * np.squeeze(phase), pts_u, axis=0)
+
     def integrate_2d(
         self,
         function: np.ndarray,
@@ -397,7 +406,6 @@ class FieldProjector(Tidy3dBaseModel):
 
         theta = np.atleast_1d(theta)
         phi = np.atleast_1d(phi)
-
         sin_theta = np.sin(theta)
         cos_theta = np.cos(theta)
         sin_phi = np.sin(phi)
@@ -421,21 +429,38 @@ class FieldProjector(Tidy3dBaseModel):
 
                 phase_ij = phase[idx_u][:, None] * phase[idx_v][None, :] * phase[idx_w]
 
-                J[idx_u, i_th, j_ph] = self.integrate_2d(
-                    currents_f[f"E{cmp_1}"].values, phase_ij, pts[idx_u], pts[idx_v]
-                )
+                if self.is_3d_simulation():
+                    J[idx_u, i_th, j_ph] = self.integrate_2d(
+                        currents_f[f"E{cmp_1}"].values, phase_ij, pts[idx_u], pts[idx_v]
+                    )
 
-                J[idx_v, i_th, j_ph] = self.integrate_2d(
-                    currents_f[f"E{cmp_2}"].values, phase_ij, pts[idx_u], pts[idx_v]
-                )
+                    J[idx_v, i_th, j_ph] = self.integrate_2d(
+                        currents_f[f"E{cmp_2}"].values, phase_ij, pts[idx_u], pts[idx_v]
+                    )
 
-                M[idx_u, i_th, j_ph] = self.integrate_2d(
-                    currents_f[f"H{cmp_1}"].values, phase_ij, pts[idx_u], pts[idx_v]
-                )
+                    M[idx_u, i_th, j_ph] = self.integrate_2d(
+                        currents_f[f"H{cmp_1}"].values, phase_ij, pts[idx_u], pts[idx_v]
+                    )
 
-                M[idx_v, i_th, j_ph] = self.integrate_2d(
-                    currents_f[f"H{cmp_2}"].values, phase_ij, pts[idx_u], pts[idx_v]
-                )
+                    M[idx_v, i_th, j_ph] = self.integrate_2d(
+                        currents_f[f"H{cmp_2}"].values, phase_ij, pts[idx_u], pts[idx_v]
+                    )
+                else:
+                    J[idx_u, i_th, j_ph] = self.integrate_1d(
+                        currents_f[f"E{cmp_1}"].values, phase_ij, pts[idx_u]
+                    )
+
+                    J[idx_v, i_th, j_ph] = self.integrate_1d(
+                        currents_f[f"E{cmp_2}"].values, phase_ij, pts[idx_u]
+                    )
+
+                    M[idx_u, i_th, j_ph] = self.integrate_1d(
+                        currents_f[f"H{cmp_1}"].values, phase_ij, pts[idx_u]
+                    )
+
+                    M[idx_v, i_th, j_ph] = self.integrate_1d(
+                        currents_f[f"H{cmp_2}"].values, phase_ij, pts[idx_u]
+                    )
 
         if len(theta) < 2:
             integrate_for_one_theta(0)
@@ -534,6 +559,10 @@ class FieldProjector(Tidy3dBaseModel):
             return self._project_fields_cartesian(proj_monitor)
         return self._project_fields_kspace(proj_monitor)
 
+    def is_3d_simulation(self) -> bool:
+        """Determine if the simulation is 2D or 3D based on the size attribute."""
+        return self.sim_data.simulation.size[2] != 0.01
+
     def _project_fields_angular(
         self, monitor: FieldProjectionAngleMonitor
     ) -> FieldProjectionAngleData:
@@ -554,17 +583,24 @@ class FieldProjector(Tidy3dBaseModel):
         theta = np.atleast_1d(monitor.theta)
         phi = np.atleast_1d(monitor.phi)
 
-        # compute projected fields for the dataset associated with each monitor
+        medium = monitor.medium if monitor.medium else self.medium
+        k = AbstractFieldProjectionData.wavenumber(medium=medium, frequency=freqs)
+
         field_names = ("Er", "Etheta", "Ephi", "Hr", "Htheta", "Hphi")
         fields = [
             np.zeros((1, len(theta), len(phi), len(freqs)), dtype=complex) for _ in field_names
         ]
 
-        medium = monitor.medium if monitor.medium else self.medium
-        k = AbstractFieldProjectionData.wavenumber(medium=medium, frequency=freqs)
-        phase = np.atleast_1d(
-            AbstractFieldProjectionData.propagation_phase(dist=monitor.proj_distance, k=k)
-        )
+        if self.is_3d_simulation():
+            # compute projected fields for the dataset associated with each monitor in 3D
+            phase = np.atleast_1d(
+                AbstractFieldProjectionData.propagation_phase_3d(dist=monitor.proj_distance, k=k)
+            )
+        else:
+            # compute projected fields for the dataset associated with each monitor in 2D
+            phase = np.atleast_1d(
+                AbstractFieldProjectionData.propagation_phase_2d(dist=monitor.proj_distance, k=k)
+            )
 
         for surface in self.surfaces:
             # apply windowing to currents
