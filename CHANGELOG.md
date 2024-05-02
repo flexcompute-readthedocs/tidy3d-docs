@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for `.gz` files in `Simulation` version updater.
 - Warning if a nonuniform custom medium is intersecting `PlaneWave`, `GaussianBeam`, `AstigmaticGaussianBeam`, `FieldProjectionCartesianMonitor`, `FieldProjectionAngleMonitor`, `FieldProjectionKSpaceMonitor`, and `DiffractionMonitor`.
 - Tidy3D objects may store arbitrary metadata in an `.attrs` dictionary.
+- `JaxSimulation` now supports the following GDS export methods: `to_gds()`, `to_gds_file()`, `to_gdspy()`, and `to_gdstk()`.
 
 ### Changed
 
 ### Fixed
 - Bug in plotting and computing tilted plane intersections of transformed 0 thickness geometries.
+- `Simulation.to_gdspy()` and `Simulation.to_gdstk()` now place polygons in GDS layer `(0, 0)` when no `gds_layer_dtype_map` is provided instead of erroring.
 
 ## [2.7.0rc1] - 2024-04-22
 
