@@ -22,3 +22,4 @@ Simulations
    faq/how-to-run-a-2d-simulation-in-tidy3d
    faq/why-the-simulation-time-for-the-exact-same-simulation-can-vary
    faq/how-long-should-i-run-the-simulation
+   faq/Can-you-convert-a-lumerical-script-file-to-Tidy3D
