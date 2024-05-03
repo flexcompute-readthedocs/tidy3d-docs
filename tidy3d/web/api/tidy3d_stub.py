@@ -28,7 +28,9 @@ from ...components.eme.simulation import EMESimulation
 from ...components.eme.data.sim_data import EMESimulationData
 
 SimulationType = Union[Simulation, DeviceSimulation, HeatSimulation, EMESimulation]
-SimulationDataType = Union[SimulationData, DeviceSimulationData, HeatSimulationData, EMESimulationData]
+SimulationDataType = Union[
+    SimulationData, DeviceSimulationData, HeatSimulationData, EMESimulationData
+]
 
 
 class Tidy3dStub(BaseModel, TaskStub):
