@@ -103,9 +103,9 @@ class HeatSimulation(DeviceSimulation):
         if colorbar == "conductivity":
             plot_type = "heat_conductivity"
         elif colorbar == "source":
-            plot_type = "heat_source"
+            plot_type = "source"
 
-        return self.plot_scene_specs(
+        return self.plot_property(
             x=x,
             y=y,
             z=z,
@@ -113,7 +113,7 @@ class HeatSimulation(DeviceSimulation):
             alpha=alpha,
             source_alpha=source_alpha,
             monitor_alpha=monitor_alpha,
-            plot_type=plot_type,
+            property=plot_type,
             hlim=hlim,
             vlim=vlim,
         )

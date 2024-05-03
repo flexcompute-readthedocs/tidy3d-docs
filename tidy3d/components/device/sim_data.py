@@ -271,7 +271,7 @@ class DeviceSimulationData(AbstractSimulationData):
         interp_kwarg = {"xyz"[axis]: position}
         # plot the simulation heat conductivity
         if property_to_plot is not None:
-            ax = self.simulation.scene.plot_property(
+            ax = self.simulation.scene.plot_device_property(
                 cbar=False,
                 alpha=structures_alpha,
                 ax=ax,

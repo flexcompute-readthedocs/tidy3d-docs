@@ -11,10 +11,10 @@ import pydantic.v1 as pd
 from .boundary import TemperatureBC, HeatFluxBC, ConvectionBC
 from .boundary import VoltageBC, CurrentBC, InsulatingBC
 from .boundary import DeviceBoundarySpec
-from ..device_spec import FluidSpec, InsulatorSpec
+from ..device_spec import FluidSpec, InsulatorSpec, SolidSpec, ConductorSpec
 from .source import DeviceSourceType, UniformHeatSource, HeatSource, HeatFromElectricSource
 from .monitor import DeviceMonitorType
-from .grid import UnstructuredGridType
+from .grid import UnstructuredGridType, UniformUnstructuredGrid, DistanceUnstructuredGrid
 from .viz import HEAT_BC_COLOR_TEMPERATURE, HEAT_BC_COLOR_FLUX, HEAT_BC_COLOR_CONVECTION
 from .viz import plot_params_heat_bc, plot_params_heat_source, HEAT_SOURCE_CMAP
 
@@ -23,7 +23,7 @@ from ..base import cached_property, skip_if_fields_missing
 from ..types import Ax, Shapely, TYPE_TAG_STR, ScalarSymmetry, Bound, annotate_type
 from ..viz import add_ax_if_none, equal_aspect, PlotParams
 from ..structure import Structure
-from ..geometry.base import Box, GeometryGroup
+from ..geometry.base import Box
 from ..geometry.primitives import Sphere, Cylinder
 from ..geometry.polyslab import PolySlab
 from ..geometry.mesh import TriangleMesh
@@ -41,7 +41,6 @@ from ...log import log
 DEVICE_BACK_STRUCTURE_STR = "<<<DEVICE_BACKGROUND_STRUCTURE>>>"
 
 DeviceSingleGeometryType = (Box, Cylinder, Sphere, PolySlab, TriangleMesh)
-
 
 
 class DeviceSimulationType(str, Enum):
@@ -164,6 +163,10 @@ class DeviceSimulation(AbstractSimulation):
                 crosses_solid = any(
                     isinstance(medium.heat_spec, SolidSpec) for medium in medium_set
                 )
+                crosses_elec_spec = any(
+                    isinstance(medium.electric_spec, ConductorSpec) for medium in medium_set
+                )
+                crosses_solid = crosses_solid or crosses_elec_spec
             else:
                 # approximate check for volumetric objects based on bounding boxes
                 # thus, it could still miss a case when there is no data inside the monitor
@@ -172,6 +175,12 @@ class DeviceSimulation(AbstractSimulation):
                     for structure in total_structures
                     if isinstance(structure.medium.heat_spec, SolidSpec)
                 )
+                crosses_elec_spec = any(
+                    obj.intersects(structure.geometry)
+                    for structure in total_structures
+                    if isinstance(structure.medium.electric_spec, ConductorSpec)
+                )
+                crosses_solid = crosses_solid or crosses_elec_spec
 
             if not crosses_solid:
                 failed_obj_inds.append(ind)
@@ -354,6 +363,7 @@ class DeviceSimulation(AbstractSimulation):
         monitors = values["monitors"]
         structures = values["structures"]
         boundary_specs = values["boundary_spec"]
+        background_medium = values["medium"]
 
         simulation_types = []
         # check bcs
@@ -384,10 +394,72 @@ class DeviceSimulation(AbstractSimulation):
                     ):
                         one_correct = True
 
+            # check background medium
+            if st == DeviceSimulationType.HEAT:
+                if (
+                    not isinstance(background_medium.heat_spec, NeutralTypes)
+                    and background_medium.heat_spec is not None
+                ):
+                    one_correct = True
+            elif st == DeviceSimulationType.CONDUCTION:
+                if (
+                    not isinstance(background_medium.electric_spec, NeutralTypes)
+                    and background_medium.electric_spec is not None
+                ):
+                    one_correct = True
+
             if not one_correct:
                 raise SetupError(
                     "Make sure your structures have the correct HEAT/CONDUCTION specification, e.g., "
                     'for simulations of HEAT type, "heat_spec" must be not None.'
+                )
+
+        return values
+
+    @staticmethod
+    def _check_simulation_types(values: Dict) -> Tuple[int, ...]:
+        """Given model dictionary ``values``, check the type of simulations to be run
+        based on BCs and sources.
+        """
+        # NOTE: this function does not consider the source 'HeatFromElectricSource'
+
+        boundaries = values["boundary_spec"]
+        sources = values["sources"]
+
+        HeatBCTypes = (TemperatureBC, HeatFluxBC, ConvectionBC)
+        HeatSourceTypes = (UniformHeatSource, HeatSource)
+        ElectricBCTypes = (VoltageBC, CurrentBC, InsulatingBC)
+
+        simulation_types = []
+
+        for boundary in boundaries:
+            if isinstance(boundary.condition, HeatBCTypes):
+                if DeviceSimulationType.HEAT not in simulation_types:
+                    simulation_types.append(DeviceSimulationType.HEAT)
+            if isinstance(boundary.condition, ElectricBCTypes):
+                if DeviceSimulationType.CONDUCTION not in simulation_types:
+                    simulation_types.append(DeviceSimulationType.CONDUCTION)
+
+        for source in sources:
+            if isinstance(source, HeatSourceTypes):
+                if DeviceSimulationType.HEAT not in simulation_types:
+                    simulation_types.append(DeviceSimulationType.HEAT)
+
+        return simulation_types
+
+    @pd.root_validator(skip_on_failure=True)
+    def check_couplingSource_can_be_applied(cls, values):
+        """Error if material doesn't have the right specifications"""
+
+        simulation_types = cls._check_simulation_types(values)
+
+        sources = values["sources"]
+
+        for source in sources:
+            if isinstance(source, HeatFromElectricSource) and len(simulation_types) < 2:
+                raise SetupError(
+                    "Using 'HeatFromElectricSource' requires the definition of both CONDUCTION and "
+                    f"HEAT simulations. Your simulation setup contains only conditions of type {simulation_types[0].name}"
                 )
 
         return values
@@ -1051,3 +1123,60 @@ class DeviceSimulation(AbstractSimulation):
             medium=scene.medium,
             **kwargs,
         )
+
+    def _get_simulation_types(self) -> list[DeviceSimulationType]:
+        """
+        Checks through BCs and sources and returns the
+        types of simulations.
+        """
+        simulation_types = []
+
+        HeatBCTypes = (TemperatureBC, HeatFluxBC, ConvectionBC)
+        HeatSourceTypes = (UniformHeatSource, HeatSource)
+        ElectricBCTypes = (VoltageBC, CurrentBC, InsulatingBC)
+
+        heat_source_present = False
+        # check for heat simulation
+        for s in self.sources:
+            if isinstance(s, HeatSourceTypes):
+                heat_source_present = True
+
+        heat_BCs_present = False
+        for bc in self.boundary_spec:
+            if isinstance(bc.condition, HeatBCTypes):
+                heat_BCs_present = True
+
+        if heat_source_present and not heat_BCs_present:
+            raise SetupError("Heat sources defined but no heat BCs present.")
+        elif heat_BCs_present or heat_source_present:
+            simulation_types.append(DeviceSimulationType.HEAT)
+
+        # check for conduction simulation
+        electric_spec_present = False
+        for structure in self.structures:
+            if structure.medium.electric_spec is not None:
+                electric_spec_present = True
+
+        electric_BCs_present = False
+        for bc in self.boundary_spec:
+            if isinstance(bc.condition, ElectricBCTypes):
+                electric_BCs_present = True
+
+        if electric_BCs_present and not electric_spec_present:
+            raise SetupError(
+                "Electric BC were specified but not all"
+                " structures have materials with electric"
+                " specifications."
+            )
+        elif electric_BCs_present and electric_spec_present:
+            simulation_types.append(DeviceSimulationType.CONDUCTION)
+
+        return simulation_types
+
+    def _useHeatSourceFromConductionSim(self):
+        """Returns True if 'HeatFromElectricSource' has been defined."""
+        is_heat_source_from_electric = False
+        for source in self.sources:
+            if isinstance(source, HeatFromElectricSource):
+                is_heat_source_from_electric = True
+        return is_heat_source_from_electric

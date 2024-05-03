@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import tidy3d as td
 
 from tidy3d import FluidSpec, SolidSpec, ConductorSpec, InsulatorSpec
-from tidy3d import UniformHeatSource, HeatSource
+from tidy3d import UniformHeatSource, HeatSource, HeatFromElectricSource
 from tidy3d import (
     TemperatureBC,
     HeatFluxBC,
@@ -168,15 +168,23 @@ def test_device_bcs():
 
 
 def make_device_mnts():
-    temp_mnt1 = TemperatureMonitor(size=(1, 2, 3), name="test")
-    temp_mnt2 = TemperatureMonitor(size=(1, 2, 3), name="tet", unstructured=True)
-    temp_mnt3 = TemperatureMonitor(size=(1, 0, 3), name="tri", unstructured=True, conformal=True)
-    temp_mnt4 = TemperatureMonitor(size=(1, 0, 3), name="empty", unstructured=True, conformal=False)
+    temp_mnt1 = TemperatureMonitor(size=(1.6, 2, 3), name="test")
+    temp_mnt2 = TemperatureMonitor(size=(1.6, 2, 3), name="tet", unstructured=True)
+    temp_mnt3 = TemperatureMonitor(
+        center=(0, 1, 0), size=(1.6, 0, 3), name="tri", unstructured=True, conformal=True
+    )
+    temp_mnt4 = TemperatureMonitor(
+        center=(0, 1, 0), size=(1.6, 0, 3), name="empty", unstructured=True, conformal=False
+    )
 
-    volt_mnt1 = VoltageMonitor(size=(1, 2, 3), name="v_test")
-    volt_mnt2 = VoltageMonitor(size=(1, 2, 3), name="v_tet", unstructured=True)
-    volt_mnt3 = VoltageMonitor(size=(1, 0, 3), name="v_tri", unstructured=True, conformal=True)
-    volt_mnt4 = VoltageMonitor(size=(1, 0, 3), name="v_empty", unstructured=True, conformal=False)
+    volt_mnt1 = VoltageMonitor(size=(1.6, 2, 3), name="v_test")
+    volt_mnt2 = VoltageMonitor(size=(1.6, 2, 3), name="v_tet", unstructured=True)
+    volt_mnt3 = VoltageMonitor(
+        center=(0, 1, 0), size=(1.6, 0, 3), name="v_tri", unstructured=True, conformal=True
+    )
+    volt_mnt4 = VoltageMonitor(
+        center=(0, 1, 0), size=(1.6, 0, 3), name="v_empty", unstructured=True, conformal=False
+    )
 
     return [temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4]
 
@@ -457,18 +465,8 @@ def test_device_sim(log_capture):
     for sim in sim_types:
         _ = sim.plot(x=0)
 
-        # polyslab support
-        vertices = np.array([(0, 0), (1, 0), (1, 1)])
-        p = td.PolySlab(vertices=vertices, axis=2, slab_bounds=(-1, 1))
-        structure = solid_structure.updated_copy(geometry=p, name="polyslab")
-        _ = sim.updated_copy(structures=list(sim.structures) + [structure])
-
-        # stl support
-        structure = solid_structure.updated_copy(geometry=STL_GEO, name="stl")
-        _ = sim.updated_copy(structures=list(sim.structures) + [structure])
-
         # run 2D case
-        _ = sim.updated_copy(center=(0, 0, 0), size=(0, 2, 2))
+        _ = sim.updated_copy(center=(0.7, 0, 0), size=(0, 2, 2))
 
         # test unsupported 1D heat domains
         with pytest.raises(pd.ValidationError):
@@ -505,11 +503,11 @@ def test_device_sim(log_capture):
     with pytest.raises(pd.ValidationError):
         heat_sim.updated_copy(monitors=[temp_mnt, temp_mnt])
 
-    _ = heat_sim.plot_scene_specs(plot_type="heat_conductivity", y=0)
+    _ = heat_sim.plot_property(property="heat_conductivity", y=0)
     plt.close()
 
     heat_sim = heat_sim.updated_copy(symmetry=(0, 1, 1))
-    _ = heat_sim.plot_scene_specs(plot_type="heat_conductivity", z=0)
+    _ = heat_sim.plot_property(property="heat_conductivity", z=0)
     plt.close()
 
     # fail if assigning structs without heat_spec
@@ -519,6 +517,38 @@ def test_device_sim(log_capture):
     # fail if assigning structs without electric_spec
     with pytest.raises(pd.ValidationError):
         _ = cond_sim.updated_copy(structures=[insulator, solid_struct_noElect])
+
+    # no data expected inside a monitor
+    for mnt_size in [(0.2, 0.2, 0.2), (0, 1, 1), (0, 2, 0), (0, 0, 0)]:
+        temp_mnt = td.TemperatureMonitor(center=(0, 0, 0), size=mnt_size, name="test")
+        with pytest.raises(pd.ValidationError):
+            _ = heat_sim.updated_copy(monitors=[temp_mnt])
+
+    # fail if 'HeatFromElectricSource' is provided in simulations where only BCs/sources
+    # are provided that are either HEAT or CONDUCTION
+    bc_spec_HEAT = DeviceBoundarySpec(
+        condition=bc_temp, placement=StructureBoundary(structure=solid_structure.name)
+    )
+    sim = DeviceSimulation(
+        medium=solid_structure.medium,
+        center=(0, 0, 0),
+        size=(3, 3, 3),
+        grid_spec=UniformUnstructuredGrid(dl=0.2),
+        structures=[solid_structure],
+        boundary_spec=[bc_spec_HEAT],
+    )
+    with pytest.raises(pd.ValidationError):
+        _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
+
+    # now lets make sim have conduction BC
+    bc_spec_COND = bc_spec_HEAT.updated_copy(condition=bc_volt)
+    sim = sim.updated_copy(boundary_spec=[bc_spec_COND])
+    with pytest.raises(pd.ValidationError):
+        _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
+
+    # now let's make a coupled simulation
+    sim = sim.updated_copy(boundary_spec=[bc_spec_COND, bc_spec_HEAT])
+    _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
@@ -534,10 +564,14 @@ def test_device_sim_bounds(shift_amount, log_level, log_capture):
         _ = td.DeviceSimulation(
             size=(1.5, 1.5, 1.5),
             center=CENTER_SHIFT,
+            medium=td.Medium(electric_spec=td.ConductorSpec(conductivity=1)),
             structures=[
                 td.Structure(
                     geometry=td.Box(size=(1, 1, 1), center=shifted_center), medium=td.Medium()
                 )
+            ],
+            boundary_spec=[
+                DeviceBoundarySpec(condition=VoltageBC(voltage=1), placement=SimulationBoundary())
             ],
             grid_spec=td.UniformUnstructuredGrid(dl=0.1),
         )
@@ -573,6 +607,10 @@ def test_sim_structure_extent(log_capture, box_size, log_level):
     _ = td.DeviceSimulation(
         size=(1, 1, 1),
         structures=[box],
+        medium=td.Medium(electric_spec=td.ConductorSpec(conductivity=1)),
+        boundary_spec=[
+            DeviceBoundarySpec(placement=td.SimulationBoundary(), condition=VoltageBC(voltage=1))
+        ],
         grid_spec=td.UniformUnstructuredGrid(dl=0.1),
     )
 

@@ -11,6 +11,7 @@ from ..bc_placement import BCPlacementType
 from ..types import TYPE_TAG_STR
 
 from ...constants import KELVIN, HEAT_FLUX, HEAT_TRANSFER_COEFF
+from ...constants import VOLT, CURRENT_DENSITY
 
 
 class DeviceBC(ABC, Tidy3dBaseModel):
