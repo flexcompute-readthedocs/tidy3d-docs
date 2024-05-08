@@ -4,7 +4,6 @@ Inverse Design / Adjoint Optimization
 .. toctree::
     :maxdepth: 1
 
-    ../../InverseDesign
     ../../AdjointPlugin0Quickstart
     ../../AdjointPlugin1Intro
     ../../AdjointPlugin2GradientChecking
