@@ -29,7 +29,7 @@ from tidy3d import VoltageMonitor, TemperatureMonitor
 from tidy3d import VoltageData, TemperatureData
 from tidy3d.exceptions import DataError
 
-from ..utils import STL_GEO, assert_log_level, log_capture
+from ..utils import STL_GEO, assert_log_level, log_capture  # noqa: F401
 
 
 def make_device_mediums():
@@ -204,6 +204,34 @@ def test_device_mnt():
         _ = temp_mnt.updated_copy(size=(-1, 2, 3))
 
 
+def test_monitor_crosses_medium():
+    """Test whether monitor crosses structures with relevant material specification"""
+    _, _, solid_noHeat, solid_noElect, _ = make_device_mediums()
+    _, _, solid_struct_noHeat, solid_struct_noElect, _ = make_device_structures()
+    heat_sim = make_device_heat_sim()
+    cond_sim = make_device_cond_sim()
+
+    volt_monitor = td.VoltageMonitor(
+        center=(0, 0, 0), size=(td.inf, td.inf, td.inf), name="voltage"
+    )
+    # a volt monitor in a heat sim should throw error
+    # if no materials with ConductorSpec present
+    with pytest.raises(pd.ValidationError):
+        _ = heat_sim.updated_copy(
+            medium=solid_noElect, structures=[solid_struct_noElect], monitors=[volt_monitor]
+        )
+
+    temp_monitor = td.TemperatureMonitor(
+        center=(0, 0, 0), size=(td.inf, td.inf, td.inf), name="temperature"
+    )
+    # a temperature monitor should throw error in a conduction simulation
+    # if no material with SolidSpec present
+    with pytest.raises(pd.ValidationError):
+        _ = cond_sim.updated_copy(
+            medium=solid_noHeat, structures=[solid_struct_noHeat], monitors=[temp_monitor]
+        )
+
+
 def make_temperature_mnt_data():
     temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, _, _, _, _ = make_device_mnts()
 
@@ -371,7 +399,7 @@ def test_grid_spec():
         grid_spec.updated_copy(distance_interface=2, distance_bulk=1)
 
 
-def test_device_sources(log_capture):
+def test_device_sources(log_capture):  # noqa: F811
     # this shouldn't issue warning
     _ = HeatSource(structures=["solid_structure"], rate=100)
     assert len(log_capture) == 0
@@ -448,7 +476,7 @@ def make_device_cond_sim():
     return cond_sim
 
 
-def test_device_sim(log_capture):
+def test_device_sim(log_capture):  # noqa: F811
     bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
     (
         fluid_structure,
@@ -552,7 +580,7 @@ def test_device_sim(log_capture):
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
-def test_device_sim_bounds(shift_amount, log_level, log_capture):
+def test_device_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
     """make sure bounds are working correctly"""
 
     # make sure all things are shifted to this central location
@@ -600,7 +628,7 @@ def test_device_sim_bounds(shift_amount, log_level, log_capture):
         ((0.1, 0.1, 1), "WARNING"),
     ],
 )
-def test_sim_structure_extent(log_capture, box_size, log_level):
+def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa: F811
     """Make sure we warn if structure extends exactly to simulation edges."""
 
     box = td.Structure(geometry=td.Box(size=box_size), medium=td.Medium(permittivity=2))

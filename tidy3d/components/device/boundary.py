@@ -140,6 +140,6 @@ class DeviceBoundarySpec(Tidy3dBaseModel):
     )
 
 
-HeatBoundarySpec = Union[DeviceBoundarySpec]
+HeatBoundarySpec = DeviceBoundarySpec
 """Heat BC specification
 NOTE: here for backward-compatibility only."""
