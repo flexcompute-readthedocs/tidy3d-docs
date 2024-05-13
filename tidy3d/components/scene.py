@@ -1343,20 +1343,15 @@ class Scene(Tidy3dBaseModel):
         if alpha is not None:
             plot_params = plot_params.copy(update={"alpha": alpha})
 
-        if isinstance(medium.heat_spec, SolidSpec) or isinstance(
+        cond_medium = None
+        if property == "heat_conductivity" and isinstance(medium.heat_spec, SolidSpec):
+            cond_medium = medium.heat_spec.conductivity
+        elif property == "electric_conductivity" and isinstance(
             medium.electric_spec, ConductorSpec
         ):
-            # regular medium
-            if property == "heat_conductivity":
-                cond_medium = medium.heat_spec.conductivity
-            elif property == "electric_conductivity":
-                cond_medium = medium.electric_spec.conductivity
-            else:
-                log.warning(
-                    f"Your plot property {property} is not a supported "
-                    "property for plot. Currently supported values are "
-                    "'heat_conductivity' and 'electric_conductivity'."
-                )
+            cond_medium = medium.electric_spec.conductivity
+
+        if cond_medium is not None:
             delta_cond = cond_medium - heat_cond_min
             delta_cond_max = heat_cond_max - heat_cond_min + 1e-5 * heat_cond_min
             cond_fraction = delta_cond / delta_cond_max
