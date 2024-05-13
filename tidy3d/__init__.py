@@ -3,6 +3,8 @@
 # grid
 from .components.grid.grid import Grid, Coords
 from .components.grid.grid_spec import GridSpec, UniformGrid, CustomGrid, AutoGrid
+from .components.grid.grid_spec import BenklerConformalMeshSpec, StaircasingConformalMeshSpec
+from .components.grid.grid_spec import HeuristicConformalMeshSpec
 
 # geometry
 from .components.geometry.base import Box, Transformed, ClipOperation, GeometryGroup
@@ -50,11 +52,16 @@ from .components.monitor import FieldProjectionAngleMonitor, FieldProjectionCart
 from .components.monitor import FieldProjectionKSpaceMonitor, FieldProjectionSurface
 from .components.monitor import DiffractionMonitor
 
+# lumped elements
+from .components.lumped_element import LumpedResistor
+
+# run time spec
+from .components.run_time_spec import RunTimeSpec
+
 # simulation
 from .components.simulation import Simulation
 
 # field projection
-
 from .components.field_projection import FieldProjector
 
 # data
@@ -132,6 +139,21 @@ from .components.heat.boundary import TemperatureBC, ConvectionBC, HeatFluxBC, H
 from .components.heat.source import UniformHeatSource
 from .components.heat.monitor import TemperatureMonitor
 from .components.heat.grid import UniformUnstructuredGrid, DistanceUnstructuredGrid
+
+# EME
+from .components.eme.simulation import EMESimulation
+from .components.eme.data.sim_data import EMESimulationData
+from .components.eme.monitor import EMECoefficientMonitor, EMEModeSolverMonitor, EMEFieldMonitor
+from .components.eme.monitor import EMEMonitor
+from .components.data.data_array import EMESMatrixDataArray, EMEScalarFieldDataArray
+from .components.data.data_array import EMECoefficientDataArray
+from .components.data.data_array import EMEScalarModeFieldDataArray, EMEModeIndexDataArray
+from .components.eme.data.dataset import EMEFieldDataset, EMECoefficientDataset, EMESMatrixDataset
+from .components.eme.data.dataset import EMEModeSolverDataset
+from .components.eme.data.monitor_data import EMEModeSolverData, EMEFieldData, EMECoefficientData
+from .components.eme.grid import EMEUniformGrid, EMECompositeGrid, EMEExplicitGrid
+from .components.eme.grid import EMEGrid, EMEModeSpec
+from .components.eme.sweep import EMELengthSweep, EMEModeSweep
 
 
 def set_logging_level(level: str) -> None:
@@ -223,6 +245,7 @@ __all__ = [
     "FieldProjectionKSpaceMonitor",
     "FieldProjectionSurface",
     "DiffractionMonitor",
+    "RunTimeSpec",
     "Simulation",
     "FieldProjector",
     "ScalarFieldDataArray",
@@ -298,6 +321,7 @@ __all__ = [
     "config",
     "__version__",
     "Updater",
+    "LumpedResistor",
     "Scene",
     "StructureStructureInterface",
     "StructureBoundary",
@@ -327,4 +351,33 @@ __all__ = [
     "TriangularGridDataset",
     "TetrahedralGridDataset",
     "medium_from_nk",
+    "BenklerConformalMeshSpec",
+    "StaircasingConformalMeshSpec",
+    "HeuristicConformalMeshSpec",
+    "EMESimulation",
+    "EMESimulationData",
+    "EMEMonitor",
+    "EMEModeSolverMonitor",
+    "EMEFieldMonitor",
+    "EMESMatrixDataArray",
+    "EMEFieldDataset",
+    "EMECoefficientDataset",
+    "EMESMatrixDataset",
+    "EMEModeSolverData",
+    "EMEFieldData",
+    "EMECoefficientData",
+    "EMECoefficientMonitor",
+    "EMEModeSpec",
+    "EMEGrid",
+    "EMEUniformGrid",
+    "EMECompositeGrid",
+    "EMEExplicitGrid",
+    "EMEScalarFieldDataArray",
+    "EMEScalarModeFieldDataArray",
+    "EMEModeIndexDataArray",
+    "EMECoefficientDataArray",
+    "EMEModeSolverDataset",
+    "EMESweepSpec",
+    "EMELengthSweep",
+    "EMEModeSweep",
 ]

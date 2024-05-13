@@ -1,4 +1,5 @@
 """Test the parameter sweep plugin."""
+
 import pytest
 import numpy as np
 import tidy3d as td
@@ -6,12 +7,12 @@ import matplotlib.pyplot as plt
 import scipy.stats.qmc as qmc
 
 import tidy3d.web as web
-from tidy3d.components.base import Tidy3dBaseModel
 
 from tidy3d.plugins import design as tdd
 from tidy3d.plugins.design.method import MethodIndependent
 
-from ..utils import run_emulated, log_capture, assert_log_level
+from ..utils import run_emulated, assert_log_level
+from ..utils import log_capture  # noqa: F401
 
 
 SWEEP_METHODS = dict(
@@ -22,8 +23,8 @@ SWEEP_METHODS = dict(
 )
 
 
-@pytest.mark.parametrize("sweep_method", SWEEP_METHODS.values(), ids=SWEEP_METHODS.keys())
-def test_sweep(sweep_method, monkeypatch, ids=[]):
+@pytest.mark.parametrize("sweep_method", SWEEP_METHODS.values())
+def test_sweep(sweep_method, monkeypatch):
     # Problem, simulate scattering cross section of sphere ensemble
     # 	simulation consists of `num_spheres` spheres of radius `radius`.
     #   use defines `scs` function to set up and run simulation as function of inputs.
@@ -34,21 +35,23 @@ def test_sweep(sweep_method, monkeypatch, ids=[]):
     def emulated_batch_run(self, simulations, path_dir: str = None, **kwargs):
         data_dict = {task_name: run_emulated(sim) for task_name, sim in simulations.items()}
         task_ids = dict(zip(simulations.keys(), data_dict.keys()))
+        task_paths = dict(zip(simulations.keys(), simulations.keys()))
 
-        class BatchDataEmulated(Tidy3dBaseModel):
+        class BatchDataEmulated(web.BatchData):
             """Emulated BatchData object that just returns stored emulated data."""
 
             data_dict: dict
-            task_ids: dict
+            # task_ids: dict
+            # task_paths: dict
 
             def items(self):
-                for task_name, sim_data in self.data_dict.items():
+                for task_name, sim_data in self.data_dict.items():  # noqa: UP028
                     yield task_name, sim_data
 
             def __getitem__(self, task_name):
                 return self.data_dict[task_name]
 
-        return BatchDataEmulated(data_dict=data_dict, task_ids=task_ids)
+        return BatchDataEmulated(data_dict=data_dict, task_ids=task_ids, task_paths=task_paths)
 
     monkeypatch.setattr(MethodIndependent, "_run_batch", emulated_batch_run)
 
@@ -60,7 +63,7 @@ def test_sweep(sweep_method, monkeypatch, ids=[]):
         # set up simulation
         spheres = []
 
-        for i in range(int(num_spheres)):
+        for _ in range(int(num_spheres)):
             spheres.append(
                 td.Structure(
                     geometry=td.Sphere(radius=radius),
@@ -149,20 +152,26 @@ def test_sweep(sweep_method, monkeypatch, ids=[]):
     # either supply generic function and run one by one
     sweep_results = design_space.run(scs)
 
+    assert sweep_results.batch_data is None
+
     # or supply function factored into pre and post and run in batch
     sweep_results2 = design_space.run_batch(scs_pre, scs_post)
 
-    sweep_results3 = design_space.run_batch(scs_pre_multi, scs_post_multi)
+    bd = sweep_results2.batch_data
+    for task_name, data in bd.items():  # noqa: B007
+        continue
 
-    sweep_results4 = design_space.run_batch(scs_pre_dict, scs_post_dict)
+    design_space.run_batch(scs_pre_multi, scs_post_multi)
+
+    design_space.run_batch(scs_pre_dict, scs_post_dict)
 
     sel_kwargs_0 = dict(zip(sweep_results.dims, sweep_results.coords[0]))
     sweep_results.sel(**sel_kwargs_0)
 
     print(sweep_results.to_dataframe().head(10))
 
-    im = sweep_results.to_dataframe().plot.hexbin(x="num_spheres", y="radius", C="output")
-    im = sweep_results.to_dataframe().plot.scatter(x="num_spheres", y="radius", c="output")
+    sweep_results.to_dataframe().plot.hexbin(x="num_spheres", y="radius", C="output")
+    sweep_results.to_dataframe().plot.scatter(x="num_spheres", y="radius", c="output")
     plt.close()
 
     design_space2 = tdd.DesignSpace(
@@ -173,8 +182,9 @@ def test_sweep(sweep_method, monkeypatch, ids=[]):
 
     sweep_results_other = design_space2.run(scs)
 
-    results_combined = sweep_results.combine(sweep_results_other)
-    results_combined = sweep_results + sweep_results_other
+    # test combining results
+    sweep_results.combine(sweep_results_other)
+    sweep_results + sweep_results_other
 
     # STEP4: modify the sweep results
 
@@ -237,14 +247,14 @@ def test_method_custom_validators():
         def random(self, n):
             return np.random.random((n, d))
 
-    tdd.MethodRandomCustom(num_points=5, sampler=SamplerWorks()),
+    tdd.MethodRandomCustom(num_points=5, sampler=SamplerWorks())
 
     # missing random method case
     class SamplerNoRandom:
         pass
 
     with pytest.raises(ValueError):
-        tdd.MethodRandomCustom(num_points=5, sampler=SamplerNoRandom()),
+        tdd.MethodRandomCustom(num_points=5, sampler=SamplerNoRandom())
 
     # random method gives a list
     class SamplerList:
@@ -252,7 +262,7 @@ def test_method_custom_validators():
             return np.random.random((n, d)).tolist()
 
     with pytest.raises(ValueError):
-        tdd.MethodRandomCustom(num_points=5, sampler=SamplerList()),
+        tdd.MethodRandomCustom(num_points=5, sampler=SamplerList())
 
     # random method gives wrong number of dimensions
     class SamplerWrongDims:
@@ -260,7 +270,7 @@ def test_method_custom_validators():
             return np.random.random((n, d, d))
 
     with pytest.raises(ValueError):
-        tdd.MethodRandomCustom(num_points=5, sampler=SamplerWrongDims()),
+        tdd.MethodRandomCustom(num_points=5, sampler=SamplerWrongDims())
 
     # random method gives wrong first dimension length
     class SamplerWrongShape:
@@ -268,7 +278,7 @@ def test_method_custom_validators():
             return np.random.random((n + 1, d))
 
     with pytest.raises(ValueError):
-        tdd.MethodRandomCustom(num_points=5, sampler=SamplerWrongShape()),
+        tdd.MethodRandomCustom(num_points=5, sampler=SamplerWrongShape())
 
     # random method gives floats outside of range of 0, 1
     class SamplerOutOfRange:
@@ -276,7 +286,7 @@ def test_method_custom_validators():
             return 3 * np.random.random((n, d)) - 1
 
     with pytest.raises(ValueError):
-        tdd.MethodRandomCustom(num_points=5, sampler=SamplerOutOfRange()),
+        tdd.MethodRandomCustom(num_points=5, sampler=SamplerOutOfRange())
 
 
 @pytest.mark.parametrize(
@@ -284,10 +294,10 @@ def test_method_custom_validators():
     [(True, "WARNING"), (False, None)],
     ids=["warn_monte_carlo", "no_warn_monte_carlo"],
 )
-def test_method_random_warning(log_capture, monte_carlo_warning, log_level_expected):
+def test_method_random_warning(log_capture, monte_carlo_warning, log_level_expected):  # noqa: F811
     """Test that method random validation / warning works as expected."""
 
-    method = tdd.MethodRandom(num_points=10, monte_carlo_warning=monte_carlo_warning)
+    tdd.MethodRandom(num_points=10, monte_carlo_warning=monte_carlo_warning)
     assert_log_level(log_capture, log_level_expected)
 
 

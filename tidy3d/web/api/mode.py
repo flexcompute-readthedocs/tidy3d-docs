@@ -12,8 +12,11 @@ import time
 import pydantic.v1 as pydantic
 from botocore.exceptions import ClientError
 
+from ..core.environment import Env
 from ...components.simulation import Simulation
 from ...components.data.monitor_data import ModeSolverData
+from ...components.medium import AbstractCustomMedium
+from ...components.types import Literal
 from ...exceptions import WebError
 from ...log import log, get_logging_console
 from ..core.core_config import get_logger_console
@@ -46,7 +49,7 @@ def run(
     verbose: bool = True,
     progress_callback_upload: Callable[[float], None] = None,
     progress_callback_download: Callable[[float], None] = None,
-    reduce_simulation: bool = True,
+    reduce_simulation: Literal["auto", True, False] = "auto",
 ) -> ModeSolverData:
     """Submits a :class:`.ModeSolver` to server, starts running, monitors progress, downloads,
     and loads results as a :class:`.ModeSolverData` object.
@@ -64,15 +67,14 @@ def run(
     results_file : str = "mode_solver.hdf5"
         Path to download results file (.hdf5).
     verbose : bool = True
-        If `True`, will print status, otherwise, will run silently.
+        If ``True``, will print status, otherwise, will run silently.
     progress_callback_upload : Callable[[float], None] = None
         Optional callback function called when uploading file with ``bytes_in_chunk`` as argument.
     progress_callback_download : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
-    reduce_simulation : bool = True
-        Restrict simulation to mode solver region. This can help reduce the amount of uploaded and
-        dowloaded data.
-
+    reduce_simulation : Literal["auto", True, False] = "auto"
+        Restrict simulation to mode solver region. If "auto", then simulation is automatically
+        restricted if it contains custom mediums.
     Returns
     -------
     :class:`.ModeSolverData`
@@ -82,6 +84,20 @@ def run(
     log_level = "DEBUG" if verbose else "INFO"
     if verbose:
         console = get_logging_console()
+
+    if reduce_simulation == "auto":
+        sim_mediums = mode_solver.simulation.scene.mediums
+        contains_custom = any(isinstance(med, AbstractCustomMedium) for med in sim_mediums)
+        reduce_simulation = contains_custom
+
+        if reduce_simulation:
+            log.warning(
+                "The associated 'Simulation' object contains custom mediums. It will be "
+                "automatically restricted to the mode solver plane to reduce data for uploading. "
+                "To force uploading the original 'Simulation' object use 'reduce_simulation=False'."
+                " Setting 'reduce_simulation=True' will force simulation reduction in all cases and"
+                " silence this warning."
+            )
 
     if reduce_simulation:
         mode_solver = mode_solver.reduced_simulation_copy
@@ -196,17 +212,28 @@ class ModeSolverTask(ResourceLifecycle, Submittable, extra=pydantic.Extra.allow)
 
         mode_solver.validate_pre_upload()
         mode_solver.simulation.validate_pre_upload(source_required=False)
-        resp = http.post(
-            MODESOLVER_API,
-            {
-                "projectId": folder.folder_id,
-                "taskName": task_name,
-                "protocolVersion": __version__,
-                "modeSolverName": mode_solver_name,
-                "fileType": "Gz",
-                "source": "Python",
-            },
-        )
+
+        response_body = {
+            "projectId": folder.folder_id,
+            "taskName": task_name,
+            "protocolVersion": __version__,
+            "modeSolverName": mode_solver_name,
+            "fileType": "Gz",
+            "source": "Python",
+        }
+
+        resp = http.post(MODESOLVER_API, response_body)
+
+        # TODO: actually fix the root cause later.
+        # sometimes POST for mode returns None and crashes the log.info call.
+        # For now this catches it and raises a better error that we can debug.
+        if resp is None:
+            raise WebError(
+                "'ModeSolver' POST request returned 'None'. If you received this error, please "
+                "raise an issue on the Tidy3D front end GitHub repository referencing the following"
+                f"response body '{response_body}'."
+            )
+
         log.info(
             "Mode solver created with task_id='%s', solver_id='%s'.", resp["refId"], resp["id"]
         )
@@ -313,7 +340,10 @@ class ModeSolverTask(ResourceLifecycle, Submittable, extra=pydantic.Extra.allow)
         The mode solver must be uploaded to the server with the :meth:`ModeSolverTask.upload` method
         before this step.
         """
-        http.post(f"{MODESOLVER_API}/{self.task_id}/{self.solver_id}/run")
+        http.post(
+            f"{MODESOLVER_API}/{self.task_id}/{self.solver_id}/run",
+            {"enableCaching": Env.current.enable_caching},
+        )
 
     def delete(self):
         """Delete the mode solver and its corresponding task from the server."""

@@ -17,6 +17,7 @@ from .types import ArrayFloat1D, Axis, PlotVal, ArrayComplex1D, TYPE_TAG_STR
 from .validators import assert_plane, assert_volumetric
 from .validators import warn_if_dataset_none, assert_single_freq_in_range, _assert_min_freq
 from .data.dataset import FieldDataset, TimeDataset
+from .data.validators import validate_no_nans
 from .data.data_array import TimeDataArray
 from .geometry.base import Box
 from .mode import ModeSpec
@@ -34,6 +35,8 @@ DATA_SPAN_TOL = 1e-8
 CHEB_GRID_WIDTH = 1.5
 # Number of frequencies in a broadband source above which to issue a warning
 WARN_NUM_FREQS = 20
+# how many units of ``twidth`` from the ``offset`` until a gaussian pulse is considered "off"
+END_TIME_FACTOR_GAUSSIAN = 10
 
 
 class SourceTime(AbstractTimeDependence):
@@ -77,6 +80,10 @@ class SourceTime(AbstractTimeDependence):
     def frequency_range(self, num_fwidth: float = 4.0) -> FreqBound:
         """Frequency range within plus/minus ``num_fwidth * fwidth`` of the central frequency."""
 
+    @abstractmethod
+    def end_time(self) -> float | None:
+        """Time after which the source is effectively turned off / close to zero amplitude."""
+
 
 class Pulse(SourceTime, ABC):
     """A source time that ramps up with some ``fwidth`` and oscillates at ``freq0``."""
@@ -98,6 +105,11 @@ class Pulse(SourceTime, ABC):
         "pulse in units of 1 / (``2pi * fwidth``).",
         ge=2.5,
     )
+
+    @property
+    def twidth(self) -> float:
+        """Width of pulse in seconds."""
+        return 1.0 / (2 * np.pi * self.fwidth)
 
     def frequency_range(self, num_fwidth: float = 4.0) -> FreqBound:
         """Frequency range within 5 standard deviations of the central frequency.
@@ -142,24 +154,32 @@ class GaussianPulse(Pulse):
     def amp_time(self, time: float) -> complex:
         """Complex-valued source amplitude as a function of time."""
 
-        twidth = 1.0 / (2 * np.pi * self.fwidth)
         omega0 = 2 * np.pi * self.freq0
-        time_shifted = time - self.offset * twidth
+        time_shifted = time - self.offset * self.twidth
 
         offset = np.exp(1j * self.phase)
         oscillation = np.exp(-1j * omega0 * time)
-        amp = np.exp(-(time_shifted**2) / 2 / twidth**2) * self.amplitude
+        amp = np.exp(-(time_shifted**2) / 2 / self.twidth**2) * self.amplitude
 
         pulse_amp = offset * oscillation * amp
 
         # subtract out DC component
         if self.remove_dc_component:
-            pulse_amp = pulse_amp * (1j + time_shifted / twidth**2 / omega0)
+            pulse_amp = pulse_amp * (1j + time_shifted / self.twidth**2 / omega0)
         else:
             # 1j to make it agree in large omega0 limit
             pulse_amp = pulse_amp * 1j
 
         return pulse_amp
+
+    def end_time(self) -> float | None:
+        """Time after which the source is effectively turned off / close to zero amplitude."""
+
+        # TODO: decide if we should continue to return an end_time if the DC component remains
+        # if not self.remove_dc_component:
+        #     return None
+
+        return self.offset * self.twidth + END_TIME_FACTOR_GAUSSIAN * self.twidth
 
 
 class ContinuousWave(Pulse):
@@ -189,6 +209,10 @@ class ContinuousWave(Pulse):
         amp = 1 / (1 + np.exp(-time_shifted / twidth)) * self.amplitude
 
         return const * offset * oscillation * amp
+
+    def end_time(self) -> float | None:
+        """Time after which the source is effectively turned off / close to zero amplitude."""
+        return None
 
 
 class CustomSourceTime(Pulse):
@@ -238,6 +262,7 @@ class CustomSourceTime(Pulse):
         "This envelope will be modulated by a complex exponential at frequency ``freq0``.",
     )
 
+    _no_nans_dataset = validate_no_nans("source_time_dataset")
     _source_time_dataset_none_warning = warn_if_dataset_none("source_time_dataset")
 
     @pydantic.validator("source_time_dataset", always=True)
@@ -265,15 +290,15 @@ class CustomSourceTime(Pulse):
         values: ArrayComplex1D
             Complex values of the source envelope.
         dt: float
-            Time step for the `values` array. This value should be sufficiently small
+            Time step for the ``values`` array. This value should be sufficiently small
             that the interpolation to simulation time steps does not introduce artifacts.
 
         Returns
         -------
         CustomSourceTime
-            :class:`.CustomSourceTime` with envelope given by `values`, modulated by a complex
-            exponential at frequency `freq0`. The time coordinates are evenly spaced
-            between 0 and dt * (N-1) with a step size of `dt`, where N is the length of
+            :class:`.CustomSourceTime` with envelope given by ``values``, modulated by a complex
+            exponential at frequency ``freq0``. The time coordinates are evenly spaced
+            between ``0`` and ``dt * (N-1)`` with a step size of ``dt``, where ``N`` is the length of
             the values array.
         """
 
@@ -328,6 +353,20 @@ class CustomSourceTime(Pulse):
 
         return offset * oscillation * amp * envelope
 
+    def end_time(self) -> float | None:
+        """Time after which the source is effectively turned off / close to zero amplitude."""
+
+        if self.source_time_dataset is None:
+            return None
+
+        data_array = self.source_time_dataset.values
+
+        t_coords = data_array.coords["t"]
+        source_is_non_zero = ~np.isclose(abs(data_array), 0)
+        t_non_zero = t_coords[source_is_non_zero]
+
+        return np.max(t_non_zero)
+
 
 SourceTimeType = Union[GaussianPulse, ContinuousWave, CustomSourceTime]
 
@@ -376,7 +415,7 @@ class Source(Box, AbstractSource, ABC):
         _assert_min_freq(val.freq0, msg_start="'source_time.freq0'")
         return val
 
-    def plot(  #  pylint:disable=too-many-arguments
+    def plot(
         self,
         x: float = None,
         y: float = None,
@@ -464,6 +503,15 @@ class ReverseInterpolatedSource(Source):
         "If ``False``, the source data is snapped to the nearest Yee grid point. If ``True``, "
         "equivalent source data is applied on the surrounding Yee grid points to emulate "
         "placement at the specified location using linear interpolation.",
+    )
+
+    confine_to_bounds: bool = pydantic.Field(
+        False,
+        title="Confine to Analytical Bounds",
+        description="If ``True``, any source amplitudes which, after discretization, fall beyond "
+        "the bounding box of the source are zeroed out, but only along directions where "
+        "the source has a non-zero extent. The bounding box is inclusive. Should be set ```True`` "
+        "when the current source is being used to excite a current in a conductive material.",
     )
 
 
@@ -555,6 +603,7 @@ class CustomCurrentSource(ReverseInterpolatedSource):
         "electric and magnetic current patterns to inject.",
     )
 
+    _no_nans_dataset = validate_no_nans("current_dataset")
     _current_dataset_none_warning = warn_if_dataset_none("current_dataset")
     _current_dataset_single_freq = assert_single_freq_in_range("current_dataset")
 
@@ -723,6 +772,7 @@ class CustomFieldSource(FieldSource, PlanarSource):
         "fields patterns to inject. At least one tangential field component must be specified.",
     )
 
+    _no_nans_dataset = validate_no_nans("field_dataset")
     _field_dataset_none_warning = warn_if_dataset_none("field_dataset")
     _field_dataset_single_freq = assert_single_freq_in_range("field_dataset")
 
@@ -1081,7 +1131,7 @@ class TFSF(AngledFieldSource, VolumeSource):
         center[self.injection_axis] += sign * size[self.injection_axis] / 2
         return tuple(center)
 
-    def plot(  #  pylint:disable=too-many-arguments
+    def plot(
         self,
         x: float = None,
         y: float = None,

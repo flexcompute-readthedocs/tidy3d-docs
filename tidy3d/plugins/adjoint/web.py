@@ -111,6 +111,8 @@ def run(
         Object containing solver results for the supplied :class:`.JaxSimulation`.
     """
 
+    simulation._validate_web_adjoint()
+
     sim, jax_info = simulation.to_simulation()
 
     sim_data = tidy3d_run_fn(
@@ -121,6 +123,7 @@ def run(
         callback_url=callback_url,
         verbose=verbose,
     )
+    # TODO: add task_id
     return JaxSimulationData.from_sim_data(sim_data, jax_info)
 
 
@@ -133,6 +136,8 @@ def run_fwd(
     verbose: bool,
 ) -> Tuple[JaxSimulationData, Tuple[RunResidual]]:
     """Run forward pass and stash extra objects for the backwards pass."""
+
+    simulation._validate_web_adjoint()
 
     sim_fwd, jax_info_fwd, jax_info_orig = simulation.to_simulation_fwd()
 
@@ -147,7 +152,9 @@ def run_fwd(
     )
 
     res = RunResidual(fwd_task_id=task_id)
-    jax_sim_data_orig = JaxSimulationData.from_sim_data(sim_data_orig, jax_info_orig)
+    jax_sim_data_orig = JaxSimulationData.from_sim_data(
+        sim_data_orig, jax_info_orig, task_id=task_id
+    )
 
     return jax_sim_data_orig, (res,)
 
@@ -237,7 +244,8 @@ class AdjointJob(Job):
         ----
         To monitor progress of the :class:`Job`, call :meth:`Job.monitor` after started.
         """
-        upload_jax_info(task_id=self.task_id, jax_info=self.jax_info, verbose=self.verbose)
+        if self.jax_info is not None:
+            upload_jax_info(task_id=self.task_id, jax_info=self.jax_info, verbose=self.verbose)
         super().start()
 
 
@@ -250,44 +258,25 @@ class AdjointBatch(Batch):
         description="Type of simulation, used internally only.",
     )
 
-    jobs: Dict[str, AdjointJob] = pd.Field(
-        None,
-        title="Simulations",
-        description="Mapping of task names to individual AdjointJob object for each task "
-        "in the batch. Set by ``AdjointBatch.upload``, leave as None.",
-    )
-
     jax_infos: Dict[str, JaxInfo] = pd.Field(
         ...,
         title="Jax Info Dict",
         description="Containers of information needed to reconstruct JaxSimulation for each item.",
     )
 
-    @pd.root_validator()
-    def _add_jax_infos(cls, values) -> None:
-        """Add jax_info fields to the uploaded jobs."""
-        jax_infos = values.get("jax_infos")
-        jobs = values.get("jobs")
-
-        if jobs is None:
-            return values
-
-        for task_name, job in jobs.items():
-            jax_info = jax_infos[task_name]
-            values["jobs"][task_name] = job.updated_copy(jax_info=jax_info)
-
-        return values
+    _job_type = AdjointJob
 
     def start(self) -> None:
-        """Start running all tasks in the :class:`Batch`.
+        """Start running a :class:`AdjointBatch`. after uploading jax info for each job.
 
         Note
         ----
-        To monitor the running simulations, can call :meth:`Batch.monitor`.
+        To monitor progress of the :class:`Batch`, call :meth:`Batch.monitor` after started.
         """
-        for _, job in self.jobs.items():
-            upload_jax_info(task_id=job.task_id, jax_info=job.jax_info, verbose=self.verbose)
-            job.start()
+        for task_name, job in self.jobs.items():
+            jax_info = self.jax_infos.get(task_name)
+            upload_jax_info(task_id=job.task_id, jax_info=jax_info, verbose=job.verbose)
+        super().start()
 
 
 def webapi_run_adjoint_fwd(
@@ -396,6 +385,9 @@ def run_async(
         Contains the :class:`.JaxSimulationData` of each :class:`.JaxSimulation`.
     """
 
+    for simulation in simulations:
+        simulation._validate_web_adjoint()
+
     # get task names, the td.Simulation, and JaxInfo for all supplied simulations
     task_names = [str(_task_name_orig(i)) for i in range(len(simulations))]
     task_info = [jax_sim.to_simulation() for jax_sim in simulations]
@@ -421,6 +413,7 @@ def run_async(
         task_name = str(_task_name_orig(i))
         sim_data_tidy3d = batch_data_tidy3d[task_name]
         jax_info = jax_infos[str(task_name)]
+        # TODO: add task_id
         jax_sim_data = JaxSimulationData.from_sim_data(sim_data_tidy3d, jax_info=jax_info)
         jax_batch_data.append(jax_sim_data)
 
@@ -436,6 +429,9 @@ def run_async_fwd(
     num_workers: int,
 ) -> Tuple[Tuple[JaxSimulationData, ...], RunResidualBatch]:
     """Run forward pass and stash extra objects for the backwards pass."""
+
+    for simulation in simulations:
+        simulation._validate_web_adjoint()
 
     jax_infos_orig = []
     sims_fwd = []
@@ -458,8 +454,10 @@ def run_async_fwd(
     batch_data_orig = [sim_data for _, sim_data in batch_data_orig.items()]
 
     jax_batch_data_orig = []
-    for sim_data_orig, jax_info_orig in zip(batch_data_orig, jax_infos_orig):
-        jax_sim_data = JaxSimulationData.from_sim_data(sim_data_orig, jax_info_orig)
+    for sim_data_orig, jax_info_orig, task_id in zip(batch_data_orig, jax_infos_orig, fwd_task_ids):
+        jax_sim_data = JaxSimulationData.from_sim_data(
+            sim_data_orig, jax_info_orig, task_id=task_id
+        )
         jax_batch_data_orig.append(jax_sim_data)
 
     residual = RunResidualBatch(fwd_task_ids=fwd_task_ids)
@@ -634,6 +632,7 @@ def run_local(
     )
 
     # convert back to jax type and return
+    # TODO: add task_id
     return JaxSimulationData.from_sim_data(sim_data_tidy3d, jax_info=jax_info)
 
 
@@ -787,6 +786,7 @@ def run_async_local(
         task_name = _task_name_orig_local(i, task_name_suffix)
         sim_data_tidy3d = batch_data_tidy3d[task_name]
         jax_info = jax_infos[str(task_name)]
+        # TODO: add task_id
         jax_sim_data = JaxSimulationData.from_sim_data(sim_data_tidy3d, jax_info=jax_info)
         jax_batch_data.append(jax_sim_data)
 

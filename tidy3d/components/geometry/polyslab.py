@@ -13,10 +13,11 @@ from matplotlib import path
 from ..base import cached_property
 from ..base import skip_if_fields_missing
 from ..types import Axis, Bound, PlanePosition, ArrayFloat2D, Coordinate
-from ..types import MatrixReal4x4, Shapely, trimesh
+from ..types import MatrixReal4x4, Shapely
 from ...log import log
 from ...exceptions import SetupError, ValidationError
-from ...constants import MICROMETER, fp_eps
+from ...constants import MICROMETER, fp_eps, LARGE_NUMBER
+from ...packaging import verify_packages_import
 
 from . import base
 from . import triangulation
@@ -352,6 +353,8 @@ class PolySlab(base.Planar):
         zmin, zmax = self.slab_bounds
         if np.isneginf(zmin) and np.isposinf(zmax):
             return 0.0
+        zmin = max(zmin, -LARGE_NUMBER)
+        zmax = min(zmax, LARGE_NUMBER)
         return (zmax + zmin) / 2.0
 
     @property
@@ -385,7 +388,7 @@ class PolySlab(base.Planar):
             The vertices of the polygon at the middle.
         """
 
-        dist = self._extrusion_length_to_offset_distance(self.length_axis / 2)
+        dist = self._extrusion_length_to_offset_distance(self.finite_length_axis / 2)
         if self.reference_plane == "bottom":
             return self._shift_vertices(self.reference_polygon, dist)[0]
         if self.reference_plane == "top":
@@ -404,7 +407,7 @@ class PolySlab(base.Planar):
         """
         if self.reference_plane == "bottom":
             return self.reference_polygon
-        dist = self._extrusion_length_to_offset_distance(-self.length_axis / 2)
+        dist = self._extrusion_length_to_offset_distance(-self.finite_length_axis / 2)
         return self._shift_vertices(self.middle_polygon, dist)[0]
 
     @cached_property
@@ -418,7 +421,7 @@ class PolySlab(base.Planar):
         """
         if self.reference_plane == "top":
             return self.reference_polygon
-        dist = self._extrusion_length_to_offset_distance(self.length_axis / 2)
+        dist = self._extrusion_length_to_offset_distance(self.finite_length_axis / 2)
         return self._shift_vertices(self.middle_polygon, dist)[0]
 
     @cached_property
@@ -427,6 +430,16 @@ class PolySlab(base.Planar):
         if self.slab_bounds[0] != self.slab_bounds[1]:
             raise ValidationError("'Medium2D' requires the 'PolySlab' bounds to be equal.")
         return self.axis
+
+    def _update_from_bounds(self, bounds: Tuple[float, float], axis: Axis) -> PolySlab:
+        """Returns an updated geometry which has been transformed to fit within ``bounds``
+        along the ``axis`` direction."""
+        if axis != self.axis:
+            raise ValueError(
+                f"'_update_from_bounds' may only be applied along axis '{self.axis}', "
+                f"but was given axis '{axis}'."
+            )
+        return self.updated_copy(slab_bounds=bounds)
 
     @cached_property
     def is_ccw(self) -> bool:
@@ -460,7 +473,7 @@ class PolySlab(base.Planar):
 
         z0 = self.center_axis
         dist_z = np.abs(z - z0)
-        inside_height = dist_z <= (self.length_axis / 2)
+        inside_height = dist_z <= (self.finite_length_axis / 2)
 
         # avoid going into face checking if no points are inside slab bounds
         if not np.any(inside_height):
@@ -530,8 +543,8 @@ class PolySlab(base.Planar):
             inside_polygon = face_polygon.covers(point)
         return inside_height * inside_polygon
 
-    @base.requires_trimesh
-    def intersections_tilted_plane(
+    @verify_packages_import(["trimesh"])
+    def _do_intersections_tilted_plane(
         self, normal: Coordinate, origin: Coordinate, to_2D: MatrixReal4x4
     ) -> List[Shapely]:
         """Return a list of shapely geometries at the plane specified by normal and origin.
@@ -552,6 +565,8 @@ class PolySlab(base.Planar):
             For more details refer to
             `Shapely's Documentation <https://shapely.readthedocs.io/en/stable/project.html>`_.
         """
+        import trimesh
+
         if len(self.base_polygon) > _MAX_POLYSLAB_VERTICES_FOR_TRIANGULATION:
             log.warning(
                 "Processing of PolySlabs with large numbers of vertices can be slow.", log_once=True
@@ -581,7 +596,7 @@ class PolySlab(base.Planar):
         if section is None:
             return []
         path, _ = section.to_planar(to_2D=to_2D)
-        return path.polygons_full.tolist()
+        return path.polygons_full
 
     def _intersections_normal(self, z: float):
         """Find shapely geometries intersecting planar geometry with axis normal to slab.
@@ -643,14 +658,14 @@ class PolySlab(base.Planar):
 
         # find out all z_i where the plane will intersect the vertex
         z0 = self.center_axis
-        z_base = z0 - self.length_axis / 2
+        z_base = z0 - self.finite_length_axis / 2
 
         axis_ordered = self._order_axis(axis)
         height_list = self._find_intersecting_height(position, axis_ordered)
         polys = []
 
         # looping through z_i to assemble the polygons
-        height_list = np.append(height_list, self.length_axis)
+        height_list = np.append(height_list, self.finite_length_axis)
         h_base = 0.0
         for h_top in height_list:
             # length within between top and bottom
@@ -667,7 +682,7 @@ class PolySlab(base.Planar):
                 )
             else:
                 # for slanted sidewall, move up by `fp_eps` in case vertices are degenerate at the base.
-                dist = -(h_base - self.length_axis / 2 + fp_eps) * self._tanq
+                dist = -(h_base - self.finite_length_axis / 2 + fp_eps) * self._tanq
                 vertices = self._shift_vertices(self.middle_polygon, dist)[0]
                 ints_y, ints_angle = self._find_intersecting_ys_angle_slant(
                     vertices, position, axis_ordered
@@ -741,14 +756,14 @@ class PolySlab(base.Planar):
 
         # distance to the plane in the direction of vertex shifting
         distance = self.middle_polygon[:, axis] - position
-        height = distance / self._tanq / shift_val + self.length_axis / 2
+        height = distance / self._tanq / shift_val + self.finite_length_axis / 2
         height = np.unique(height)
         # further filter very close ones
         is_not_too_close = np.insert((np.diff(height) > fp_eps), 0, True)
         height = height[is_not_too_close]
 
         height = height[height > fp_eps]
-        height = height[height < self.length_axis - fp_eps]
+        height = height[height < self.finite_length_axis - fp_eps]
         return height
 
     def _find_intersecting_ys_angle_vertical(
@@ -952,11 +967,11 @@ class PolySlab(base.Planar):
         max_offset = self.dilation
         if not isclose(self.sidewall_angle, 0):
             if self.reference_plane == "bottom":
-                max_offset += max(0, -self._tanq * self.length_axis)
+                max_offset += max(0, -self._tanq * self.finite_length_axis)
             elif self.reference_plane == "top":
-                max_offset += max(0, self._tanq * self.length_axis)
+                max_offset += max(0, self._tanq * self.finite_length_axis)
             elif self.reference_plane == "middle":
-                max_offset += max(0, abs(self._tanq) * self.length_axis / 2)
+                max_offset += max(0, abs(self._tanq) * self.finite_length_axis / 2)
 
         # special care when dilated
         if max_offset > 0:
@@ -1510,7 +1525,7 @@ class ComplexPolySlabBase(PolySlab):
         """dilation length from reference plane to the top/bottom of the polyslab."""
 
         # for "bottom", only needs to compute the offset length to the top
-        dist = [self._extrusion_length_to_offset_distance(self.length_axis)]
+        dist = [self._extrusion_length_to_offset_distance(self.finite_length_axis)]
         # reverse the dilation value if the reference plane is on the top
         if self.reference_plane == "top":
             dist = [-dist[0]]
@@ -1524,9 +1539,9 @@ class ComplexPolySlabBase(PolySlab):
 
         z_coord = -dilation / self._tanq + self.slab_bounds[0]
         if self.reference_plane == "middle":
-            return z_coord + self.length_axis / 2
+            return z_coord + self.finite_length_axis / 2
         if self.reference_plane == "top":
-            return z_coord + self.length_axis
+            return z_coord + self.finite_length_axis
         # bottom case
         return z_coord
 

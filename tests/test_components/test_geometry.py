@@ -11,6 +11,7 @@ import trimesh
 import warnings
 
 import tidy3d as td
+from tidy3d.constants import LARGE_NUMBER
 from tidy3d.exceptions import SetupError, Tidy3dKeyError, ValidationError
 from tidy3d.components.geometry.base import Planar
 from tidy3d.components.geometry.utils import flatten_groups, traverse_geometries
@@ -710,6 +711,22 @@ def test_polyslab_axis(axis):
     assert not ps.intersects_plane(x=plane_coord[0], y=plane_coord[1], z=plane_coord[2])
 
 
+def test_polyslab_intersection_inf_bounds():
+    """Test if intersection returns correct shapes when one of the slab_bounds is Inf."""
+    # 1) [0, inf]
+    poly = td.PolySlab(
+        vertices=[[2, -1], [-2, -1], [-2, 1], [2, 1]],
+        slab_bounds=[0, td.inf],
+    )
+    assert len(poly.intersections_plane(x=0)) == 1
+    assert poly.intersections_plane(x=0)[0] == shapely.box(-1, 0.0, 1, LARGE_NUMBER)
+
+    # 2) [-inf, 0]
+    poly = poly.updated_copy(slab_bounds=[-td.inf, 0])
+    assert len(poly.intersections_plane(x=0)) == 1
+    assert poly.intersections_plane(x=0)[0] == shapely.box(-1, -LARGE_NUMBER, 1, 0)
+
+
 def test_from_shapely():
     ring = shapely.LinearRing([(-16, 9), (-8, 9), (-12, 2)])
     poly = shapely.Polygon([(-2, 0), (-10, 0), (-6, 7)])
@@ -848,6 +865,11 @@ def test_custom_surface_geometry(tmp_path):
     _ = sim.plot(y=0, ax=ax)
     plt.close()
 
+    # allow small triangles
+    vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    vertices_small = vertices * 1e-6
+    td.TriangleMesh.from_vertices_faces(vertices_small, faces)
+
 
 def test_geo_group_sim():
     geo_grp = td.TriangleMesh.from_stl("tests/data/two_boxes_separate.stl")
@@ -866,3 +888,52 @@ def test_geo_group_sim():
 
     # why is this failing?  assert 4==2
     assert len(sim.custom_datasets) == len(geos_orig)
+
+
+def test_finite_geometry_transformation():
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.Box(size=(td.inf, 0, 1)).scaled(1, 1, 1)
+
+
+def test_update_from_bounds():
+    # Test the functionality for updating bounds of geometries that support 2d materials
+    box2d = td.Box(size=(1, 1, 0))
+    polyslab2d = td.PolySlab(
+        vertices=((0, 0), (1, 0), (1, 1), (0, 1)), slab_bounds=(0.5, 0.5), axis=2
+    )
+    cylinder2d = td.Cylinder(axis=2, length=0, radius=1, center=(0, 0, 0.5))
+    geo_group2d = td.GeometryGroup(geometries=(cylinder2d, polyslab2d))
+    clip2d = td.ClipOperation(operation="union", geometry_a=cylinder2d, geometry_b=polyslab2d)
+
+    # Some test transformations that preserve the normal
+    translate = td.Transformed.translation(x=0, y=0, z=1)
+    rotate = td.Transformed.rotation(angle=np.pi * (1 / 8), axis=2)
+    scale = td.Transformed.scaling(x=2, y=2, z=1)
+    shift = td.Transformed(geometry=cylinder2d, transform=translate)
+    shift_rotate = td.Transformed(geometry=shift, transform=rotate)
+    transformed_2d = td.Transformed(geometry=shift_rotate, transform=scale)
+
+    new_bounds = (3.2, 6.4)
+    axis = 2
+
+    geometries = [
+        box2d,
+        polyslab2d,
+        cylinder2d,
+        geo_group2d,
+        clip2d,
+        shift,
+        shift_rotate,
+        transformed_2d,
+    ]
+    for geom2d in geometries:
+        geom_update = geom2d._update_from_bounds(bounds=new_bounds, axis=axis)
+        test_bounds = (geom_update.bounds[0][axis], geom_update.bounds[1][axis])
+        assert np.isclose(test_bounds, new_bounds).all()
+
+    # By default geometries should raise a NotImplementedError if they are not supported
+    sphere = td.Sphere(radius=1, center=(0, 0, 0.5))
+    geometries = [sphere]
+    for geom2d in geometries:
+        with pytest.raises(NotImplementedError):
+            geom_update = geom2d._update_from_bounds(bounds=new_bounds, axis=axis)

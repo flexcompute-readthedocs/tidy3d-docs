@@ -7,12 +7,15 @@ import pytest
 import pydantic.v1 as pydantic
 import jax.numpy as jnp
 import numpy as np
+from numpy.testing import assert_allclose
+from xarray import DataArray
 from jax import grad
 import jax
 import time
 import matplotlib.pyplot as plt
 import h5py
 import trimesh
+import gdstk
 
 import tidy3d as td
 
@@ -29,17 +32,21 @@ from tidy3d.plugins.adjoint.components.structure import (
 from tidy3d.plugins.adjoint.components.simulation import JaxSimulation, JaxInfo, RUN_TIME_FACTOR
 from tidy3d.plugins.adjoint.components.simulation import MAX_NUM_INPUT_STRUCTURES
 from tidy3d.plugins.adjoint.components.data.sim_data import JaxSimulationData
-from tidy3d.plugins.adjoint.components.data.monitor_data import JaxModeData, JaxDiffractionData
+from tidy3d.plugins.adjoint.components.data.monitor_data import (
+    JaxModeData,
+    JaxDiffractionData,
+    JaxFieldData,
+)
 from tidy3d.plugins.adjoint.components.data.data_array import JaxDataArray, JAX_DATA_ARRAY_TAG
 from tidy3d.plugins.adjoint.components.data.dataset import JaxPermittivityDataset
 from tidy3d.plugins.adjoint.web import run, run_async
 from tidy3d.plugins.adjoint.web import run_local, run_async_local
 from tidy3d.plugins.adjoint.components.data.data_array import VALUE_FILTER_THRESHOLD
-from tidy3d.plugins.adjoint.utils.penalty import RadiusPenalty
+from tidy3d.plugins.adjoint.utils.penalty import RadiusPenalty, ErosionDilationPenalty
 from tidy3d.plugins.adjoint.utils.filter import ConicFilter, BinaryProjector, CircularFilter
 from tidy3d.web.api.container import BatchData
-import tidy3d.material_library as material_library
-from ..utils import run_emulated, assert_log_level, log_capture, run_async_emulated, AssertLogLevel
+from ..utils import run_emulated, assert_log_level, run_async_emulated, AssertLogLevel
+from ..utils import log_capture  # noqa: F401
 from ..test_components.test_custom import CUSTOM_MEDIUM
 
 TMP_PATH = None
@@ -55,7 +62,7 @@ VERTICES = ((-1.0, -1.0), (0.0, 0.0), (-1.0, 0.0))
 POLYSLAB_AXIS = 2
 FREQ0 = 2e14
 BASE_EPS_VAL = 2.0
-
+SIM_RUN_TIME = 1e-12
 # name of the output monitor used in tests
 MNT_NAME = "mode"
 
@@ -110,9 +117,12 @@ def run_emulated_bwd(
     folder_name: str,
     callback_url: str,
     verbose: bool,
-    num_proc: int = NUM_PROC_PARALLEL,
+    num_proc: int = None,
 ) -> JaxSimulation:
     """Runs adjoint simulation on our servers, grabs the gradient data from fwd for processing."""
+
+    if num_proc is None:
+        num_proc = NUM_PROC_PARALLEL
 
     # Forward data
     sim_data_fwd = JaxSimulationData.from_file(str(TMP_PATH / FWD_SIM_DATA_FILE))
@@ -184,7 +194,7 @@ def run_async_emulated_bwd(
 
     sim_vjps_orig = []
 
-    for i, (sim, jax_info, parent_tasks_i) in enumerate(zip(simulations, jax_infos, parent_tasks)):
+    for i, (sim, jax_info, _) in enumerate(zip(simulations, jax_infos, parent_tasks)):
         sim_vjp = run_emulated_bwd(
             sim_adj=sim,
             jax_info_adj=jax_info,
@@ -193,7 +203,7 @@ def run_async_emulated_bwd(
             folder_name=folder_name,
             callback_url=callback_url,
             verbose=verbose,
-            num_proc=NUM_PROC_PARALLEL,
+            num_proc=None,
         )
         sim_vjps_orig.append(sim_vjp)
 
@@ -201,7 +211,11 @@ def run_async_emulated_bwd(
 
 
 def make_sim(
-    permittivity: float, size: Tuple[float, float, float], vertices: tuple, base_eps_val: float
+    permittivity: float,
+    size: Tuple[float, float, float],
+    vertices: tuple,
+    base_eps_val: float,
+    custom_medium: bool = True,
 ) -> JaxSimulation:
     """Construt a simulation out of some input parameters."""
 
@@ -261,7 +275,8 @@ def make_sim(
     jax_struct_group = JaxStructure(geometry=jax_geo_group, medium=jax_med1)
 
     jax_struct_static_med = JaxStructureStaticMedium(
-        geometry=jax_box1, medium=td.Medium()  # material_library["Ag"]["Rakic1998BB"]
+        geometry=jax_box1,
+        medium=td.Medium(),  # material_library["Ag"]["Rakic1998BB"]
     )
     jax_struct_static_geo = JaxStructureStaticGeometry(
         geometry=td.Box(size=(1, 1, 1)), medium=jax_med1
@@ -306,13 +321,8 @@ def make_sim(
         name="field",
     )
 
-    sim = JaxSimulation(
-        size=(10, 10, 10),
-        run_time=1e-12,
-        grid_spec=td.GridSpec(wavelength=4.0),
-        monitors=(extraneous_field_monitor,),
-        structures=(extraneous_structure,),
-        input_structures=(
+    if custom_medium:
+        input_structures = (
             jax_struct1,
             jax_struct2,
             jax_struct_custom,
@@ -321,7 +331,24 @@ def make_sim(
             jax_struct_custom_anis,
             jax_struct_static_med,
             jax_struct_static_geo,
-        ),
+        )
+    else:
+        input_structures = (
+            jax_struct1,
+            jax_struct2,
+            jax_struct3,
+            jax_struct_group,
+            jax_struct_static_med,
+            jax_struct_static_geo,
+        )
+
+    sim = JaxSimulation(
+        size=(10, 10, 10),
+        run_time=SIM_RUN_TIME,
+        grid_spec=td.GridSpec(wavelength=4.0),
+        monitors=(extraneous_field_monitor,),
+        structures=(extraneous_structure,),
+        input_structures=input_structures,
         output_monitors=(output_mnt1, output_mnt2, output_mnt3, output_mnt4),
         sources=[src],
         boundary_spec=td.BoundarySpec.pml(x=False, y=False, z=False),
@@ -386,6 +413,7 @@ def use_emulated_run(monkeypatch, tmp_path_factory):
 
     TMP_PATH = tmp_path_factory.mktemp("adjoint")
     monkeypatch.setattr(adjoint_web, "tidy3d_run_fn", run_emulated)
+    monkeypatch.setattr(td.web, "run", run_emulated)
     monkeypatch.setattr(adjoint_web, "webapi_run_adjoint_fwd", run_emulated_fwd)
     monkeypatch.setattr(adjoint_web, "webapi_run_adjoint_bwd", run_emulated_bwd)
 
@@ -398,6 +426,7 @@ def use_emulated_run_async(monkeypatch, tmp_path_factory):
 
     TMP_PATH = tmp_path_factory.mktemp("adjoint")
     monkeypatch.setattr(adjoint_web, "tidy3d_run_async_fn", run_async_emulated)
+    monkeypatch.setattr(td.web, "run_async", run_async_emulated)
     monkeypatch.setattr(adjoint_web, "webapi_run_async_adjoint_fwd", run_async_emulated_fwd)
     monkeypatch.setattr(adjoint_web, "webapi_run_async_adjoint_bwd", run_async_emulated_bwd)
 
@@ -600,7 +629,7 @@ def test_multiple_freqs():
 
     _ = JaxSimulation(
         size=(10, 10, 10),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
         monitors=(),
         structures=(),
@@ -626,7 +655,7 @@ def test_different_freqs():
     )
     _ = JaxSimulation(
         size=(10, 10, 10),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
         monitors=(),
         structures=(),
@@ -640,7 +669,7 @@ def test_get_freq_adjoint():
 
     sim = JaxSimulation(
         size=(10, 10, 10),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
         monitors=(),
         structures=(),
@@ -668,7 +697,7 @@ def test_get_freq_adjoint():
     )
     sim = JaxSimulation(
         size=(10, 10, 10),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
         monitors=(),
         structures=(),
@@ -699,7 +728,7 @@ def test_get_fwidth_adjoint():
         """Make a sim with given sources and fwidth_adjoint specified."""
         return JaxSimulation(
             size=(10, 10, 10),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             grid_spec=td.GridSpec(wavelength=1.0),
             monitors=(),
             structures=(),
@@ -815,6 +844,76 @@ def test_jax_data_array():
 
     assert da2 == da3
 
+    n = 11
+    cs = list(range(n))
+    vals = np.random.uniform(0, 1, (n, n, 1, 1, 2))
+    coords = dict(x=cs, y=cs, z=[0], f=[0], direction=["+", "-"])
+
+    jda = JaxDataArray(values=vals, coords=coords)
+    xda = DataArray(data=vals, coords=coords)
+
+    # test exact, single value, non-numeric
+    xda_vals = xda.sel(direction="+", method=None).values
+    jda_vals = jda.sel(direction="+", method=None).values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test exact, single value, 1d coordinate
+    xda_vals = xda.sel(f=0, method=None).values
+    jda_vals = jda.sel(f=0, method=None).values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test exact, single value, 1d coordinate as list
+    xda_vals = xda.sel(f=[0], method=None).values
+    jda_vals = jda.sel(f=[0], method=None).values
+    assert_allclose(xda_vals, jda_vals)
+
+    # # disabled because it fails on xarray's side
+    # # test nearest, single value, non-numeric
+    # xda_vals = xda.sel(direction="+", method="nearest").values
+    # jda_vals = jda.sel(direction="+", method="nearest").values
+    # assert_allclose(xda_vals, jda_vals)
+
+    # test exact, multiple values, non-numeric
+    xda_vals = xda.sel(direction=["+", "-"], method=None).values
+    jda_vals = jda.sel(direction=["+", "-"], method=None).values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, single value
+    xda_vals = xda.sel(x=0.1, method="nearest").values
+    jda_vals = jda.sel(x=0.1, method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, single value, 1d coordinate
+    xda_vals = xda.sel(f=0.1, method="nearest").values
+    jda_vals = jda.sel(f=0.1, method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, single value, 1d coordinate as list
+    xda_vals = xda.sel(f=[0.1], method="nearest").values
+    jda_vals = jda.sel(f=[0.1], method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, multiple values
+    xda_vals = xda.sel(x=[0.0, 0.1, 0.3], method="nearest").values
+    jda_vals = jda.sel(x=[0.0, 0.1, 0.3], method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, multiple coords, single value
+    xda_vals = xda.sel(x=0.1, y=-0.3, method="nearest").values
+    jda_vals = jda.sel(x=0.1, y=-0.3, method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, multiple coords, multiple values
+    xda_vals = xda.sel(x=[-1.5, 0.1], y=[-0.3, 0.0, 0.9], method="nearest").values
+    jda_vals = jda.sel(x=[-1.5, 0.1], y=[-0.3, 0.0, 0.9], method="nearest").values
+    assert_allclose(xda_vals, jda_vals)
+
+    # test nearest, multiple coords, duplicate values
+    xda_vals = xda.sel(x=[-1.5, 0.2, 0.1, -1.5, 0.2], y=[-0.3, 0.0, 0.9], method="nearest")
+    jda_vals = jda.sel(x=[-1.5, 0.2, 0.1, -1.5, 0.2], y=[-0.3, 0.0, 0.9], method="nearest")
+    assert_allclose(xda_vals.values, jda_vals.values)
+    assert_allclose(xda_vals.coords["x"], jda_vals.coords["x"])
+
 
 def test_jax_sim_data(use_emulated_run):
     """Test mechanics of the JaxSimulationData."""
@@ -829,7 +928,7 @@ def test_jax_sim_data(use_emulated_run):
         _ = sim_data[mnt_name]
 
 
-def test_intersect_structures(log_capture):
+def test_intersect_structures(log_capture):  # noqa: F811
     """Test validators for structures touching and intersecting."""
 
     SIZE_X = 1.0
@@ -850,7 +949,7 @@ def test_intersect_structures(log_capture):
             size=(2, 2, 2),
             input_structures=(struct1, struct2),
             grid_spec=td.GridSpec(wavelength=1.0),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             sources=(src,),
             boundary_spec=td.BoundarySpec.pml(x=True, y=True, z=True),
         )
@@ -878,7 +977,7 @@ def test_structure_overlaps():
         size=(2, 0, 2),
         input_structures=(struct,),
         grid_spec=td.GridSpec(wavelength=1.0),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         sources=(src,),
         boundary_spec=td.BoundarySpec(
             x=td.Boundary.pml(),
@@ -893,7 +992,7 @@ def test_validate_subpixel():
     with pytest.raises(pydantic.ValidationError):
         _ = JaxSimulation(
             size=(10, 10, 10),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             grid_spec=td.GridSpec(wavelength=1.0),
             subpixel=False,
         )
@@ -921,7 +1020,7 @@ def test_plot_sims():
 
     sim = JaxSimulation(
         size=(10, 10, 10),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
     )
     sim.plot(x=0)
@@ -1000,7 +1099,7 @@ def _test_polyslab_box(use_emulated_run):
 
         sim = JaxSimulation(
             size=(10, 10, 10),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             grid_spec=td.GridSpec(wavelength=1.0),
             boundary_spec=td.BoundarySpec.all_sides(boundary=td.Periodic()),
             output_monitors=(output_mnt1, output_mnt2),
@@ -1018,8 +1117,8 @@ def _test_polyslab_box(use_emulated_run):
         amp = extract_amp(sim_data)
         return objective(amp)
 
-    f_b = lambda size, center: f(size, center, is_box=True)
-    f_p = lambda size, center: f(size, center, is_box=False)
+    f_b = lambda size, center: f(size, center, is_box=True)  # noqa: E731
+    f_p = lambda size, center: f(size, center, is_box=False)  # noqa: E731
 
     g_b = grad(f_b, argnums=(0, 1))
     g_p = grad(f_p, argnums=(0, 1))
@@ -1096,7 +1195,7 @@ def test_polyslab_2d(sim_size_axis, use_emulated_run):
 
         sim = JaxSimulation(
             size=(10, 10, sim_size_axis),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             grid_spec=td.GridSpec(wavelength=1.0),
             boundary_spec=td.BoundarySpec.all_sides(boundary=td.Periodic()),
             output_monitors=(output_mnt1, output_mnt2, output_mnt3, output_mnt4),
@@ -1114,7 +1213,7 @@ def test_polyslab_2d(sim_size_axis, use_emulated_run):
         amp = extract_amp(sim_data)
         return objective(amp)
 
-    f_b = lambda size, center: f(size, center)
+    f_b = lambda size, center: f(size, center)  # noqa: E731
 
     g_b = grad(f_b, argnums=(0, 1))
 
@@ -1136,11 +1235,7 @@ def test_adjoint_run_async(local, use_emulated_run_async):
     def f(x):
         """Objective function to differentiate."""
 
-        sims = []
-        for i in range(1):
-            permittivity = x + 1.0
-            sims.append(make_sim_simple(permittivity=permittivity))
-
+        sims = [make_sim_simple(permittivity=x + 1.0)]
         sim_data_list = run_fn(sims, path_dir=str(TMP_PATH))
 
         result = 0.0
@@ -1273,7 +1368,7 @@ def _test_polyslab_scale(use_emulated_run):
             size_axis, (size_1, size_2) = JaxPolySlab.pop_axis(SIZE, axis=POLYSLAB_AXIS)
             cent_axis, (cent_1, cent_2) = JaxPolySlab.pop_axis(CENTER, axis=POLYSLAB_AXIS)
 
-            vertices_jax = [(scale * x, scale * y) for x, y in vertices]
+            vertices_jax = [(scale * x, scale * y) for x, y in vertices]  # noqa: B023
             # vertices_jax = [(x, y) for x, y in vertices]
 
             slab_bounds = (cent_axis - size_axis / 2, cent_axis + size_axis / 2)
@@ -1302,7 +1397,7 @@ def _test_polyslab_scale(use_emulated_run):
 
             sim = JaxSimulation(
                 size=(10, 10, 10),
-                run_time=1e-12,
+                run_time=SIM_RUN_TIME,
                 grid_spec=td.GridSpec(wavelength=1.0),
                 boundary_spec=td.BoundarySpec.all_sides(boundary=td.Periodic()),
                 output_monitors=(output_mnt1, output_mnt2),
@@ -1346,11 +1441,13 @@ def test_validate_vertices():
         return np.stack((np.cos(angles), np.sin(angles)), axis=-1)
 
     vertices_pass = make_vertices(MAX_NUM_VERTICES)
-    _ = JaxPolySlab(vertices=vertices_pass, slab_bounds=(-1, 1))
+    ps = JaxPolySlab(vertices=vertices_pass, slab_bounds=(-1, 1))
+    ps._validate_web_adjoint()
 
-    with pytest.raises(pydantic.ValidationError):
-        vertices_fail = make_vertices(MAX_NUM_VERTICES + 1)
-        _ = JaxPolySlab(vertices=vertices_fail, slab_bounds=(-1, 1))
+    vertices_fail = make_vertices(MAX_NUM_VERTICES + 1)
+    ps = JaxPolySlab(vertices=vertices_fail, slab_bounds=(-1, 1))
+    with pytest.raises(AdjointError):
+        ps._validate_web_adjoint()
 
 
 def _test_custom_medium_3D(use_emulated_run):
@@ -1410,10 +1507,15 @@ def test_custom_medium_size(use_emulated_run):
         jax_eps_dataset = JaxPermittivityDataset(**field_components)
         return JaxCustomMedium(eps_dataset=jax_eps_dataset)
 
-    make_custom_medium(num_cells=1)
-    make_custom_medium(num_cells=MAX_NUM_CELLS_CUSTOM_MEDIUM)
-    with pytest.raises(pydantic.ValidationError):
-        make_custom_medium(num_cells=MAX_NUM_CELLS_CUSTOM_MEDIUM + 1)
+    med = make_custom_medium(num_cells=1)
+    med._validate_web_adjoint()
+
+    med = make_custom_medium(num_cells=MAX_NUM_CELLS_CUSTOM_MEDIUM)
+    med._validate_web_adjoint()
+
+    med = make_custom_medium(num_cells=MAX_NUM_CELLS_CUSTOM_MEDIUM + 1)
+    with pytest.raises(td.exceptions.SetupError):
+        med._validate_web_adjoint()
 
 
 def test_jax_sim_io(tmp_path):
@@ -1445,7 +1547,7 @@ def test_jax_sim_io(tmp_path):
     sim = JaxSimulation(
         size=(2, 2, 2),
         input_structures=[struct],
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec.auto(wavelength=1.0),
     )
 
@@ -1462,7 +1564,7 @@ def test_jax_sim_io(tmp_path):
     assert sim == sim2
 
 
-def test_num_input_structures():
+def test_num_input_structures(use_emulated_run, tmp_path):
     """Assert proper error is raised if number of input structures is too large."""
 
     def make_sim_(num_input_structures: int) -> JaxSimulation:
@@ -1470,10 +1572,18 @@ def test_num_input_structures():
         struct = sim.input_structures[0]
         return sim.updated_copy(input_structures=num_input_structures * [struct])
 
-    _ = make_sim_(num_input_structures=MAX_NUM_INPUT_STRUCTURES)
+    sim = make_sim_(num_input_structures=MAX_NUM_INPUT_STRUCTURES)
+    sim._validate_web_adjoint()
 
-    with pytest.raises(pydantic.ValidationError):
-        _ = make_sim_(num_input_structures=MAX_NUM_INPUT_STRUCTURES + 1)
+    sim = make_sim_(num_input_structures=MAX_NUM_INPUT_STRUCTURES + 1)
+    with pytest.raises(AdjointError):
+        sim._validate_web_adjoint()
+
+    # make sure that the remote web API fails whereas the local one passes
+    with pytest.raises(AdjointError):
+        run(sim, task_name="test", path=str(tmp_path / RUN_FILE))
+
+    run_local(sim, task_name="test", path=str(tmp_path / RUN_FILE))
 
 
 @pytest.mark.parametrize("strict_binarize", (True, False))
@@ -1499,11 +1609,22 @@ def test_adjoint_utils(strict_binarize):
     radius_penalty = RadiusPenalty(min_radius=0.2, wrap=True)
     _ = radius_penalty.evaluate(polyslab.vertices)
 
+    # erosion / dilation
+
+    image_01 = np.random.random(image.shape)
+
+    ed_penalty = ErosionDilationPenalty(
+        length_scale=1.0, beta=10, pixel_size=0.01, eta0=0.45, delta_eta=0.02
+    )
+
+    val = ed_penalty.evaluate(image_01)
+    assert val > 0
+
 
 @pytest.mark.parametrize(
     "input_size_y, log_level_expected", [(13, None), (12, "WARNING"), (11, "WARNING"), (14, None)]
 )
-def test_adjoint_filter_sizes(log_capture, input_size_y, log_level_expected):
+def test_adjoint_filter_sizes(log_capture, input_size_y, log_level_expected):  # noqa: F811
     """Warn if filter size along a dim is smaller than radius."""
 
     signal_in = np.ones((266, input_size_y))
@@ -1577,7 +1698,7 @@ def test_pytreedef_errors(use_emulated_run):
             size=(2.0, 2.0, 2.0),
             structures=[ps, gg, ggg, gggg, stl_struct, custom_medium],
             input_structures=[js],
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             output_monitors=[mnt],
             monitors=[flux_mnt],
             grid_spec=td.GridSpec.uniform(dl=0.1),
@@ -1593,8 +1714,16 @@ def test_pytreedef_errors(use_emulated_run):
 
 fwidth_run_time_expected = [
     (FREQ0 / 10, 1e-11, 1e-11),  # run time supplied explicitly, use that
-    (FREQ0 / 10, None, RUN_TIME_FACTOR / (FREQ0 / 10)),  # no run_time, use fwidth supplied
-    (FREQ0 / 20, None, RUN_TIME_FACTOR / (FREQ0 / 20)),  # no run_time, use fwidth supplied
+    (
+        FREQ0 / 10,
+        None,
+        SIM_RUN_TIME + RUN_TIME_FACTOR / (FREQ0 / 10),
+    ),  # no run_time, use fwidth supplied
+    (
+        FREQ0 / 20,
+        None,
+        SIM_RUN_TIME + RUN_TIME_FACTOR / (FREQ0 / 20),
+    ),  # no run_time, use fwidth supplied
 ]
 
 
@@ -1609,6 +1738,11 @@ def test_adjoint_run_time(use_emulated_run, tmp_path, fwidth, run_time, run_time
     run_time_adj = sim._run_time_adjoint
     fwidth_adj = sim._fwidth_adjoint
 
+    # number of adjoint time steps approximately scaled by the adjoint run_time compared to sim
+    num_time_steps_adjoint = sim.num_time_steps_adjoint
+    num_time_steps_scaled = sim.num_time_steps * (sim._run_time_adjoint / sim.run_time)
+    assert np.isclose(num_time_steps_adjoint, num_time_steps_scaled, rtol=1e-2)
+
     sim_adj = sim_data.make_adjoint_simulation(fwidth=fwidth_adj, run_time=run_time_adj)
 
     assert sim_adj.run_time == run_time_expected
@@ -1616,17 +1750,17 @@ def test_adjoint_run_time(use_emulated_run, tmp_path, fwidth, run_time, run_time
 
 @pytest.mark.parametrize("has_adj_src, log_level_expected", [(True, None), (False, "WARNING")])
 def test_no_adjoint_sources(
-    monkeypatch, use_emulated_run, tmp_path, log_capture, has_adj_src, log_level_expected
+    monkeypatch,
+    use_emulated_run,
+    tmp_path,
+    log_capture,  # noqa: F811
+    has_adj_src,
+    log_level_expected,
 ):
     """Make sure warning (not error) if no adjoint sources."""
 
     def make_sim(eps):
         """Make a sim with given sources and fwidth_adjoint specified."""
-        struct = JaxStructure(
-            geometry=JaxBox(center=(0, 0, 0), size=(1, 1, 1)),
-            medium=JaxMedium(permittivity=eps),
-        )
-
         freq0 = 2e14
         mnt = td.ModeMonitor(
             size=(10, 10, 0),
@@ -1637,7 +1771,7 @@ def test_no_adjoint_sources(
 
         return JaxSimulation(
             size=(10, 10, 10),
-            run_time=1e-12,
+            run_time=SIM_RUN_TIME,
             grid_spec=td.GridSpec(wavelength=1.0),
             monitors=(),
             structures=(),
@@ -1649,19 +1783,18 @@ def test_no_adjoint_sources(
     if not has_adj_src:
         monkeypatch.setattr(JaxModeData, "to_adjoint_sources", lambda *args, **kwargs: [])
 
-    def J(x):
-        sim = make_sim(eps=x)
-        data = run(sim, task_name="test", path=str(tmp_path / RUN_FILE))
+    x = 2.0
+    sim = make_sim(eps=x)
+    data = run(sim, task_name="test", path=str(tmp_path / RUN_FILE))
+
+    # check whether we got a warning for no sources?
+    with AssertLogLevel(log_capture, log_level_expected, contains_str="No adjoint sources"):
         data.make_adjoint_simulation(fwidth=src.source_time.fwidth, run_time=sim.run_time)
-        power = jnp.sum(jnp.abs(jnp.array(data["mnt"].amps.values)) ** 2)
-        return power
 
-    grad_J = grad(J)
-    grad_J(2.0)
-    assert_log_level(log_capture, log_level_expected)
+    jnp.sum(jnp.abs(jnp.array(data["mnt"].amps.values)) ** 2)
 
 
-def test_nonlinear_warn(log_capture):
+def test_nonlinear_warn(log_capture):  # noqa: F811
     """Test that simulations warn if nonlinearity is used."""
 
     struct = JaxStructure(
@@ -1676,7 +1809,7 @@ def test_nonlinear_warn(log_capture):
 
     sim_base = JaxSimulation(
         size=(10, 10, 0),
-        run_time=1e-12,
+        run_time=SIM_RUN_TIME,
         grid_spec=td.GridSpec(wavelength=1.0),
         monitors=(),
         structures=(struct_static,),
@@ -1697,15 +1830,15 @@ def test_nonlinear_warn(log_capture):
 
     # nonlinear simulation.medium (error)
     with AssertLogLevel(log_capture, "WARNING"):
-        sim = sim_base.updated_copy(medium=nl_medium)
+        sim_base.updated_copy(medium=nl_medium)
 
     # nonlinear structure (warn)
     with AssertLogLevel(log_capture, "WARNING"):
-        sim = sim_base.updated_copy(structures=[struct_static_nl])
+        sim_base.updated_copy(structures=[struct_static_nl])
 
     # nonlinear input_structure (warn)
     with AssertLogLevel(log_capture, "WARNING"):
-        sim = sim_base.updated_copy(input_structures=[input_struct_nl])
+        sim_base.updated_copy(input_structures=[input_struct_nl])
 
 
 @pytest.fixture
@@ -1729,13 +1862,13 @@ def try_tracer_import() -> None:
 
 
 @pytest.mark.usefixtures("hide_jax")
-def test_jax_tracer_import_fail(tmp_path, log_capture):
+def test_jax_tracer_import_fail(tmp_path, log_capture):  # noqa: F811
     """Make sure if import error with JVPTracer, a warning is logged and module still imports."""
     try_tracer_import()
     assert_log_level(log_capture, "WARNING")
 
 
-def test_jax_tracer_import_pass(tmp_path, log_capture):
+def test_jax_tracer_import_pass(tmp_path, log_capture):  # noqa: F811
     """Make sure if no import error with JVPTracer, nothing is logged and module imports."""
     try_tracer_import()
     assert_log_level(log_capture, None)
@@ -1749,3 +1882,103 @@ def test_inf_IO(tmp_path):
     box.to_file(fname)
     box2 = JaxBox.from_file(fname)
     assert box == box2
+
+
+@pytest.mark.parametrize("sidewall_angle, log_expected", ([0.0, None], [0.1, "WARNING"]))
+def test_sidewall_angle_validator(log_capture, sidewall_angle, log_expected):  # noqa: F811
+    """Test that the sidewall angle warning works as expected."""
+
+    jax_polyslab1 = JaxPolySlab(axis=POLYSLAB_AXIS, vertices=VERTICES, slab_bounds=(-1, 1))
+
+    with AssertLogLevel(log_capture, log_expected, contains_str="sidewall"):
+        jax_polyslab1.updated_copy(sidewall_angle=sidewall_angle)
+
+
+def test_package_flux():
+    """Test handling of packaging flux data for single and multi-freq."""
+
+    value = 1.0
+    da_single = JaxDataArray(values=[value], coords=dict(f=[1.0]))
+    res_single = JaxFieldData.package_flux_results(None, da_single)
+    assert res_single == value
+
+    da_multi = JaxDataArray(values=[1.0, 2.0], coords=dict(f=[1.0, 2.0]))
+    res_multi = JaxFieldData.package_flux_results(None, da_multi)
+    assert res_multi == da_multi
+
+
+def test_vertices_warning(log_capture):  # noqa: F811
+    sim = make_sim(permittivity=EPS, size=SIZE, vertices=VERTICES, base_eps_val=BASE_EPS_VAL)
+
+    polyslab = sim.input_structures[3].geometry
+
+    radius_penalty = RadiusPenalty(min_radius=0.2, wrap=True)
+
+    with AssertLogLevel(log_capture, "WARNING"):
+        radius_penalty.evaluate(polyslab.vertices)
+
+    with AssertLogLevel(log_capture, "WARNING"):
+        radius_penalty.evaluate(np.array(jax.lax.stop_gradient(polyslab.vertices)))
+
+    def f(vertices):
+        return radius_penalty.evaluate(vertices)
+
+    with AssertLogLevel(log_capture, None):
+        jax.grad(f)(np.random.random((5, 2)))
+
+    with AssertLogLevel(log_capture, None):
+        jax.grad(f)(np.random.random((5, 2)).tolist())
+
+
+def test_no_poynting(use_emulated_run):
+    """Test that poynting vector fails with custom error."""
+
+    sim = make_sim(permittivity=EPS, size=SIZE, vertices=VERTICES, base_eps_val=BASE_EPS_VAL)
+    sim_data = run(sim, task_name="test", path=str(TMP_PATH / RUN_FILE))
+
+    mnt_name_static = "field"
+    mnt_name_differentiable = MNT_NAME + "3"
+
+    sim_data.get_poynting_vector(mnt_name_static)
+
+    with pytest.raises(NotImplementedError):
+        sim_data.get_poynting_vector(mnt_name_differentiable)
+
+    sim_data._get_scalar_field(mnt_name_static, "S", "abs")
+
+    with pytest.raises(NotImplementedError):
+        sim_data._get_scalar_field(mnt_name_differentiable, "S", "abs")
+
+
+def test_to_gds(tmp_path):
+    """Test that JaxSimulation can be converted to GDS."""
+    sim = make_sim(permittivity=EPS, size=SIZE, vertices=VERTICES, base_eps_val=BASE_EPS_VAL)
+
+    fname = str(tmp_path / "simulation_z.gds")
+    sim.to_gds_file(fname, z=0, permittivity_threshold=6, frequency=200e14)
+    cell = gdstk.read_gds(fname).cells[0]
+    assert len(cell.get_polygons()) > 0
+
+    fname = str(tmp_path / "simulation_y.gds")
+    sim.to_gds_file(fname, y=0, permittivity_threshold=6, frequency=200e14)
+    cell = gdstk.read_gds(fname).cells[0]
+    assert len(cell.get_polygons()) > 4  # 4 polys from extraneous_structure
+
+    polys = sim.to_gdstk(y=0, permittivity_threshold=6, frequency=200e14)
+    assert len(polys) > 4
+    polys = sim.to_gdstk(z=0, permittivity_threshold=6, frequency=200e14)
+    assert len(polys) > 0
+
+    # to_gdspy() does not support custom medium
+    sim = make_sim(
+        permittivity=EPS,
+        size=SIZE,
+        vertices=VERTICES,
+        base_eps_val=BASE_EPS_VAL,
+        custom_medium=False,
+    )
+    polys = sim.to_gdspy(z=0)
+    assert len(polys) > 0
+
+    polys = sim.to_gdspy(y=0)
+    assert len(polys) > 4

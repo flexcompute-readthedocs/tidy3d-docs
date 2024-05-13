@@ -1,4 +1,5 @@
-"""test slanted polyslab can be correctly setup and visualized. """
+"""test slanted polyslab can be correctly setup and visualized."""
+
 import pytest
 import numpy as np
 import pydantic.v1 as pydantic
@@ -309,7 +310,7 @@ def test_shift_height_poly(execution_number):
     # avoid vertex-edge crossing case
     try:
         s = setup_polyslab(vertices, dilation, angle, bounds)
-    except:
+    except Exception:
         s = None
     if s is not None:
         for axis in (0, 1):
@@ -338,7 +339,7 @@ def test_intersection_with_inside_poly():
     # multiple vertices touching axis
     vertices_list.append([[0, -1], [0, 0], [0, 1], [0, 2], [-1, 2], [-1, -1]])
     # random vertices
-    for i in range(Ntest):
+    for _ in range(Ntest):
         vertices_list.append(np.array(convert_valid_polygon(np.random.random((N, 2)) * Lx)))
 
     # different polyslab axis
@@ -362,7 +363,7 @@ def test_intersection_with_inside_poly():
                 # avoid vertex-edge crossing case
                 try:
                     s_bottom = setup_polyslab(vertices, dilation, angle, bounds, axis=axis)
-                except:
+                except Exception:
                     continue
                 s_top = convert_polyslab_other_reference_plane(s_bottom, "top")
                 s_middle = convert_polyslab_other_reference_plane(s_bottom, "middle")
@@ -473,7 +474,7 @@ def test_bound_poly(execution_number):
         # avoid vertex-edge crossing case
         try:
             s = setup_polyslab(vertices, dilation, angle, bounds, reference_plane=reference_plane)
-        except:
+        except Exception:
             continue
         validate_poly_bound(s)
 
@@ -490,7 +491,7 @@ def test_bound_poly(execution_number):
         # avoid vertex-edge crossing case
         try:
             s = setup_polyslab(vertices, dilation, angle, bounds)
-        except:
+        except Exception:
             continue
         s = convert_polyslab_other_reference_plane(s, reference_plane)
         validate_poly_bound(s)
@@ -544,14 +545,11 @@ def test_normal_intersection_with_inside_cylinder():
 def test_side_intersection_cylinder():
     """Make sure intersection_side produces correct result"""
 
-    radius = 1.0
-    length = 1.0
-
     # a list of cylinders
     cyl = td.Cylinder(
         center=(0, 0, 0),
-        radius=radius,
-        length=length,
+        radius=1,
+        length=1,
         axis=2,
         sidewall_angle=np.pi / 4,
         reference_plane="middle",
@@ -564,6 +562,19 @@ def test_side_intersection_cylinder():
     shape_intersect = cyl.intersections_plane(x=np.sqrt(3) / 2)
     assert not shape_intersect[0].covers(Point(1.25, -0.4))
     assert shape_intersect[0].covers(Point(0.7, -0.4))
+
+    # a cylinder along x-axis
+    cyl = td.Cylinder(
+        center=(0, 0, 0),
+        radius=4,
+        length=6,
+        axis=0,
+        sidewall_angle=-0.2,
+        reference_plane="top",
+    )
+    shape_intersect = cyl.intersections_plane(z=0)
+    assert shape_intersect[0].covers(Point(3, -4))
+    assert not shape_intersect[0].covers(Point(-3, -4))
 
 
 def test_slanted_infinite_cylinder():

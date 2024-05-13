@@ -14,6 +14,7 @@ from ...components.base import Tidy3dBaseModel, cached_property, skip_if_fields_
 from ...components.medium import PoleResidue, LOSS_CHECK_MIN, LOSS_CHECK_MAX, LOSS_CHECK_NUM
 from ...components.types import ArrayFloat1D, ArrayComplex1D, ArrayFloat2D, ArrayComplex2D
 from ...exceptions import ValidationError
+from ...constants import C_0
 
 # numerical tolerance for pole relocation for fast fitter
 TOL = 1e-8
@@ -31,6 +32,9 @@ DEFAULT_TOLERANCE_RMS = 1e-5
 
 # this avoids divide by zero errors with lossless poles
 SCALE_FACTOR = 1.01
+
+# when poles are close to omega, can cause invalid response function, and we reject model
+OMEGA_POLE_CLOSE_ATOL = 1e-10
 
 
 class AdvancedFastFitterParam(Tidy3dBaseModel):
@@ -519,6 +523,16 @@ class FastFitterData(AdvancedFastFitterParam):
         """
 
         model = self.iterate_poles()
+
+        # if any of the poles align with the test frequencies exactly, we reject the new model
+        if any(
+            np.isclose(omega, 1j * pole, rtol=0, atol=OMEGA_POLE_CLOSE_ATOL)
+            or np.isclose(omega, -1j * pole, rtol=0, atol=OMEGA_POLE_CLOSE_ATOL)
+            for omega in self.omega
+            for pole in self.complex_poles
+        ):
+            return self
+
         model = model.fit_residues()
 
         return model
@@ -816,3 +830,48 @@ class FastDispersionFitter(DispersionFitter):
             )
 
         return best_model.pole_residue, best_model.rms_error
+
+    @classmethod
+    def constant_loss_tangent_model(
+        cls,
+        eps_real: float,
+        loss_tangent: float,
+        frequency_range: Tuple[float, float],
+        max_num_poles: PositiveInt = DEFAULT_MAX_POLES,
+        number_sampling_frequency: PositiveInt = 10,
+        tolerance_rms: NonNegativeFloat = DEFAULT_TOLERANCE_RMS,
+    ) -> PoleResidue:
+        """Fit a constant loss tangent material model.
+
+        Parameters
+        ----------
+        eps_real : float
+            Real part of permittivity
+        loss_tangent : float
+            Loss tangent.
+        frequency_range : Tuple[float, float]
+            Freqquency range for the material to exhibit constant loss tangent response.
+        max_num_poles : PositiveInt, optional
+            Maximum number of poles in the model.
+        number_sampling_frequency : PositiveInt, optional
+            Number of sampling frequencies to compute RMS error for fitting.
+        tolerance_rms : float, optional
+            Weighted RMS error below which the fit is successful and the result is returned.
+
+        Returns
+        -------
+        :class:`.PoleResidue
+            Best results of multiple fits.
+        """
+        if number_sampling_frequency < 2:
+            frequencies = np.array([np.mean(frequency_range)])
+        else:
+            frequencies = np.linspace(
+                frequency_range[0], frequency_range[1], number_sampling_frequency
+            )
+        wvl_um = C_0 / frequencies
+        eps_real_array = np.ones_like(frequencies) * eps_real
+        loss_tangent_array = np.ones_like(frequencies) * loss_tangent
+        fitter = cls.from_loss_tangent(wvl_um, eps_real_array, loss_tangent_array)
+        material, _ = fitter.fit(max_num_poles=max_num_poles, tolerance_rms=tolerance_rms)
+        return material

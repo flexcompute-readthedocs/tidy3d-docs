@@ -9,7 +9,7 @@ import pydantic.v1 as pd
 
 from .grid import Coords1D, Coords, Grid
 from .mesher import GradedMesher, MesherType
-from ..base import Tidy3dBaseModel
+from ..base import Tidy3dBaseModel, cached_property
 from ..types import Axis, Symmetry, annotate_type, TYPE_TAG_STR
 from ..source import SourceType
 from ..structure import Structure, StructureType
@@ -17,6 +17,61 @@ from ..geometry.base import Box
 from ...log import log
 from ...exceptions import SetupError
 from ...constants import MICROMETER, C_0, fp_eps
+
+# Default Courant number reduction rate in Benkler's scheme
+DEFAULT_COURANT_REDUCTION_BENKLER = 0.3
+
+
+class ConformalMeshSpec(Tidy3dBaseModel, ABC):
+    """Base class defining conformal mesh specifications."""
+
+    @cached_property
+    def courant_ratio(self) -> float:
+        """The scaling ratio applied to Courant number so that the courant number
+        in the simulation is ``sim.courant * courant_ratio``.
+        """
+        return 1.0
+
+
+class StaircasingConformalMeshSpec(ConformalMeshSpec):
+    """Simple staircasing scheme based on
+    [Taflove, The Electrical Engineering Handbook 3.629-670 (2005): 15.].
+    """
+
+
+class HeuristicConformalMeshSpec(ConformalMeshSpec):
+    """Slightly different from the staircasing scheme: the field component near PEC
+    is considered to be outside PEC if it's substantially normal to the interface.
+    """
+
+
+class BenklerConformalMeshSpec(ConformalMeshSpec):
+    """Conformal mesh scheme based on
+    [S. Benkler, IEEE Transactions on Antennas and Propagation 54.6, 1843 (2006)], which is similar
+    to the approach described in [S. Dey, R. Mittra, IEEE Microwave and Guided Wave Letters 7.9, 273 (1997)].
+    """
+
+    timestep_reduction: float = pd.Field(
+        DEFAULT_COURANT_REDUCTION_BENKLER,
+        title="Time Step Size Reduction Rate",
+        description="Reduction factor between 0 and 1 such that the simulation's time step size "
+        "will be ``1 - timestep_reduction`` times its default value. "
+        "Accuracy can be improved with a smaller time step size; but simulation time increased as well.",
+        lt=1,
+        ge=0,
+    )
+
+    @cached_property
+    def courant_ratio(self) -> float:
+        """The scaling ratio applied to Courant number so that the courant number
+        in the simulation is ``sim.courant * courant_ratio``.
+        """
+        return 1 - self.timestep_reduction
+
+
+ConformalMeshSpecType = Union[
+    BenklerConformalMeshSpec, StaircasingConformalMeshSpec, HeuristicConformalMeshSpec
+]
 
 
 class GridSpec1d(Tidy3dBaseModel, ABC):
@@ -266,26 +321,44 @@ class CustomGrid(GridSpec1d):
         buffer = fp_eps * size
         bound_min = center - size / 2 - buffer
         bound_max = center + size / 2 + buffer
-        bound_coords = bound_coords[bound_coords <= bound_max]
-        bound_coords = bound_coords[bound_coords >= bound_min]
 
-        # if not extending to simulation bounds, repeat beginning and end
-        dl_min = dl[0]
-        dl_max = dl[-1]
-        while bound_coords[0] - dl_min >= bound_min:
-            bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
-        while bound_coords[-1] + dl_max <= bound_max:
-            bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
+        if bound_max < bound_coords[0] or bound_min > bound_coords[-1]:
+            axis_name = "xyz"[axis]
+            raise SetupError(
+                f"Simulation domain does not overlap with the provided custom grid in '{axis_name}' direction."
+            )
 
-        # in case a `custom_offset` is provided, it's possible the bounds were numerically within
-        # the simulation bounds but were still chopped off, which is fixed here
-        if self.custom_offset is not None:
-            if np.isclose(bound_coords[0] - dl_min, bound_min):
+        if size == 0:
+            # in case of zero-size dimension return the boundaries between which simulation falls
+            ind = np.searchsorted(bound_coords, center, side="right")
+
+            # in case when the center coincides with the right most boundary
+            if ind >= len(bound_coords):
+                ind = len(bound_coords) - 1
+
+            return bound_coords[ind - 1 : ind + 1]
+
+        else:
+            bound_coords = bound_coords[bound_coords <= bound_max]
+            bound_coords = bound_coords[bound_coords >= bound_min]
+
+            # if not extending to simulation bounds, repeat beginning and end
+            dl_min = dl[0]
+            dl_max = dl[-1]
+            while bound_coords[0] - dl_min >= bound_min:
                 bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
-            if np.isclose(bound_coords[-1] + dl_max, bound_max):
+            while bound_coords[-1] + dl_max <= bound_max:
                 bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
 
-        return bound_coords
+            # in case a `custom_offset` is provided, it's possible the bounds were numerically within
+            # the simulation bounds but were still chopped off, which is fixed here
+            if self.custom_offset is not None:
+                if np.isclose(bound_coords[0] - dl_min, bound_min):
+                    bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
+                if np.isclose(bound_coords[-1] + dl_max, bound_max):
+                    bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
+
+            return bound_coords
 
 
 class AutoGrid(GridSpec1d):
@@ -334,6 +407,7 @@ class AutoGrid(GridSpec1d):
         "structures present in the simulation, including override structures "
         "with ``enforced=True``. It is a soft bound, meaning that the actual minimal "
         "grid size might be slightly smaller.",
+        units=MICROMETER,
     )
 
     mesher: MesherType = pd.Field(

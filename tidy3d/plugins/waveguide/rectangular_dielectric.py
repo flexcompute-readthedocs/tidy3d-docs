@@ -628,16 +628,17 @@ class RectangularDielectric(Tidy3dBaseModel):
 
         Example
         -------
+        >>> import tidy3d.plugins.waveguide as waveguide
         >>> wg = waveguide.RectangularDielectric(
         ...     wavelength=1.55,
         ...     core_width=0.5,
         ...     core_thickness=0.22,
         ...     core_medium=Medium(permittivity=3.48**2),
         ...     clad_medium=Medium(permittivity=1.45**2),
-        ...     num_modes=2,
+        ...     # num_modes=2,
         ... )
-        >>> mode_data = wg.mode_solver.solve()
-        >>> mode_data.n_eff.values
+        >>> mode_data = wg.mode_solver.solve() # doctest: +SKIP
+        >>> mode_data.n_eff.values  # doctest: +SKIP
         array([[2.4536054 1.7850305]], dtype=float32)
 
         """
@@ -930,9 +931,9 @@ class RectangularDielectric(Tidy3dBaseModel):
         Parameters
         ----------
         field_name : str
-            Name of `field` component to plot (eg. `'Ex'`).
-            Also accepts `'E'` and `'H'` to plot the vector magnitudes of the electric and
-            magnetic fields, and `'S'` for the Poynting vector.
+            Name of ``field`` component to plot (eg. ``'Ex'``).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
         val : Literal['real', 'imag', 'abs', 'abs^2', 'dB'] = 'real'
             Which part of the field to plot.
         eps_alpha : float = 0.2
