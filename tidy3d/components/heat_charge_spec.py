@@ -7,7 +7,7 @@ import pydantic.v1 as pd
 
 from .types import Union
 from .base import Tidy3dBaseModel
-from ..constants import SPECIFIC_HEAT_CAPACITY, THERMAL_CONDUCTIVITY, CONDUCTIVITY
+from ..constants import SPECIFIC_HEAT_CAPACITY, THERMAL_CONDUCTIVITY, CONDUCTIVITY, PERMITTIVITY
 
 
 # Liquid class
@@ -71,6 +71,10 @@ class ConductorSpec(AbstractHeatChargeSpec):
         title="Electric conductivity",
         description=f"Electric conductivity of material in units of {CONDUCTIVITY}.",
         units=CONDUCTIVITY,
+    )
+
+    permittivity: float = pd.Field(
+        1.0, ge=1.0, title="Permittivity", description="Relative permittivity.", units=PERMITTIVITY
     )
 
 

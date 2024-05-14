@@ -150,6 +150,7 @@ from .components.heat_charge.boundary import (
 from .components.heat_charge.source import UniformHeatSource, HeatSource, HeatFromElectricSource
 from .components.heat_charge.monitor import TemperatureMonitor, VoltageMonitor
 from .components.heat_charge.grid import UniformUnstructuredGrid, DistanceUnstructuredGrid
+from .components.heat_charge.time_spec import UnsteadySpec, SteadySpec
 
 # EME
 from .components.eme.simulation import EMESimulation
@@ -342,6 +343,8 @@ __all__ = [
     "SolidSpec",
     "ConductorSpec",
     "InsulatorSpec",
+    "SteadySpec",
+    "UnsteadySpec",
     "HeatSimulation",
     "HeatSimulationData",
     "TemperatureBC",
@@ -363,6 +366,8 @@ __all__ = [
     "VoltageData",
     "HeatChargeBoundarySpec",
     "VoltageMonitor",
+    "TemporalTemperatureMonitor",
+    "TemporalVoltageMonitor",
     "SpaceTimeModulation",
     "SpaceModulation",
     "ContinuousWaveTimeModulation",

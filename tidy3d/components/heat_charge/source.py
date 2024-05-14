@@ -18,19 +18,24 @@ from ...exceptions import SetupError
 from ...log import log
 
 
-class HeatChargeSource(AbstractSource, ABC):
+class AbstractHeatChargeSource(AbstractSource, ABC):
     """Abstract source for heat-charge simulations. All source types
     for 'HeatChargeSimulation' derive from this class."""
+
+    @cached_property
+    def plot_params(self) -> PlotParams:
+        """Default parameters for plotting a Source object."""
+        return plot_params_heat_source   
+
+
+class StructureBasedDeviceSource(AbstractHeatChargeSource):
+    """Abstract class associated with structures. Sources associated
+    to structures must derive from this class""" 
 
     structures: Tuple[str, ...] = pd.Field(
         title="Target Structures",
         description="Names of structures where to apply heat source.",
     )
-
-    @cached_property
-    def plot_params(self) -> PlotParams:
-        """Default parameters for plotting a Source object."""
-        return plot_params_heat_source
 
     @pd.validator("structures", always=True)
     def check_non_empty_structures(cls, val):
@@ -41,7 +46,11 @@ class HeatChargeSource(AbstractSource, ABC):
         return val
 
 
-class HeatSource(HeatChargeSource):
+class GlobalHeatChargeSource(AbstractHeatChargeSource):
+    """Abstract heat/charge source applied to all structures in the simulation"""
+
+
+class HeatSource(StructureBasedDeviceSource):
     """Adds a volumetric heat source (heat sink if negative values
     are provided) to specific structures in the scene.
 
@@ -58,7 +67,7 @@ class HeatSource(HeatChargeSource):
     )
 
 
-class HeatFromElectricSource(HeatChargeSource):
+class HeatFromElectricSource(GlobalHeatChargeSource):
     """Volumetric heat source generated from an electric simulation.
     If a `HeatFromElectricSource` is specified as a source, appropriate boundary
     conditions for an electric simulation must be provided, since such a simulation
@@ -66,7 +75,7 @@ class HeatFromElectricSource(HeatChargeSource):
 
     Example
     -------
-    >>> heat_source = HeatFromElectricSource(structures=["box"])
+    >>> heat_source = HeatFromElectricSource()
     """
 
 
