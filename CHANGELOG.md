@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Classmethods in `DispersionFitter` to load complex-valued permittivity or loss tangent data.
 - Pre-upload validator to check that mode sources overlap with more than 2 grid cells.
 - Support `2DMedium` for `Transformed`/`GeometryGroup`/`ClipOperation` geometries.
+- `num_proc` argument to `tidy3d.plugins.adjoint.web.run_local` to control the number of processes used on the local machine for gradient processing.
 
 ### Changed
 - `tidy3d convert` from `.lsf` files to tidy3d scripts is moved to another repository at `https://github.com/hirako22/Lumerical-to-Tidy3D-Converter`.
@@ -26,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Simulation.to_gdspy()` and `Simulation.to_gdstk()` now place polygons in GDS layer `(0, 0)` when no `gds_layer_dtype_map` is provided instead of erroring.
 - `task_id` now properly stored in `JaxSimulationData`.
 - Bug in `FastDispersionFitter` when poles move close to input frequencies.
+- Bug in plotting polarization vector of angled sources.
+- Bug in `SpatialDataArray.reflect()` that was causing errors for older versions of `xarray`.
 
 ## [2.7.0rc1] - 2024-04-22
 
