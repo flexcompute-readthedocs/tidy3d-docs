@@ -346,8 +346,8 @@ class DeviceSimulation(AbstractSimulation):
         return val
 
     @pd.root_validator(skip_on_failure=True)
-    def check_medium_heat_spec(cls, values):
-        """Error if no structures with SolidSpec."""
+    def check_medium_specs(cls, values):
+        """Error if no appropriate specs."""
 
         sim_box = (
             Box(
@@ -384,7 +384,7 @@ class DeviceSimulation(AbstractSimulation):
         """Given model dictionary ``values``, check the type of simulations to be run
         based on BCs and sources.
         """
-        # NOTE: this function does not consider the source 'HeatFromElectricSource'
+        # NOTE: this function does not consider the source 'HeatFromElectricSource' by default
 
         boundaries = values["boundary_spec"]
         sources = values["sources"]
@@ -407,7 +407,7 @@ class DeviceSimulation(AbstractSimulation):
         return simulation_types
 
     @pd.root_validator(skip_on_failure=True)
-    def check_couplingSource_can_be_applied(cls, values):
+    def check_coupling_source_can_be_applied(cls, values):
         """Error if material doesn't have the right specifications"""
 
         HeatSourceTypes_noCoupling = (UniformHeatSource, HeatSource)
@@ -981,7 +981,7 @@ class DeviceSimulation(AbstractSimulation):
 
     # function to deal with failed string2float conversion when using
     # expressions in HeatSource
-    def __safe_float_conversion(self, string):
+    def _safe_float_conversion(self, string):
         try:
             return float(string)
         except ValueError:
@@ -992,9 +992,9 @@ class DeviceSimulation(AbstractSimulation):
         """Compute range of heat sources present in the simulation."""
 
         rate_list = [
-            self.__safe_float_conversion(source.rate)
+            self._safe_float_conversion(source.rate)
             for source in self.sources
-            if isinstance(source, UniformHeatSource)
+            if isinstance(source, HeatSource)
         ]
         rate_list.append(0)
         rate_min = min(rate_list)
@@ -1015,7 +1015,7 @@ class DeviceSimulation(AbstractSimulation):
             plot_params = plot_params.copy(update={"alpha": alpha})
 
         if isinstance(source, HeatSource):
-            rate = self.__safe_float_conversion(source.rate)
+            rate = self._safe_float_conversion(source.rate)
             if rate is not None:
                 delta_rate = rate - source_min
                 delta_rate_max = source_max - source_min + 1e-5

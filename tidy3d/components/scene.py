@@ -1250,13 +1250,13 @@ class Scene(Tidy3dBaseModel):
                 structures=structures, x=x, y=y, z=z, hlim=hlim, vlim=vlim
             )
 
-        heat_cond_min, heat_cond_max = self.device_property_bounds(property=property)
+        property_val_min, property_val_max = self.device_property_bounds(property=property)
         for medium, shape in medium_shapes:
             ax = self._plot_shape_structure_device_property(
                 alpha=alpha,
                 medium=medium,
-                heat_cond_min=heat_cond_min,
-                heat_cond_max=heat_cond_max,
+                property_val_min=property_val_min,
+                property_val_max=property_val_max,
                 reverse=reverse,
                 shape=shape,
                 ax=ax,
@@ -1270,8 +1270,8 @@ class Scene(Tidy3dBaseModel):
             elif property == "electric_conductivity":
                 label = f"Electric conductivity ({CONDUCTIVITY})"
             self._add_cbar(
-                vmin=heat_cond_min,
-                vmax=heat_cond_max,
+                vmin=property_val_min,
+                vmax=property_val_max,
                 label=label,
                 cmap=STRUCTURE_HEAT_COND_CMAP,
                 ax=ax,
@@ -1329,8 +1329,8 @@ class Scene(Tidy3dBaseModel):
     def _get_structure_device_property_plot_params(
         self,
         medium: Medium,
-        heat_cond_min: float,
-        heat_cond_max: float,
+        property_val_min: float,
+        property_val_max: float,
         reverse: bool = False,
         alpha: float = None,
         property: str = "heat_conductivity",
@@ -1352,8 +1352,8 @@ class Scene(Tidy3dBaseModel):
             cond_medium = medium.electric_spec.conductivity
 
         if cond_medium is not None:
-            delta_cond = cond_medium - heat_cond_min
-            delta_cond_max = heat_cond_max - heat_cond_min + 1e-5 * heat_cond_min
+            delta_cond = cond_medium - property_val_min
+            delta_cond_max = property_val_max - property_val_min + 1e-5 * property_val_min
             cond_fraction = delta_cond / delta_cond_max
             color = cond_fraction if reverse else 1 - cond_fraction
             plot_params = plot_params.copy(update={"facecolor": str(color)})
@@ -1368,8 +1368,8 @@ class Scene(Tidy3dBaseModel):
         self,
         medium: Medium,
         shape: Shapely,
-        heat_cond_min: float,
-        heat_cond_max: float,
+        property_val_min: float,
+        property_val_max: float,
         property: str,
         ax: Ax,
         reverse: bool = False,
@@ -1380,8 +1380,8 @@ class Scene(Tidy3dBaseModel):
         """
         plot_params = self._get_structure_device_property_plot_params(
             medium=medium,
-            heat_cond_min=heat_cond_min,
-            heat_cond_max=heat_cond_max,
+            property_val_min=property_val_min,
+            property_val_max=property_val_max,
             alpha=alpha,
             reverse=reverse,
             property=property,
