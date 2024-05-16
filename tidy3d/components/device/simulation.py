@@ -313,9 +313,14 @@ class DeviceSimulation(AbstractSimulation):
     def not_all_neumann(cls, val):
         """Error if all boundary conditions are Neumann bc."""
 
-        if len(val) == 0 or all(isinstance(bc_spec.condition, HeatFluxBC) for bc_spec in val):
+        NeumannBCs = (HeatFluxBC, CurrentBC, InsulatingBC)
+        names_neumann_Bcs = [BC.__class__.__name__ for BC in NeumannBCs]
+
+        if len(val) == 0 or all(isinstance(bc_spec.condition, NeumannBCs) for bc_spec in val):
             raise SetupError(
-                "Heat simulation contains only 'HeatFluxBC' (Neumann) boundary conditions. Steady-state solution is undefined in this case."
+                "Your 'DeviceSimulation' contains only Neumann-type boundary conditions. "
+                "Steady-state solution is undefined in this case. "
+                f"Current Neumann BCs are {names_neumann_Bcs}"
             )
 
         return val
