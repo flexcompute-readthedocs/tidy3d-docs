@@ -1,3 +1,4 @@
+"""Test for device simulation objects and data"""
 import pytest
 import pydantic.v1 as pd
 import numpy as np
@@ -5,47 +6,26 @@ from matplotlib import pyplot as plt
 
 import tidy3d as td
 
-from tidy3d import FluidSpec, SolidSpec, ConductorSpec, InsulatorSpec
-from tidy3d import UniformHeatSource, HeatSource, HeatFromElectricSource
-from tidy3d import (
-    TemperatureBC,
-    HeatFluxBC,
-    ConvectionBC,
-    VoltageBC,
-    CurrentBC,
-    DeviceBoundarySpec,
-)
-from tidy3d import (
-    StructureBoundary,
-    StructureStructureInterface,
-    SimulationBoundary,
-    StructureSimulationBoundary,
-    MediumMediumInterface,
-)
-from tidy3d import UniformUnstructuredGrid, DistanceUnstructuredGrid
-from tidy3d import DeviceSimulation
-from tidy3d import DeviceSimulationData
-from tidy3d import VoltageMonitor, TemperatureMonitor
-from tidy3d import VoltageData, TemperatureData
 from tidy3d.exceptions import DataError
 
 from ..utils import STL_GEO, assert_log_level, log_capture  # noqa: F401
 
 
 def make_device_mediums():
+    """Creates mediums with different specs"""
     fluid_medium = td.Medium(
         permittivity=3,
-        heat_spec=FluidSpec(),
+        heat_spec=td.FluidSpec(),
         name="fluid_medium",
     )
     solid_medium = td.Medium(
         permittivity=5,
         conductivity=0.01,
-        heat_spec=SolidSpec(
+        heat_spec=td.SolidSpec(
             capacity=2,
             conductivity=3,
         ),
-        electric_spec=ConductorSpec(
+        electric_spec=td.ConductorSpec(
             conductivity=1,
         ),
         name="solid_medium",
@@ -54,7 +34,7 @@ def make_device_mediums():
     solid_noHeat = td.Medium(
         permittivity=5,
         conductivity=0.01,
-        electric_spec=ConductorSpec(
+        electric_spec=td.ConductorSpec(
             conductivity=1,
         ),
         name="solid_medium",
@@ -63,7 +43,7 @@ def make_device_mediums():
     solid_noElect = td.Medium(
         permittivity=5,
         conductivity=0.01,
-        heat_spec=SolidSpec(
+        heat_spec=td.SolidSpec(
             capacity=2,
             conductivity=3,
         ),
@@ -72,7 +52,7 @@ def make_device_mediums():
 
     insulator_medium = td.Medium(
         permittivity=3,
-        electric_spec=InsulatorSpec(),
+        electric_spec=td.InsulatorSpec(),
         name="insulator_medium",
     )
 
@@ -80,6 +60,7 @@ def make_device_mediums():
 
 
 def test_device_medium():
+    """Tests validation errors for mediums"""
     _, solid_medium, _, _, _ = make_device_mediums()
 
     with pytest.raises(pd.ValidationError):
@@ -93,6 +74,7 @@ def test_device_medium():
 
 
 def make_device_structures():
+    """Makes structures with different mediums and sizes"""
     fluid_medium, solid_medium, solid_noHeat, solid_noElect, insulator_med = make_device_mediums()
 
     box = td.Box(center=(0, 0, 0), size=(1, 1, 1))
@@ -137,52 +119,55 @@ def make_device_structures():
 
 
 def test_device_structures():
+    """Tests that different structures with different mediums can be created"""
     _, _, _, _, _ = make_device_structures()
 
 
 def make_device_bcs():
-    bc_temp = TemperatureBC(temperature=300)
-    bc_flux = HeatFluxBC(flux=20)
-    bc_conv = ConvectionBC(ambient_temperature=400, transfer_coeff=0.2)
-    bc_volt = VoltageBC(voltage=1)
-    bc_current = CurrentBC(current_density=3e-1)
+    bc_temp = td.TemperatureBC(temperature=300)
+    bc_flux = td.HeatFluxBC(flux=20)
+    bc_conv = td.ConvectionBC(ambient_temperature=400, transfer_coeff=0.2)
+    bc_volt = td.VoltageBC(voltage=1)
+    bc_current = td.CurrentBC(current_density=3e-1)
 
     return [bc_temp, bc_flux, bc_conv, bc_volt, bc_current]
 
 
 def test_device_bcs():
+    """Tests the validators for boundary conditions"""
     with pytest.raises(pd.ValidationError):
-        _ = TemperatureBC(temperature=-10)
+        _ = td.TemperatureBC(temperature=-10)
 
     with pytest.raises(pd.ValidationError):
-        _ = ConvectionBC(ambient_temperature=-400, transfer_coeff=0.2)
+        _ = td.ConvectionBC(ambient_temperature=-400, transfer_coeff=0.2)
 
     with pytest.raises(pd.ValidationError):
-        _ = ConvectionBC(ambient_temperature=400, transfer_coeff=-0.2)
+        _ = td.ConvectionBC(ambient_temperature=400, transfer_coeff=-0.2)
 
     with pytest.raises(pd.ValidationError):
-        _ = VoltageBC(voltage=td.inf)
+        _ = td.VoltageBC(voltage=td.inf)
 
     with pytest.raises(pd.ValidationError):
-        _ = CurrentBC(current_density=td.inf)
+        _ = td.CurrentBC(current_density=td.inf)
 
 
 def make_device_mnts():
-    temp_mnt1 = TemperatureMonitor(size=(1.6, 2, 3), name="test")
-    temp_mnt2 = TemperatureMonitor(size=(1.6, 2, 3), name="tet", unstructured=True)
-    temp_mnt3 = TemperatureMonitor(
+    """Creates monitors of different types and sized"""
+    temp_mnt1 = td.TemperatureMonitor(size=(1.6, 2, 3), name="test")
+    temp_mnt2 = td.TemperatureMonitor(size=(1.6, 2, 3), name="tet", unstructured=True)
+    temp_mnt3 = td.TemperatureMonitor(
         center=(0, 1, 0), size=(1.6, 0, 3), name="tri", unstructured=True, conformal=True
     )
-    temp_mnt4 = TemperatureMonitor(
+    temp_mnt4 = td.TemperatureMonitor(
         center=(0, 1, 0), size=(1.6, 0, 3), name="empty", unstructured=True, conformal=False
     )
 
-    volt_mnt1 = VoltageMonitor(size=(1.6, 2, 3), name="v_test")
-    volt_mnt2 = VoltageMonitor(size=(1.6, 2, 3), name="v_tet", unstructured=True)
-    volt_mnt3 = VoltageMonitor(
+    volt_mnt1 = td.VoltageMonitor(size=(1.6, 2, 3), name="v_test")
+    volt_mnt2 = td.VoltageMonitor(size=(1.6, 2, 3), name="v_tet", unstructured=True)
+    volt_mnt3 = td.VoltageMonitor(
         center=(0, 1, 0), size=(1.6, 0, 3), name="v_tri", unstructured=True, conformal=True
     )
-    volt_mnt4 = VoltageMonitor(
+    volt_mnt4 = td.VoltageMonitor(
         center=(0, 1, 0), size=(1.6, 0, 3), name="v_empty", unstructured=True, conformal=False
     )
 
@@ -233,6 +218,10 @@ def test_monitor_crosses_medium():
 
 
 def make_temperature_mnt_data():
+    """
+    Creates different temperature data. The first one uses
+    a 'SpatialDataArray', the second a 'TetrahedralGridDataset', the third one
+    a 'TriangularGridDataset' and the last one uses 'None' as data."""
     temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, _, _, _, _ = make_device_mnts()
 
     nx, ny, nz = 9, 6, 5
@@ -243,7 +232,7 @@ def make_temperature_mnt_data():
     coords = dict(x=x, y=y, z=z)
     temperature_field = td.SpatialDataArray(T, coords=coords)
 
-    mnt_data1 = TemperatureData(monitor=temp_mnt1, temperature=temperature_field)
+    mnt_data1 = td.TemperatureData(monitor=temp_mnt1, temperature=temperature_field)
 
     tet_grid_points = td.PointDataArray(
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
@@ -267,7 +256,7 @@ def make_temperature_mnt_data():
         values=tet_grid_values,
     )
 
-    mnt_data2 = TemperatureData(monitor=temp_mnt2, temperature=tet_grid)
+    mnt_data2 = td.TemperatureData(monitor=temp_mnt2, temperature=tet_grid)
 
     tri_grid_points = td.PointDataArray(
         [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
@@ -293,14 +282,18 @@ def make_temperature_mnt_data():
         values=tri_grid_values,
     )
 
-    mnt_data3 = TemperatureData(monitor=temp_mnt3, temperature=tri_grid)
+    mnt_data3 = td.TemperatureData(monitor=temp_mnt3, temperature=tri_grid)
 
-    mnt_data4 = TemperatureData(monitor=temp_mnt4, temperature=None)
+    mnt_data4 = td.TemperatureData(monitor=temp_mnt4, temperature=None)
 
     return (mnt_data1, mnt_data2, mnt_data3, mnt_data4)
 
 
 def make_voltage_mnt_data():
+    """
+    Creates different voltage data. The first one uses
+    a 'SpatialDataArray', the second a 'TetrahedralGridDataset', the third one
+    a 'TriangularGridDataset' and the last one uses 'None' as data."""
     _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4 = make_device_mnts()
 
     nx, ny, nz = 9, 6, 5
@@ -311,7 +304,7 @@ def make_voltage_mnt_data():
     coords = dict(x=x, y=y, z=z)
     voltage_field = td.SpatialDataArray(T, coords=coords)
 
-    mnt_data1 = VoltageData(monitor=volt_mnt1, voltage=voltage_field)
+    mnt_data1 = td.VoltageData(monitor=volt_mnt1, voltage=voltage_field)
 
     tet_grid_points = td.PointDataArray(
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
@@ -335,7 +328,7 @@ def make_voltage_mnt_data():
         values=tet_grid_values,
     )
 
-    mnt_data2 = VoltageData(monitor=volt_mnt2, voltage=tet_grid)
+    mnt_data2 = td.VoltageData(monitor=volt_mnt2, voltage=tet_grid)
 
     tri_grid_points = td.PointDataArray(
         [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
@@ -361,29 +354,33 @@ def make_voltage_mnt_data():
         values=tri_grid_values,
     )
 
-    mnt_data3 = VoltageData(monitor=volt_mnt3, voltage=tri_grid)
+    mnt_data3 = td.VoltageData(monitor=volt_mnt3, voltage=tri_grid)
 
-    mnt_data4 = VoltageData(monitor=volt_mnt4, voltage=None)
+    mnt_data4 = td.VoltageData(monitor=volt_mnt4, voltage=None)
 
     return (mnt_data1, mnt_data2, mnt_data3, mnt_data4)
 
 
 def test_device_mnt_data():
+    """Tests whether different device monitor data can be created"""
     _ = make_temperature_mnt_data()
     _ = make_voltage_mnt_data()
 
 
 def make_uniform_grid_spec():
-    return UniformUnstructuredGrid(dl=0.1, min_edges_per_circumference=5, min_edges_per_side=3)
+    """Generates a uniform unstructured grid"""
+    return td.UniformUnstructuredGrid(dl=0.1, min_edges_per_circumference=5, min_edges_per_side=3)
 
 
 def make_distance_grid_spec():
-    return DistanceUnstructuredGrid(
+    """Generates a distance-based unstructured grid"""
+    return td.DistanceUnstructuredGrid(
         dl_interface=0.1, dl_bulk=1, distance_interface=1, distance_bulk=2
     )
 
 
 def test_grid_spec():
+    """Tests whether unstructured grids can be created and different validators for them."""
     grid_spec = make_uniform_grid_spec()
     with pytest.raises(pd.ValidationError):
         _ = grid_spec.updated_copy(dl=0)
@@ -400,41 +397,44 @@ def test_grid_spec():
 
 
 def test_device_sources(log_capture):  # noqa: F811
+    """ "Tests whether device sources can be created and associated warnings"""
     # this shouldn't issue warning
-    _ = HeatSource(structures=["solid_structure"], rate=100)
+    _ = td.HeatSource(structures=["solid_structure"], rate=100)
     assert len(log_capture) == 0
 
     # this should issue warning
-    _ = UniformHeatSource(structures=["solid_structure"], rate=100)
+    _ = td.UniformHeatSource(structures=["solid_structure"], rate=100)
     assert_log_level(log_capture, "WARNING")
 
     # this shouldn't issue warning
-    _ = HeatSource(structures=["solid_structure"], rate="100")
+    _ = td.HeatSource(structures=["solid_structure"], rate="100")
     assert len(log_capture) == 1
 
 
 def make_device_heat_sim():
+    """Generates device heat simulation"""
     fluid_medium, solid_medium, solid_noHeat, _, _ = make_device_mediums()
     fluid_structure, solid_structure, _, _, _ = make_device_structures()
     bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
-    heat_source = HeatSource(structures=["solid_structure"], rate=100)
+    heat_source = td.HeatSource(structures=["solid_structure"], rate=100)
 
-    pl1 = DeviceBoundarySpec(
-        condition=bc_conv, placement=MediumMediumInterface(mediums=["fluid_medium", "solid_medium"])
+    pl1 = td.DeviceBoundarySpec(
+        condition=bc_conv,
+        placement=td.MediumMediumInterface(mediums=["fluid_medium", "solid_medium"]),
     )
-    pl2 = DeviceBoundarySpec(
-        condition=bc_flux, placement=StructureBoundary(structure="solid_structure")
+    pl2 = td.DeviceBoundarySpec(
+        condition=bc_flux, placement=td.StructureBoundary(structure="solid_structure")
     )
-    pl3 = DeviceBoundarySpec(
+    pl3 = td.DeviceBoundarySpec(
         condition=bc_temp,
-        placement=StructureStructureInterface(structures=["fluid_structure", "solid_structure"]),
+        placement=td.StructureStructureInterface(structures=["fluid_structure", "solid_structure"]),
     )
 
     grid_spec = make_uniform_grid_spec()
 
     temp_mnts = make_device_mnts()
 
-    heat_sim = DeviceSimulation(
+    heat_sim = td.DeviceSimulation(
         medium=fluid_medium,
         structures=[fluid_structure, solid_structure],
         center=(0, 0, 0),
@@ -449,20 +449,22 @@ def make_device_heat_sim():
 
 
 def make_device_cond_sim():
+    """Creates a device conduction simulation"""
     _, solid_medium, _, solid_noElect, insulator_medium = make_device_mediums()
     _, solid_structure, _, _, insulator = make_device_structures()
     bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
 
-    pl4 = DeviceBoundarySpec(condition=bc_volt, placement=SimulationBoundary())
-    pl5 = DeviceBoundarySpec(
-        condition=bc_current, placement=StructureSimulationBoundary(structure="insulator_structure")
+    pl4 = td.DeviceBoundarySpec(condition=bc_volt, placement=td.SimulationBoundary())
+    pl5 = td.DeviceBoundarySpec(
+        condition=bc_current,
+        placement=td.StructureSimulationBoundary(structure="insulator_structure"),
     )
 
     grid_spec = make_uniform_grid_spec()
 
     temp_mnts = make_device_mnts()
 
-    cond_sim = DeviceSimulation(
+    cond_sim = td.DeviceSimulation(
         medium=insulator_medium,
         structures=[insulator, solid_structure],
         center=(0, 0, 0),
@@ -477,6 +479,8 @@ def make_device_cond_sim():
 
 
 def test_device_sim(log_capture):  # noqa: F811
+    """Creates device simulations and performs a bunch of
+    checks for different conditions"""
     bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
     (
         fluid_structure,
@@ -509,23 +513,26 @@ def test_device_sim(log_capture):  # noqa: F811
     # SPECIFIC TESTS FOR EACH SIMUALTION TYPE
     # wrong names given
     for pl in [
-        DeviceBoundarySpec(
-            condition=bc_temp, placement=MediumMediumInterface(mediums=["badname", "fluid_medium"])
+        td.DeviceBoundarySpec(
+            condition=bc_temp,
+            placement=td.MediumMediumInterface(mediums=["badname", "fluid_medium"]),
         ),
-        DeviceBoundarySpec(condition=bc_flux, placement=StructureBoundary(structure="no_box")),
-        DeviceBoundarySpec(
+        td.DeviceBoundarySpec(
+            condition=bc_flux, placement=td.StructureBoundary(structure="no_box")
+        ),
+        td.DeviceBoundarySpec(
             condition=bc_conv,
-            placement=StructureStructureInterface(structures=["no_box", "solid_structure"]),
+            placement=td.StructureStructureInterface(structures=["no_box", "solid_structure"]),
         ),
-        DeviceBoundarySpec(
-            condition=bc_temp, placement=StructureSimulationBoundary(structure="no_mesh")
+        td.DeviceBoundarySpec(
+            condition=bc_temp, placement=td.StructureSimulationBoundary(structure="no_mesh")
         ),
     ]:
         with pytest.raises(pd.ValidationError):
             _ = heat_sim.updated_copy(boundary_spec=[pl])
 
     with pytest.raises(pd.ValidationError):
-        _ = heat_sim.updated_copy(sources=[HeatSource(structures=["noname"])], rate=-10)
+        _ = heat_sim.updated_copy(sources=[td.HeatSource(structures=["noname"])], rate=-10)
 
     temp_mnt = heat_sim.monitors[0]
     with pytest.raises(pd.ValidationError):
@@ -554,29 +561,29 @@ def test_device_sim(log_capture):  # noqa: F811
 
     # fail if 'HeatFromElectricSource' is provided in simulations where only BCs/sources
     # are provided that are either HEAT or CONDUCTION
-    bc_spec_HEAT = DeviceBoundarySpec(
-        condition=bc_temp, placement=StructureBoundary(structure=solid_structure.name)
+    bc_spec_HEAT = td.DeviceBoundarySpec(
+        condition=bc_temp, placement=td.StructureBoundary(structure=solid_structure.name)
     )
-    sim = DeviceSimulation(
+    sim = td.DeviceSimulation(
         medium=solid_structure.medium,
         center=(0, 0, 0),
         size=(3, 3, 3),
-        grid_spec=UniformUnstructuredGrid(dl=0.2),
+        grid_spec=td.UniformUnstructuredGrid(dl=0.2),
         structures=[solid_structure],
         boundary_spec=[bc_spec_HEAT],
     )
     with pytest.raises(pd.ValidationError):
-        _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
+        _ = sim.updated_copy(sources=[td.HeatFromElectricSource(structures=[solid_structure.name])])
 
     # now lets make sim have conduction BC
     bc_spec_COND = bc_spec_HEAT.updated_copy(condition=bc_volt)
     sim = sim.updated_copy(boundary_spec=[bc_spec_COND])
     with pytest.raises(pd.ValidationError):
-        _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
+        _ = sim.updated_copy(sources=[td.HeatFromElectricSource(structures=[solid_structure.name])])
 
     # now let's make a coupled simulation
     sim = sim.updated_copy(boundary_spec=[bc_spec_COND, bc_spec_HEAT])
-    _ = sim.updated_copy(sources=[HeatFromElectricSource(structures=[solid_structure.name])])
+    _ = sim.updated_copy(sources=[td.HeatFromElectricSource(structures=[solid_structure.name])])
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
@@ -599,7 +606,9 @@ def test_device_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
                 )
             ],
             boundary_spec=[
-                DeviceBoundarySpec(condition=VoltageBC(voltage=1), placement=SimulationBoundary())
+                td.DeviceBoundarySpec(
+                    condition=td.VoltageBC(voltage=1), placement=td.SimulationBoundary()
+                )
             ],
             grid_spec=td.UniformUnstructuredGrid(dl=0.1),
         )
@@ -637,7 +646,9 @@ def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa: F811
         structures=[box],
         medium=td.Medium(electric_spec=td.ConductorSpec(conductivity=1)),
         boundary_spec=[
-            DeviceBoundarySpec(placement=td.SimulationBoundary(), condition=VoltageBC(voltage=1))
+            td.DeviceBoundarySpec(
+                placement=td.SimulationBoundary(), condition=td.VoltageBC(voltage=1)
+            )
         ],
         grid_spec=td.UniformUnstructuredGrid(dl=0.1),
     )
@@ -646,10 +657,11 @@ def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa: F811
 
 
 def make_device_sim_data():
+    """Creates 'DeviceSimulationData' for both HEAT and CONDUCTION simulations"""
     heat_sim = make_device_heat_sim()
     temp_data = make_temperature_mnt_data()
 
-    heat_sim_data = DeviceSimulationData(
+    heat_sim_data = td.DeviceSimulationData(
         simulation=heat_sim,
         data=temp_data,
     )
@@ -657,7 +669,7 @@ def make_device_sim_data():
     cond_sim = make_device_cond_sim()
     volt_data = make_voltage_mnt_data()
 
-    cond_sim_data = DeviceSimulationData(
+    cond_sim_data = td.DeviceSimulationData(
         simulation=cond_sim,
         data=volt_data,
     )
@@ -666,6 +678,8 @@ def make_device_sim_data():
 
 
 def test_sim_data():
+    """Tests 'DeviceSimulationData'. In particular, checks whether data can plotted
+    and appropriate errors are issued (no data, data is not 2D, etc.)"""
     heat_sim_data, cond_sim_data = make_device_sim_data()
     _ = heat_sim_data.plot_field("test", z=0)
     _ = heat_sim_data.plot_field("tri")
@@ -688,7 +702,7 @@ def test_sim_data():
     with pytest.raises(pd.ValidationError):
         _ = heat_sim_data.updated_copy(data=[heat_sim_data.data[0]] * 2)
 
-    temp_mnt = TemperatureMonitor(size=(1, 2, 3), name="test")
+    temp_mnt = td.TemperatureMonitor(size=(1, 2, 3), name="test")
     temp_mnt = temp_mnt.updated_copy(name="test2")
 
     sim = heat_sim_data.simulation.updated_copy(monitors=[temp_mnt])

@@ -1,4 +1,4 @@
-"""Defines heat material specifications"""
+"""Defines device material specifications"""
 from __future__ import annotations
 
 from abc import ABC
@@ -19,7 +19,8 @@ from ...log import log
 
 
 class DeviceSource(AbstractSource, ABC):
-    """Abstract device source."""
+    """Abstract source for device simulations. All source types
+    for 'DeviceSimulation' derive from this class."""
 
     structures: Tuple[str, ...] = pd.Field(
         title="Target Structures",
@@ -41,7 +42,8 @@ class DeviceSource(AbstractSource, ABC):
 
 
 class HeatSource(DeviceSource):
-    """Volumetric heat source.
+    """Adds a volumetric heat source (heat sink if negative values
+    are provided) to specific structures in the scene.
 
     Example
     -------
@@ -72,7 +74,8 @@ class HeatFromElectricSource(DeviceSource):
 
 
 class UniformHeatSource(HeatSource):
-    """Volumetric heat source.
+    """Volumetric heat source. This class is deprecated. You can use
+    'HeatSource' instead.
 
     Example
     -------
@@ -81,14 +84,14 @@ class UniformHeatSource(HeatSource):
 
     # NOTE: this is basically a wrapper for backwards compatibility.
 
-    # encapsulating the log.warning since otherwise it is output everytime there is
-    # an isinstance(x, UniformHeatSource)
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    @pd.root_validator(skip_on_failure=True)
+    def issue_warning_deprecated(cls, values):
+        """Issue warning for 'UniformHeatSource'."""
         log.warning(
             "'UniformHeatSource' is deprecated and will be discontinued. You can use "
             "'HeatSource' instead."
         )
+        return values
 
 
 DeviceSourceType = Union[HeatSource, HeatFromElectricSource, UniformHeatSource]

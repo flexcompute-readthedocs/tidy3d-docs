@@ -75,7 +75,7 @@ class VoltageBC(DeviceBC):
 
     Example
     -------
-    >>> bc = VoltageBC(potential=2)
+    >>> bc = VoltageBC(voltage=2)
     """
 
     voltage: pd.FiniteFloat = pd.Field(
@@ -95,7 +95,7 @@ class CurrentBC(DeviceBC):
 
     current_density: pd.FiniteFloat = pd.Field(
         title="Current density",
-        description=f"Current density in units of {CURRENT_DENSITY}.",
+        description="Current density.",
         units=CURRENT_DENSITY,
     )
 
@@ -131,6 +131,7 @@ class DeviceBoundarySpec(Tidy3dBaseModel):
     placement: BCPlacementType = pd.Field(
         title="Boundary Conditions Placement",
         description="Location to apply boundary conditions.",
+        discriminator=TYPE_TAG_STR,
     )
 
     condition: DeviceBoundaryConditionType = pd.Field(

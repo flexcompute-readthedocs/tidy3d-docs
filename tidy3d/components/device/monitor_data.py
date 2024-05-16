@@ -6,9 +6,10 @@ from abc import ABC
 import numpy as np
 
 import pydantic.v1 as pd
+import copy
 
 from .monitor import TemperatureMonitor, VoltageMonitor, DeviceMonitorType
-from ..base import skip_if_fields_missing
+from ..base import skip_if_fields_missing, cached_property
 from ..base_sim.data.monitor_data import AbstractMonitorData
 from ..data.data_array import SpatialDataArray
 from ..data.dataset import TriangularGridDataset, TetrahedralGridDataset
@@ -16,6 +17,11 @@ from ..types import ScalarSymmetry, Coordinate, annotate_type
 from ...constants import KELVIN, VOLT
 
 from ...log import log
+
+
+FieldDataset = Union[
+    SpatialDataArray, annotate_type(Union[TriangularGridDataset, TetrahedralGridDataset])
+]
 
 
 class DeviceMonitorData(AbstractMonitorData, ABC):
@@ -39,19 +45,19 @@ class DeviceMonitorData(AbstractMonitorData, ABC):
         description="Symmetry center of the original simulation in x, y, and z.",
     )
 
-    @property
+    @cached_property
     def symmetry_expanded_copy(self) -> DeviceMonitorData:
         """Return copy of self with symmetry applied."""
         return self.copy()
 
-    def _symmetry_expanded_copy(self, property):
+    def _symmetry_expanded_copy(self, property: FieldDataset) -> FieldDataset:
         """Return the property with symmetry applied."""
 
         # no symmetry
         if all(sym == 0 for sym in self.symmetry):
             return property
 
-        new_property = property
+        new_property = copy.copy(property)
 
         mnt_bounds = np.array(self.monitor.bounds)
 
@@ -130,9 +136,7 @@ class TemperatureData(DeviceMonitorData):
         ..., title="Monitor", description="Temperature monitor associated with the data."
     )
 
-    temperature: Optional[
-        Union[SpatialDataArray, annotate_type(Union[TriangularGridDataset, TetrahedralGridDataset])]
-    ] = pd.Field(
+    temperature: Optional[FieldDataset] = pd.Field(
         ...,
         title="Temperature",
         description="Spatial temperature field.",
@@ -154,7 +158,7 @@ class TemperatureData(DeviceMonitorData):
 
         return val
 
-    @property
+    @cached_property
     def symmetry_expanded_copy(self) -> TemperatureData:
         """Return copy of self with symmetry applied."""
 
@@ -183,9 +187,7 @@ class VoltageData(DeviceMonitorData):
         ..., title="Monitor", description="Electric potential monitor associated with the data."
     )
 
-    voltage: Optional[
-        Union[SpatialDataArray, annotate_type(Union[TriangularGridDataset, TetrahedralGridDataset])]
-    ] = pd.Field(
+    voltage: Optional[FieldDataset] = pd.Field(
         ...,
         title="Voltage (electric potential)",
         description="Spatial electric potential field.",
@@ -207,7 +209,7 @@ class VoltageData(DeviceMonitorData):
 
         return val
 
-    @property
+    @cached_property
     def symmetry_expanded_copy(self) -> VoltageData:
         """Return copy of self with symmetry applied."""
 

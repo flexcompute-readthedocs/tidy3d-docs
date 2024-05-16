@@ -8,6 +8,8 @@ import pydantic.v1 as pd
 from .monitor_data import DeviceMonitorDataType, TemperatureData, VoltageData
 from .simulation import DeviceSimulation
 
+from .heat.simulation import HeatSimulation
+
 from ..data.dataset import UnstructuredGridDataset, TetrahedralGridDataset, TriangularGridDataset
 from ..data.data_array import SpatialDataArray
 from ..base_sim.data.sim_data import AbstractSimulationData
@@ -22,19 +24,16 @@ class DeviceSimulationData(AbstractSimulationData):
 
     Example
     -------
-    >>> from tidy3d import Medium, SolidSpec, FluidSpec, UniformUnstructuredGrid, SpatialDataArray
-    >>> from tidy3d import Structure, Box, UniformUnstructuredGrid, UniformHeatSource
-    >>> from tidy3d import StructureBoundary, TemperatureBC, TemperatureMonitor, TemperatureData
-    >>> from tidy3d import DeviceBoundarySpec
+    >>> import tidy3d as td
     >>> import numpy as np
-    >>> temp_mnt = TemperatureMonitor(size=(1, 2, 3), name="sample")
+    >>> temp_mnt = td.TemperatureMonitor(size=(1, 2, 3), name="sample")
     >>> heat_sim = DeviceSimulation(
     ...     size=(3.0, 3.0, 3.0),
     ...     structures=[
-    ...         Structure(
-    ...             geometry=Box(size=(1, 1, 1), center=(0, 0, 0)),
-    ...             medium=Medium(
-    ...                 permittivity=2.0, heat_spec=SolidSpec(
+    ...         td.Structure(
+    ...             geometry=td.Box(size=(1, 1, 1), center=(0, 0, 0)),
+    ...             medium=td.Medium(
+    ...                 permittivity=2.0, heat_spec=td.SolidSpec(
     ...                     conductivity=1,
     ...                     capacity=1,
     ...                 )
@@ -42,13 +41,13 @@ class DeviceSimulationData(AbstractSimulationData):
     ...             name="box",
     ...         ),
     ...     ],
-    ...     medium=Medium(permittivity=3.0, heat_spec=FluidSpec()),
-    ...     grid_spec=UniformUnstructuredGrid(dl=0.1),
-    ...     sources=[UniformHeatSource(rate=1, structures=["box"])],
+    ...     medium=td.Medium(permittivity=3.0, heat_spec=td.FluidSpec()),
+    ...     grid_spec=td.UniformUnstructuredGrid(dl=0.1),
+    ...     sources=[td.HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         HeatBoundarySpec(
-    ...             placement=StructureBoundary(structure="box"),
-    ...             condition=TemperatureBC(temperature=500),
+    ...         td.DeviceBoundarySpec(
+    ...             placement=td.StructureBoundary(structure="box"),
+    ...             condition=td.TemperatureBC(temperature=500),
     ...         )
     ...     ],
     ...     monitors=[temp_mnt],
@@ -57,9 +56,9 @@ class DeviceSimulationData(AbstractSimulationData):
     >>> y = [2,3,4]
     >>> z = [3,4,5,6]
     >>> coords = dict(x=x, y=y, z=z)
-    >>> temp_array = SpatialDataArray(300 * np.abs(np.random.random((2,3,4))), coords=coords)
-    >>> temp_mnt_data = TemperatureData(monitor=temp_mnt, temperature=temp_array)
-    >>> heat_sim_data = DeviceSimulationData(
+    >>> temp_array = td.SpatialDataArray(300 * np.abs(np.random.random((2,3,4))), coords=coords)
+    >>> temp_mnt_data = td.TemperatureData(monitor=temp_mnt, temperature=temp_array)
+    >>> heat_sim_data = td.DeviceSimulationData(
     ...     simulation=heat_sim, data=[temp_mnt_data],
     ... )
     """
@@ -146,7 +145,7 @@ class DeviceSimulationData(AbstractSimulationData):
         else:
             raise DataError(
                 f"Monitor '{monitor_name}' (type '{monitor_data.monitor.type}') is not a "
-                f"supported monitor Supported monitors are 'TemperatureData', 'VoltageData'."
+                f"supported monitor. Supported monitors are 'TemperatureData', 'VoltageData'."
             )
 
         if val == "abs^2":
@@ -269,7 +268,7 @@ class DeviceSimulationData(AbstractSimulationData):
 
         # select the cross section data
         interp_kwarg = {"xyz"[axis]: position}
-        # plot the simulation heat conductivity
+        # plot the simulation heat/electric conductivity
         if property_to_plot is not None:
             ax = self.simulation.scene.plot_device_property(
                 cbar=False,
@@ -286,21 +285,20 @@ class DeviceSimulationData(AbstractSimulationData):
         return ax
 
 
-# In order to be backwards-compatible defining here a wrapper for heat simulations
-from .heat.simulation import HeatSimulation
-
-
 class HeatSimulationData(DeviceSimulationData):
-    """Wrapper for Heat simulation data"""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        log.warning(
-            '"HeatSimulationData" is deprecated and will be discontinued. You can use '
-            '"DeviceSimulationData" instead'
-        )
+    """Wrapper for Heat simulation data. 'HeatSimulationData' is deprecated.
+    Consider using 'DeviceSimulationData' instead."""
 
     simulation: HeatSimulation = pd.Field(
-        title="Device Simulation",
-        description="Original :class:`.DeviceSimulation` associated with the data.",
+        title="Heat Simulation",
+        description="Original :class:`.HeatSimulation` associated with the data.",
     )
+
+    @pd.root_validator(skip_on_failure=True)
+    def issue_warning_deprecated(cls, values):
+        """Issue warning for 'HeatSimulations'."""
+        log.warning(
+            "'HeatSimulationData' is deprecated and will be discontinued. You can use "
+            "'DeviceSimulationData' instead"
+        )
+        return values

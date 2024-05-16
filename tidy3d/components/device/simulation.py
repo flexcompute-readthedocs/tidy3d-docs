@@ -43,12 +43,42 @@ ElectricBCTypes = (VoltageBC, CurrentBC, InsulatingBC)
 
 
 class DeviceSimulationType(str, Enum):
+    """Enumeration of the types of simulations currently supported"""
+
     HEAT = "HEAT"
     CONDUCTION = "CONDUCTION"
 
 
 class DeviceSimulation(AbstractSimulation):
-    """Contains all information about device simulations.
+    """This class is used to define thermo-electric simulations.
+
+    Notes
+    -----
+        'DeviceSimulation' supports different types of simulations. It solves the
+        drift-diffusion equations (or simplified subsets of the same) using the
+        Finite-Volume (FV) method.
+
+        Currently, we support:
+            * Heat simulations: we solve the heat equation with specified heat sources,
+                BCs, etc.
+            * Conduction simulations: the conduction equation, div(sigma*grad(psi))=0,
+                (with sigma being the electric conductivity) is solved for specified BCs.
+
+        Coupling between these simulations is currently limited to 1-way coupling between
+        heat and conduction simulations. Coupling is specified by defining a heat source of
+        type 'HeatFromElectricSource'. With this coupling, joule heating is calculated as part
+        of the solution to a CONDUCTION simulation and then read in to the HEAT simulation.
+        When using coupling we anticipate two scenarios:
+            1. one in which BCs and sources are specified for both HEAT and CONDUCTION simulations.
+                In this case one mesh will be generated and used for both the CONDUCTION and HEAT
+                simulations.
+            2. only heat BCs/sources are provided. In this case, only the HEAT equation will be solved.
+                Before the simulation starts, it will try to load the heat source from file so a
+                previously run CONDUCTION simulations must have run previously. Since the CONDUCTION
+                and HEAT meshes may differ, an interpolation between them will be performed prior to
+                starting the HEAT simulation.
+        Note also that additional heat sources can be applied, in which case, they will be added on
+        top of the coupling heat source.
 
     Example
     -------
@@ -69,9 +99,9 @@ class DeviceSimulation(AbstractSimulation):
     ...     ],
     ...     medium=Medium(permittivity=3.0, heat_spec=FluidSpec()),
     ...     grid_spec=UniformUnstructuredGrid(dl=0.1),
-    ...     sources=[UniformHeatSource(rate=1, structures=["box"])],
+    ...     sources=[HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         HeatBoundarySpec(
+    ...         DeviceBoundarySpec(
     ...             placement=StructureBoundary(structure="box"),
     ...             condition=TemperatureBC(temperature=500),
     ...         )
@@ -207,7 +237,7 @@ class DeviceSimulation(AbstractSimulation):
             monitor_names = [f"'{val[ind].name}'" for ind in failed_temp_mnt]
             raise SetupError(
                 f"Monitors {monitor_names} do not cross any solid materials "
-                "('heat_spec=SolidSpec(...)'). Temperature solution is only recorded inside solid "
+                "('heat_spec=SolidSpec(...)'). Temperature distribution is only recorded inside solid "
                 "materials. Thus, no information will be recorded in these monitors."
             )
 
@@ -215,7 +245,7 @@ class DeviceSimulation(AbstractSimulation):
             monitor_names = [f"'{val[ind].name}'" for ind in failed_volt_mnt]
             raise SetupError(
                 f"Monitors {monitor_names} do not cross any conducting materials "
-                "('electric_spec=ConductorSpec(...)'). Voltage is only stored for inside conducting "
+                "('electric_spec=ConductorSpec(...)'). The voltage is only stored inside conducting "
                 "materials. Thus, no information will be recorded in these monitors."
             )
 
@@ -236,9 +266,7 @@ class DeviceSimulation(AbstractSimulation):
         num_zero_dims = np.sum(zero_dimensions)
 
         if num_zero_dims > 1:
-            mssg = (
-                f"Your current DeviceSimulation has zero size along the {zero_dim_str}dimensions. "
-            )
+            mssg = f"Your current 'DeviceSimulation' has zero size along the {zero_dim_str}dimensions. "
             mssg += "Only 2- and 3-D simulations are currently supported."
             raise SetupError(mssg)
 
@@ -295,7 +323,7 @@ class DeviceSimulation(AbstractSimulation):
     @pd.validator("grid_spec", always=True)
     @skip_if_fields_missing(["structures"])
     def names_exist_grid_spec(cls, val, values):
-        """Warn if UniformUnstructuredGrid points at a non-existing structure."""
+        """Warn if 'UniformUnstructuredGrid' points at a non-existing structure."""
 
         structures = values.get("structures")
         structures_names = {s.name for s in structures}
@@ -393,18 +421,15 @@ class DeviceSimulation(AbstractSimulation):
 
         for boundary in boundaries:
             if isinstance(boundary.condition, HeatBCTypes):
-                if DeviceSimulationType.HEAT not in simulation_types:
-                    simulation_types.append(DeviceSimulationType.HEAT)
+                simulation_types.append(DeviceSimulationType.HEAT)
             if isinstance(boundary.condition, ElectricBCTypes):
-                if DeviceSimulationType.CONDUCTION not in simulation_types:
-                    simulation_types.append(DeviceSimulationType.CONDUCTION)
+                simulation_types.append(DeviceSimulationType.CONDUCTION)
 
         for source in sources:
             if isinstance(source, HeatSourceTypes):
-                if DeviceSimulationType.HEAT not in simulation_types:
-                    simulation_types.append(DeviceSimulationType.HEAT)
+                simulation_types.append(DeviceSimulationType.HEAT)
 
-        return simulation_types
+        return set(simulation_types)
 
     @pd.root_validator(skip_on_failure=True)
     def check_coupling_source_can_be_applied(cls, values):
@@ -421,8 +446,9 @@ class DeviceSimulation(AbstractSimulation):
         for source in sources:
             if isinstance(source, HeatFromElectricSource) and len(simulation_types) < 2:
                 raise SetupError(
-                    "Using 'HeatFromElectricSource' requires the definition of both CONDUCTION and "
-                    f"HEAT simulations. Your simulation setup contains only conditions of type {simulation_types[0].name}"
+                    f"Using 'HeatFromElectricSource' requires the definition of both "
+                    f"{DeviceSimulationType.CONDUCTION.name} and {DeviceSimulationType.HEAT.name}. "
+                    f"Your simulation setup contains only conditions of type {simulation_types[0].name}"
                 )
 
         return values
@@ -489,10 +515,11 @@ class DeviceSimulation(AbstractSimulation):
                 elif DeviceSimulationType.HEAT in simulation_types:
                     property = "heat_conductivity"
             else:
-                log.error(
+                raise ValueError(
                     "'plot_property' must be called with argument 'property' in "
                     "'DeviceSimulations' with multiple physics, i.e., a 'DeviceSimulation' "
-                    "with both HEAT and CONDUCTION simulation properties."
+                    f"with both {DeviceSimulationType.HEAT.name} and "
+                    f"{DeviceSimulationType.CONDUCTION.name} simulation properties."
                 )
 
         if property != "source":
@@ -979,9 +1006,9 @@ class DeviceSimulation(AbstractSimulation):
             ax=ax,
         )
 
-    # function to deal with failed string2float conversion when using
-    # expressions in HeatSource
-    def _safe_float_conversion(self, string):
+    def _safe_float_conversion(self, string) -> float:
+        """Function to deal with failed string2float conversion when using
+        expressions in 'HeatSource'"""
         try:
             return float(string)
         except ValueError:
@@ -1063,6 +1090,7 @@ class DeviceSimulation(AbstractSimulation):
         >>> box = Structure(
         ...     geometry=Box(center=(0, 0, 0), size=(1, 2, 3)),
         ...     medium=Medium(permittivity=5),
+        ...     name="box"
         ... )
         >>> scene = Scene(
         ...     structures=[box],
@@ -1078,6 +1106,12 @@ class DeviceSimulation(AbstractSimulation):
         ...     center=(0, 0, 0),
         ...     size=(5, 6, 7),
         ...     grid_spec=UniformUnstructuredGrid(dl=0.4),
+        ...     boundary_spec=[
+        ...         DeviceBoundarySpec(
+        ...             placement=StructureBoundary(structure="box"),
+        ...             condition=TemperatureBC(temperature=500),
+        ...         )
+        ...     ],
         ... )
         """
 
@@ -1123,9 +1157,8 @@ class DeviceSimulation(AbstractSimulation):
 
         if electric_BCs_present and not electric_spec_present:
             raise SetupError(
-                "Electric BC were specified but not all"
-                " structures have materials with electric"
-                " specifications."
+                "Electric BC were specified but not all "
+                "structures have a '.medium' with `.electric_spec` present"
             )
         elif electric_BCs_present and electric_spec_present:
             simulation_types.append(DeviceSimulationType.CONDUCTION)

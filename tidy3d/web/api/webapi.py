@@ -23,9 +23,6 @@ from ...components.types import Literal
 from ...log import log, get_logging_console
 from ...exceptions import WebError
 
-# handling of electrostatic simulation
-# from ...components.device.sim_data import HeatSimulationData
-
 # time between checking run status
 RUN_REFRESH_TIME = 1.0
 

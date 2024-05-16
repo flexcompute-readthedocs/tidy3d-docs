@@ -16,7 +16,8 @@ class AbstractDeviceSpec(ABC, Tidy3dBaseModel):
 
 
 class FluidSpec(AbstractDeviceSpec):
-    """Fluid medium.
+    """Fluid medium. Heat simulations will not solve for temperature
+    in a structure that has a medium with this 'heat_spec'.
 
     Example
     -------
@@ -49,7 +50,8 @@ class SolidSpec(AbstractDeviceSpec):
 
 
 class InsulatorSpec(AbstractDeviceSpec):
-    """Insulating medium.
+    """Insulating medium. Conduction simulations will not solve for electric
+    potential in a structure that has a medium with this 'electric_spec'.
 
     Example
     -------
@@ -58,7 +60,7 @@ class InsulatorSpec(AbstractDeviceSpec):
 
 
 class ConductorSpec(AbstractDeviceSpec):
-    """Conductor medium for conduction simulations
+    """Conductor medium for conduction simulations.
 
     Example
     -------

@@ -3,6 +3,7 @@ NOTE: Keeping this class for backward compatibility only"""
 from __future__ import annotations
 
 from typing import Tuple
+import pydantic.v1 as pd
 
 from ...types import Ax
 from ...viz import add_ax_if_none, equal_aspect
@@ -16,14 +17,14 @@ class HeatSimulation(DeviceSimulation):
 
     Example
     -------
-    >>> from tidy3d import Medium, SolidSpec, FluidSpec, UniformUnstructuredGrid, TemperatureMonitor
-    >>> heat_sim = HeatSimulation(
+    >>> import tidy3d as td
+    >>> heat_sim = td.HeatSimulation(
     ...     size=(3.0, 3.0, 3.0),
     ...     structures=[
-    ...         Structure(
-    ...             geometry=Box(size=(1, 1, 1), center=(0, 0, 0)),
-    ...             medium=Medium(
-    ...                 permittivity=2.0, heat_spec=SolidSpec(
+    ...         td.Structure(
+    ...             geometry=td.Box(size=(1, 1, 1), center=(0, 0, 0)),
+    ...             medium=td.Medium(
+    ...                 permittivity=2.0, heat_spec=td.SolidSpec(
     ...                     conductivity=1,
     ...                     capacity=1,
     ...                 )
@@ -31,25 +32,27 @@ class HeatSimulation(DeviceSimulation):
     ...             name="box",
     ...         ),
     ...     ],
-    ...     medium=Medium(permittivity=3.0, heat_spec=FluidSpec()),
-    ...     grid_spec=UniformUnstructuredGrid(dl=0.1),
-    ...     sources=[UniformHeatSource(rate=1, structures=["box"])],
+    ...     medium=td.Medium(permittivity=3.0, heat_spec=td.FluidSpec()),
+    ...     grid_spec=td.UniformUnstructuredGrid(dl=0.1),
+    ...     sources=[td.HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         HeatBoundarySpec(
-    ...             placement=StructureBoundary(structure="box"),
-    ...             condition=TemperatureBC(temperature=500),
+    ...         td.DeviceBoundarySpec(
+    ...             placement=td.StructureBoundary(structure="box"),
+    ...             condition=td.TemperatureBC(temperature=500),
     ...         )
     ...     ],
-    ...     monitors=[TemperatureMonitor(size=(1, 2, 3), name="sample")],
+    ...     monitors=[td.TemperatureMonitor(size=(1, 2, 3), name="sample")],
     ... )
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    @pd.root_validator(skip_on_failure=True)
+    def issue_warning_deprecated(cls, values):
+        """Issue warning for 'HeatSimulations'."""
         log.warning(
             "Setting up deprecated 'HeatSimulation'. "
-            "Do consider defining 'DeviceSimulation' instead."
+            "Consider defining 'DeviceSimulation' instead."
         )
+        return values
 
     @equal_aspect
     @add_ax_if_none
@@ -132,20 +135,32 @@ class HeatSimulation(DeviceSimulation):
 
         Example
         -------
-        >>> from tidy3d import Scene, Medium, Box, Structure, UniformUnstructuredGrid
-        >>> box = Structure(
-        ...     geometry=Box(center=(0, 0, 0), size=(1, 2, 3)),
-        ...     medium=Medium(permittivity=5),
+        >>> import tidy3d as td
+        >>> box = td.Structure(
+        ...     geometry=td.Box(center=(0, 0, 0), size=(1, 2, 3)),
+        ...     medium=td.Medium(
+        ...         permittivity=2.0, heat_spec=td.SolidSpec(
+        ...             conductivity=1,
+        ...             capacity=1,
+        ...         )
+        ...     ),
+        ...     name="box",
         ... )
-        >>> scene = Scene(
+        >>> scene = td.Scene(
         ...     structures=[box],
-        ...     medium=Medium(permittivity=3),
+        ...     medium=td.Medium(permittivity=3),
         ... )
-        >>> sim = HeatSimulation.from_scene(
+        >>> sim = td.HeatSimulation.from_scene(
         ...     scene=scene,
         ...     center=(0, 0, 0),
         ...     size=(5, 6, 7),
-        ...     grid_spec=UniformUnstructuredGrid(dl=0.4),
+        ...     grid_spec=td.UniformUnstructuredGrid(dl=0.4),
+        ...     boundary_spec=[
+        ...         td.DeviceBoundarySpec(
+        ...             placement=td.StructureBoundary(structure="box"),
+        ...             condition=td.TemperatureBC(temperature=500),
+        ...         )
+        ...     ],
         ... )
         """
 
