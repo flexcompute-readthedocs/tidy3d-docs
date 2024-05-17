@@ -1,8 +1,5 @@
 name: "sync-to-readthedocs-repo"
 
-permissions:
-  contents: write
-
 on:
   workflow_dispatch:
   push:
@@ -31,6 +28,8 @@ jobs:
           echo "Extracted ref: $REF_NAME"
 
   build-and-deploy:
+    permissions:
+      contents: write
     needs: extract_branch_or_tag
     runs-on: ubuntu-latest
     steps:
@@ -38,6 +37,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0 # Otherwise how can we access the latest tags? level 0 takes 5 mins but accesses all tags.
+          fetch-tags: true
 
       - name: Create new branch or tag
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
