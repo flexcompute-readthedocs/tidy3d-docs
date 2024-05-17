@@ -38,6 +38,7 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.GH_PAT }}
+          fetch-tags: true
 
       - name: Create new branch or tag
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
