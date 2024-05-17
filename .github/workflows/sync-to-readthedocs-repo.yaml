@@ -53,9 +53,6 @@ jobs:
       - name: Tag and push
         if: contains(github.ref, 'refs/tags/')
         run: |
-          git config --global user.name 'Your Name'
-          git config --global user.email 'your-email@example.com'
-          git tag ${{ needs.extract_branch_or_tag.outputs.ref_name }} -m "Sync tag"
           git push --force --tags https://${{ secrets.GH_PAT }}@github.com/flexcompute-readthedocs/tidy3d-docs.git
 
       - uses: JamesIves/github-pages-deploy-action@v4
