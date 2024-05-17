@@ -1,8 +1,5 @@
 name: "sync-to-readthedocs-repo"
 
-permissions:
-  contents: write
-
 on:
   workflow_dispatch:
   push:
@@ -31,6 +28,8 @@ jobs:
           echo "Extracted ref: $REF_NAME"
 
   build-and-deploy:
+    permissions:
+      contents: write
     needs: extract_branch_or_tag
     runs-on: ubuntu-latest
     steps:
