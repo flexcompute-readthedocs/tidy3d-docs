@@ -52,7 +52,7 @@ jobs:
       - name: Tag and push
         if: contains(github.ref, 'refs/tags/')
         run: |
-          git push --force --tags ${{ secrets.GH_PAT }}@github.com:flexcompute-readthedocs/tidy3d-docs.git
+          git push --force --tags https://${{ secrets.GH_PAT }}@github.com/flexcompute-readthedocs/tidy3d-docs.git
 
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
