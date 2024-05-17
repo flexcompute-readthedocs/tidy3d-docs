@@ -30,8 +30,6 @@ jobs:
   build-and-deploy:
     permissions:
       contents: write
-    with:
-      token: ${{ secrets.GH_PAT }}
     needs: extract_branch_or_tag
     runs-on: ubuntu-latest
     steps:
@@ -53,6 +51,8 @@ jobs:
 
       - name: Tag and push
         if: contains(github.ref, 'refs/tags/')
+        with:
+          token: ${{ secrets.GH_PAT }}
         run: |
           git push --force --tags https://${{ secrets.GH_PAT }}@github.com/flexcompute-readthedocs/tidy3d-docs.git
 
