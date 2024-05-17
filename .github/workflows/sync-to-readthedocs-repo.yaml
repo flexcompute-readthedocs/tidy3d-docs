@@ -33,12 +33,24 @@ jobs:
     needs: extract_branch_or_tag
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # Conditional Checkout for Branch
+      - name: Checkout Branch
+        if: contains(github.ref, 'refs/heads/')
         uses: actions/checkout@v3
         with:
           submodules: true
           token: ${{ secrets.GH_PAT }}
-          fetch-depth: 0 # Otherwise how can we access the latest tags? level 0 takes 5 mins but accesses all tags.
+          ref: ${{ needs.extract_branch_or_tag.outputs.ref_name }}
+
+      # Conditional Checkout for Tag
+      - name: Checkout Tag
+        if: contains(github.ref, 'refs/tags/')
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
+          ref: ${{ needs.extract_branch_or_tag.outputs.ref_name }}
           fetch-tags: true
 
       - name: Create new branch or tag
