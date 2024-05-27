@@ -7,7 +7,6 @@ import pydantic.v1 as pd
 
 from ...types import Ax
 from ...viz import add_ax_if_none, equal_aspect
-from ...scene import Scene
 from ..simulation import DeviceSimulation
 from ....log import log
 
@@ -119,53 +118,4 @@ class HeatSimulation(DeviceSimulation):
             property=plot_type,
             hlim=hlim,
             vlim=vlim,
-        )
-
-    @classmethod
-    def from_scene(cls, scene: Scene, **kwargs) -> HeatSimulation:
-        """Create a simulation from a :class:.`Scene` instance. Must provide additional parameters
-        to define a valid simulation (for example, ``size``, ``grid_spec``, etc).
-
-        Parameters
-        ----------
-        scene : :class:.`Scene`
-            Scene containing structures information.
-        **kwargs
-            Other arguments
-
-        Example
-        -------
-        >>> import tidy3d as td
-        >>> box = td.Structure(
-        ...     geometry=td.Box(center=(0, 0, 0), size=(1, 2, 3)),
-        ...     medium=td.Medium(
-        ...         permittivity=2.0, heat_spec=td.SolidSpec(
-        ...             conductivity=1,
-        ...             capacity=1,
-        ...         )
-        ...     ),
-        ...     name="box",
-        ... )
-        >>> scene = td.Scene(
-        ...     structures=[box],
-        ...     medium=td.Medium(permittivity=3),
-        ... )
-        >>> sim = td.HeatSimulation.from_scene(
-        ...     scene=scene,
-        ...     center=(0, 0, 0),
-        ...     size=(5, 6, 7),
-        ...     grid_spec=td.UniformUnstructuredGrid(dl=0.4),
-        ...     boundary_spec=[
-        ...         td.DeviceBoundarySpec(
-        ...             placement=td.StructureBoundary(structure="box"),
-        ...             condition=td.TemperatureBC(temperature=500),
-        ...         )
-        ...     ],
-        ... )
-        """
-
-        return cls(
-            structures=scene.structures,
-            medium=scene.medium,
-            **kwargs,
         )
