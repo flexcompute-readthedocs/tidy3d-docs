@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Union, Tuple, Optional
 
-from abc import ABC
+from abc import ABC, abstractmethod
 import numpy as np
 
 import pydantic.v1 as pd
@@ -49,6 +49,10 @@ class DeviceMonitorData(AbstractMonitorData, ABC):
     def symmetry_expanded_copy(self) -> DeviceMonitorData:
         """Return copy of self with symmetry applied."""
         return self.copy()
+
+    @abstractmethod
+    def field_name(self, val: str) -> str:
+        """Gets the name of the fields to be plot."""
 
     def _symmetry_expanded_copy(self, property: FieldDataset) -> FieldDataset:
         """Return the property with symmetry applied."""
@@ -158,6 +162,13 @@ class TemperatureData(DeviceMonitorData):
 
         return val
 
+    def field_name(self, val: str) -> str:
+        """Gets the name of the fields to be plot."""
+        if val == "abs^2":
+            return "|T|², K²"
+        else:
+            return "T, K"
+
     @cached_property
     def symmetry_expanded_copy(self) -> TemperatureData:
         """Return copy of self with symmetry applied."""
@@ -193,6 +204,13 @@ class VoltageData(DeviceMonitorData):
         description="Spatial electric potential field.",
         units=VOLT,
     )
+
+    def field_name(self, val: str) -> str:
+        """Gets the name of the fields to be plot."""
+        if val == "abs^2":
+            return "|V|², sigma²"
+        else:
+            return "V, sigma"
 
     @pd.validator("voltage", always=True)
     @skip_if_fields_missing(["monitor"])

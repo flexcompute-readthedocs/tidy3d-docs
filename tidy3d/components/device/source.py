@@ -48,12 +48,9 @@ class HeatSource(DeviceSource):
     Example
     -------
     >>> heat_source = HeatSource(rate=1, structures=["box"])
-    >>> # analytical expression as heat source
-    >>> expression = f"{r}*(sqrt(x) + sin(y)*pow(z,3))"
-    >>> heat_source_expr = HeatSource(rate=expression, structures=["box"])
     """
 
-    rate: Union[str, float, TimeDataArray] = pd.Field(
+    rate: Union[float, TimeDataArray] = pd.Field(
         title="Volumetric Heat Rate",
         description="Volumetric rate of heating or cooling (if negative) in units of "
         f"{VOLUMETRIC_HEAT_RATE}.",

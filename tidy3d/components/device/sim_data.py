@@ -148,16 +148,7 @@ class DeviceSimulationData(AbstractSimulationData):
                 f"supported monitor. Supported monitors are 'TemperatureData', 'VoltageData'."
             )
 
-        if val == "abs^2":
-            if isinstance(monitor_data, TemperatureData):
-                field_name = "|T|², K²"
-            elif isinstance(monitor_data, VoltageData):
-                field_name = "|V|², sigma²"
-        else:
-            if isinstance(monitor_data, TemperatureData):
-                field_name = "T, K"
-            elif isinstance(monitor_data, VoltageData):
-                field_name = "V, sigma"
+        field_name = monitor_data.field_name(val)
 
         if scale == "log":
             field_data = np.log10(np.abs(field_data))
