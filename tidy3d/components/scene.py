@@ -23,7 +23,7 @@ from .data.dataset import _get_numpy_array, CustomSpatialDataType
 from .data.dataset import UnstructuredGridDataset, TetrahedralGridDataset, TriangularGridDataset
 from .viz import add_ax_if_none, equal_aspect
 from .grid.grid import Coords
-from .device_spec import SolidSpec, ConductorSpec
+from .heat_charge_spec import SolidSpec, ConductorSpec
 
 from .viz import MEDIUM_CMAP, STRUCTURE_EPS_CMAP, PlotParams, polygon_path, STRUCTURE_HEAT_COND_CMAP
 from .viz import plot_params_structure, plot_params_fluid
@@ -1065,7 +1065,7 @@ class Scene(Tidy3dBaseModel):
 
     @equal_aspect
     @add_ax_if_none
-    def plot_device_property(
+    def plot_heat_charge_property(
         self,
         x: float = None,
         y: float = None,
@@ -1094,7 +1094,7 @@ class Scene(Tidy3dBaseModel):
         cbar : bool = True
             Whether to plot a colorbar for the thermal conductivity.
         property : str = "heat_conductivity"
-            The device property to plot. The options are
+            The heat-charge siimulation property to plot. The options are
             ["heat_conductivity", "electric_conductivity"]
         ax : matplotlib.axes._subplots.Axes = None
             Matplotlib axes to plot on, if not specified, one is created.
@@ -1111,7 +1111,7 @@ class Scene(Tidy3dBaseModel):
 
         hlim, vlim = Scene._get_plot_lims(bounds=self.bounds, x=x, y=y, z=z, hlim=hlim, vlim=vlim)
 
-        ax = self.plot_structures_device_property(
+        ax = self.plot_structures_heat_charge_property(
             cbar=cbar, alpha=alpha, ax=ax, x=x, y=y, z=z, hlim=hlim, vlim=vlim, property=property
         )
         ax = self._set_plot_bounds(bounds=self.bounds, ax=ax, x=x, y=y, z=z, hlim=hlim, vlim=vlim)
@@ -1166,10 +1166,10 @@ class Scene(Tidy3dBaseModel):
         log.warning(
             "This function 'plot_structures_heat_conductivity' is deprecated and "
             "will be discontinued. In its place you can use "
-            'plot_structures_device_property(property="heat_conductivity")'
+            'plot_structures_heat_charge_property(property="heat_conductivity")'
         )
 
-        return self.plot_structures_device_property(
+        return self.plot_structures_heat_charge_property(
             x=x,
             y=y,
             z=z,
@@ -1184,7 +1184,7 @@ class Scene(Tidy3dBaseModel):
 
     @equal_aspect
     @add_ax_if_none
-    def plot_structures_device_property(
+    def plot_structures_heat_charge_property(
         self,
         x: float = None,
         y: float = None,
@@ -1250,9 +1250,9 @@ class Scene(Tidy3dBaseModel):
                 structures=structures, x=x, y=y, z=z, hlim=hlim, vlim=vlim
             )
 
-        property_val_min, property_val_max = self.device_property_bounds(property=property)
+        property_val_min, property_val_max = self.heat_charge_property_bounds(property=property)
         for medium, shape in medium_shapes:
-            ax = self._plot_shape_structure_device_property(
+            ax = self._plot_shape_structure_heat_charge_property(
                 alpha=alpha,
                 medium=medium,
                 property_val_min=property_val_min,
@@ -1285,8 +1285,8 @@ class Scene(Tidy3dBaseModel):
 
         return ax
 
-    def device_property_bounds(self, property) -> Tuple[float, float]:
-        """Compute range of the device property present in the scene.
+    def heat_charge_property_bounds(self, property) -> Tuple[float, float]:
+        """Compute range of the heat-charge simulation property present in the scene.
 
         Returns
         -------
@@ -1321,12 +1321,12 @@ class Scene(Tidy3dBaseModel):
         log.warning(
             "This function 'heat_conductivity_bounds()' is deprecated and will be "
             "discontinued in the future. In it's place, you can now use this "
-            "'device_property_bounds(property=\"heat_conductivity\")'"
+            "'heat_charge_property_bounds(property=\"heat_conductivity\")'"
         )
 
-        return self.device_property_bounds(property="heat_conductivity")
+        return self.heat_charge_property_bounds(property="heat_conductivity")
 
-    def _get_structure_device_property_plot_params(
+    def _get_structure_heat_charge_property_plot_params(
         self,
         medium: Medium,
         property_val_min: float,
@@ -1336,7 +1336,7 @@ class Scene(Tidy3dBaseModel):
         property: str = "heat_conductivity",
     ) -> PlotParams:
         """Constructs the plot parameters for a given medium in
-        scene.plot_device_property().
+        scene.plot_heat_charge_property().
         """
 
         plot_params = plot_params_structure.copy(update={"linewidth": 0})
@@ -1364,7 +1364,7 @@ class Scene(Tidy3dBaseModel):
 
         return plot_params
 
-    def _plot_shape_structure_device_property(
+    def _plot_shape_structure_heat_charge_property(
         self,
         medium: Medium,
         shape: Shapely,
@@ -1378,7 +1378,7 @@ class Scene(Tidy3dBaseModel):
         """Plot a structure's cross section shape for a given medium, grayscale for thermal
         conductivity.
         """
-        plot_params = self._get_structure_device_property_plot_params(
+        plot_params = self._get_structure_heat_charge_property_plot_params(
             medium=medium,
             property_val_min=property_val_min,
             property_val_max=property_val_max,
@@ -1434,10 +1434,10 @@ class Scene(Tidy3dBaseModel):
         log.warning(
             "The function 'plot_heat_conductivity' is deprecated and will be "
             "discontinued. In its place you can use "
-            'plot_device_property(property="heat_conductivity")'
+            'plot_heat_charge_property(property="heat_conductivity")'
         )
 
-        return self.plot_device_property(
+        return self.plot_heat_charge_property(
             x=x,
             y=y,
             z=z,

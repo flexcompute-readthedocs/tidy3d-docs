@@ -5,8 +5,8 @@ from typing import Tuple
 import numpy as np
 import pydantic.v1 as pd
 
-from .monitor_data import DeviceMonitorDataType, TemperatureData, VoltageData
-from .simulation import DeviceSimulation
+from .monitor_data import HeatChargeMonitorDataType, TemperatureData, VoltageData
+from .simulation import HeatChargeSimulation
 
 from .heat.simulation import HeatSimulation
 
@@ -19,15 +19,15 @@ from ...exceptions import DataError
 from ...log import log
 
 
-class DeviceSimulationData(AbstractSimulationData):
-    """Stores results of a device simulation.
+class HeatChargeSimulationData(AbstractSimulationData):
+    """Stores results of a heat-charge simulation.
 
     Example
     -------
     >>> import tidy3d as td
     >>> import numpy as np
     >>> temp_mnt = td.TemperatureMonitor(size=(1, 2, 3), name="sample")
-    >>> heat_sim = DeviceSimulation(
+    >>> heat_sim = HeatChargeSimulation(
     ...     size=(3.0, 3.0, 3.0),
     ...     structures=[
     ...         td.Structure(
@@ -45,7 +45,7 @@ class DeviceSimulationData(AbstractSimulationData):
     ...     grid_spec=td.UniformUnstructuredGrid(dl=0.1),
     ...     sources=[td.HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         td.DeviceBoundarySpec(
+    ...         td.HeatChargeBoundarySpec(
     ...             placement=td.StructureBoundary(structure="box"),
     ...             condition=td.TemperatureBC(temperature=500),
     ...         )
@@ -58,17 +58,17 @@ class DeviceSimulationData(AbstractSimulationData):
     >>> coords = dict(x=x, y=y, z=z)
     >>> temp_array = td.SpatialDataArray(300 * np.abs(np.random.random((2,3,4))), coords=coords)
     >>> temp_mnt_data = td.TemperatureData(monitor=temp_mnt, temperature=temp_array)
-    >>> heat_sim_data = td.DeviceSimulationData(
+    >>> heat_sim_data = td.HeatChargeSimulationData(
     ...     simulation=heat_sim, data=[temp_mnt_data],
     ... )
     """
 
-    simulation: DeviceSimulation = pd.Field(
-        title="Device Simulation",
-        description="Original :class:`.DeviceSimulation` associated with the data.",
+    simulation: HeatChargeSimulation = pd.Field(
+        title="Heat-Charge Simulation",
+        description="Original :class:`.HeatChargeSimulation` associated with the data.",
     )
 
-    data: Tuple[DeviceMonitorDataType, ...] = pd.Field(
+    data: Tuple[HeatChargeMonitorDataType, ...] = pd.Field(
         ...,
         title="Monitor Data",
         description="List of :class:`.MonitorData` instances "
@@ -261,7 +261,7 @@ class DeviceSimulationData(AbstractSimulationData):
         interp_kwarg = {"xyz"[axis]: position}
         # plot the simulation heat/electric conductivity
         if property_to_plot is not None:
-            ax = self.simulation.scene.plot_device_property(
+            ax = self.simulation.scene.plot_heat_charge_property(
                 cbar=False,
                 alpha=structures_alpha,
                 ax=ax,
@@ -276,9 +276,9 @@ class DeviceSimulationData(AbstractSimulationData):
         return ax
 
 
-class HeatSimulationData(DeviceSimulationData):
+class HeatSimulationData(HeatChargeSimulationData):
     """Wrapper for Heat simulation data. 'HeatSimulationData' is deprecated.
-    Consider using 'DeviceSimulationData' instead."""
+    Consider using 'HeatChargeSimulationData' instead."""
 
     simulation: HeatSimulation = pd.Field(
         title="Heat Simulation",
@@ -290,6 +290,6 @@ class HeatSimulationData(DeviceSimulationData):
         """Issue warning for 'HeatSimulations'."""
         log.warning(
             "'HeatSimulationData' is deprecated and will be discontinued. You can use "
-            "'DeviceSimulationData' instead"
+            "'HeatChargeSimulationData' instead"
         )
         return values

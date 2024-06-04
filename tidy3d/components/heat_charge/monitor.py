@@ -9,8 +9,8 @@ from ..base_sim.monitor import AbstractMonitor
 BYTES_REAL = 4
 
 
-class DeviceMonitor(AbstractMonitor, ABC):
-    """Abstract base class for device monitors."""
+class HeatChargeMonitor(AbstractMonitor, ABC):
+    """Abstract base class for heat-charge monitors."""
 
     unstructured: bool = pd.Field(
         False,
@@ -36,13 +36,13 @@ class DeviceMonitor(AbstractMonitor, ABC):
         return BYTES_REAL * num_steps * num_cells * len(self.fields)
 
 
-class TemperatureMonitor(DeviceMonitor):
+class TemperatureMonitor(HeatChargeMonitor):
     """Temperature monitor."""
 
 
-class VoltageMonitor(DeviceMonitor):
+class VoltageMonitor(HeatChargeMonitor):
     """Electric potential monitor."""
 
 
 # types of monitors that are accepted by heat simulation
-DeviceMonitorType = Union[TemperatureMonitor, VoltageMonitor]
+HeatChargeMonitorType = Union[TemperatureMonitor, VoltageMonitor]

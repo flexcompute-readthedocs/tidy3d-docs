@@ -1,4 +1,4 @@
-"""Test for device simulation objects and data"""
+"""Test for heat-charge simulation objects and data"""
 import pytest
 import pydantic.v1 as pd
 import numpy as np
@@ -11,7 +11,7 @@ from tidy3d.exceptions import DataError
 from ..utils import STL_GEO, assert_log_level, log_capture  # noqa: F401
 
 
-def make_device_mediums():
+def make_heat_charge_mediums():
     """Creates mediums with different specs"""
     fluid_medium = td.Medium(
         permittivity=3,
@@ -59,9 +59,9 @@ def make_device_mediums():
     return fluid_medium, solid_medium, solid_noHeat, solid_noElect, insulator_medium
 
 
-def test_device_medium():
+def test_heat_charge_medium():
     """Tests validation errors for mediums"""
-    _, solid_medium, _, _, _ = make_device_mediums()
+    _, solid_medium, _, _, _ = make_heat_charge_mediums()
 
     with pytest.raises(pd.ValidationError):
         _ = solid_medium.heat_spec.updated_copy(capacity=-1)
@@ -73,9 +73,15 @@ def test_device_medium():
         _ = solid_medium.electric_spec.updated_copy(conductivity=-1)
 
 
-def make_device_structures():
+def make_heat_charge_structures():
     """Makes structures with different mediums and sizes"""
-    fluid_medium, solid_medium, solid_noHeat, solid_noElect, insulator_med = make_device_mediums()
+    (
+        fluid_medium,
+        solid_medium,
+        solid_noHeat,
+        solid_noElect,
+        insulator_med,
+    ) = make_heat_charge_mediums()
 
     box = td.Box(center=(0, 0, 0), size=(1, 1, 1))
 
@@ -118,12 +124,12 @@ def make_device_structures():
     )
 
 
-def test_device_structures():
+def test_heat_charge_structures():
     """Tests that different structures with different mediums can be created"""
-    _, _, _, _, _ = make_device_structures()
+    _, _, _, _, _ = make_heat_charge_structures()
 
 
-def make_device_bcs():
+def make_heat_charge_bcs():
     bc_temp = td.TemperatureBC(temperature=300)
     bc_flux = td.HeatFluxBC(flux=20)
     bc_conv = td.ConvectionBC(ambient_temperature=400, transfer_coeff=0.2)
@@ -133,7 +139,7 @@ def make_device_bcs():
     return [bc_temp, bc_flux, bc_conv, bc_volt, bc_current]
 
 
-def test_device_bcs():
+def test_heat_charge_bcs():
     """Tests the validators for boundary conditions"""
     with pytest.raises(pd.ValidationError):
         _ = td.TemperatureBC(temperature=-10)
@@ -151,7 +157,7 @@ def test_device_bcs():
         _ = td.CurrentBC(current_density=td.inf)
 
 
-def make_device_mnts():
+def make_heat_charge_mnts():
     """Creates monitors of different types and sized"""
     temp_mnt1 = td.TemperatureMonitor(size=(1.6, 2, 3), name="test")
     temp_mnt2 = td.TemperatureMonitor(size=(1.6, 2, 3), name="tet", unstructured=True)
@@ -174,12 +180,12 @@ def make_device_mnts():
     return [temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4]
 
 
-def test_device_mnt():
+def test_heat_charge_mnt():
     """Checking for no name and negative size in monitors"""
     # NOTE: both Temperature and Voltage monitors derive from the same class. Since
     # both of these classes are empty we're actually checking the base class.
 
-    mnts = make_device_mnts()
+    mnts = make_heat_charge_mnts()
     temp_mnt = mnts[0]
 
     with pytest.raises(pd.ValidationError):
@@ -191,10 +197,10 @@ def test_device_mnt():
 
 def test_monitor_crosses_medium():
     """Test whether monitor crosses structures with relevant material specification"""
-    _, _, solid_noHeat, solid_noElect, _ = make_device_mediums()
-    _, _, solid_struct_noHeat, solid_struct_noElect, _ = make_device_structures()
-    heat_sim = make_device_heat_sim()
-    cond_sim = make_device_cond_sim()
+    _, _, solid_noHeat, solid_noElect, _ = make_heat_charge_mediums()
+    _, _, solid_struct_noHeat, solid_struct_noElect, _ = make_heat_charge_structures()
+    heat_sim = make_heat_charge_heat_sim()
+    cond_sim = make_heat_charge_cond_sim()
 
     volt_monitor = td.VoltageMonitor(
         center=(0, 0, 0), size=(td.inf, td.inf, td.inf), name="voltage"
@@ -222,7 +228,7 @@ def make_temperature_mnt_data():
     Creates different temperature data. The first one uses
     a 'SpatialDataArray', the second a 'TetrahedralGridDataset', the third one
     a 'TriangularGridDataset' and the last one uses 'None' as data."""
-    temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, _, _, _, _ = make_device_mnts()
+    temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, _, _, _, _ = make_heat_charge_mnts()
 
     nx, ny, nz = 9, 6, 5
     x = np.linspace(0, 1, nx)
@@ -294,7 +300,7 @@ def make_voltage_mnt_data():
     Creates different voltage data. The first one uses
     a 'SpatialDataArray', the second a 'TetrahedralGridDataset', the third one
     a 'TriangularGridDataset' and the last one uses 'None' as data."""
-    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4 = make_device_mnts()
+    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4 = make_heat_charge_mnts()
 
     nx, ny, nz = 9, 6, 5
     x = np.linspace(0, 1, nx)
@@ -361,8 +367,8 @@ def make_voltage_mnt_data():
     return (mnt_data1, mnt_data2, mnt_data3, mnt_data4)
 
 
-def test_device_mnt_data():
-    """Tests whether different device monitor data can be created"""
+def test_heat_charge_mnt_data():
+    """Tests whether different heat-charge monitor data can be created"""
     _ = make_temperature_mnt_data()
     _ = make_voltage_mnt_data()
 
@@ -396,8 +402,8 @@ def test_grid_spec():
         grid_spec.updated_copy(distance_interface=2, distance_bulk=1)
 
 
-def test_device_sources(log_capture):  # noqa: F811
-    """ "Tests whether device sources can be created and associated warnings"""
+def test_heat_charge_sources(log_capture):  # noqa: F811
+    """ "Tests whether heat-charge sources can be created and associated warnings"""
     # this shouldn't issue warning
     _ = td.HeatSource(structures=["solid_structure"], rate=100)
     assert len(log_capture) == 0
@@ -411,30 +417,30 @@ def test_device_sources(log_capture):  # noqa: F811
     assert len(log_capture) == 1
 
 
-def make_device_heat_sim():
-    """Generates device heat simulation"""
-    fluid_medium, solid_medium, solid_noHeat, _, _ = make_device_mediums()
-    fluid_structure, solid_structure, _, _, _ = make_device_structures()
-    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
+def make_heat_charge_heat_sim():
+    """Generates heat-charge heat simulation"""
+    fluid_medium, solid_medium, solid_noHeat, _, _ = make_heat_charge_mediums()
+    fluid_structure, solid_structure, _, _, _ = make_heat_charge_structures()
+    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_heat_charge_bcs()
     heat_source = td.HeatSource(structures=["solid_structure"], rate=100)
 
-    pl1 = td.DeviceBoundarySpec(
+    pl1 = td.HeatChargeBoundarySpec(
         condition=bc_conv,
         placement=td.MediumMediumInterface(mediums=["fluid_medium", "solid_medium"]),
     )
-    pl2 = td.DeviceBoundarySpec(
+    pl2 = td.HeatChargeBoundarySpec(
         condition=bc_flux, placement=td.StructureBoundary(structure="solid_structure")
     )
-    pl3 = td.DeviceBoundarySpec(
+    pl3 = td.HeatChargeBoundarySpec(
         condition=bc_temp,
         placement=td.StructureStructureInterface(structures=["fluid_structure", "solid_structure"]),
     )
 
     grid_spec = make_uniform_grid_spec()
 
-    temp_mnts = make_device_mnts()
+    temp_mnts = make_heat_charge_mnts()
 
-    heat_sim = td.DeviceSimulation(
+    heat_sim = td.HeatChargeSimulation(
         medium=fluid_medium,
         structures=[fluid_structure, solid_structure],
         center=(0, 0, 0),
@@ -448,23 +454,23 @@ def make_device_heat_sim():
     return heat_sim
 
 
-def make_device_cond_sim():
-    """Creates a device conduction simulation"""
-    _, solid_medium, _, solid_noElect, insulator_medium = make_device_mediums()
-    _, solid_structure, _, _, insulator = make_device_structures()
-    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
+def make_heat_charge_cond_sim():
+    """Creates a heat-charge conduction simulation"""
+    _, solid_medium, _, solid_noElect, insulator_medium = make_heat_charge_mediums()
+    _, solid_structure, _, _, insulator = make_heat_charge_structures()
+    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_heat_charge_bcs()
 
-    pl4 = td.DeviceBoundarySpec(condition=bc_volt, placement=td.SimulationBoundary())
-    pl5 = td.DeviceBoundarySpec(
+    pl4 = td.HeatChargeBoundarySpec(condition=bc_volt, placement=td.SimulationBoundary())
+    pl5 = td.HeatChargeBoundarySpec(
         condition=bc_current,
         placement=td.StructureSimulationBoundary(structure="insulator_structure"),
     )
 
     grid_spec = make_uniform_grid_spec()
 
-    temp_mnts = make_device_mnts()
+    temp_mnts = make_heat_charge_mnts()
 
-    cond_sim = td.DeviceSimulation(
+    cond_sim = td.HeatChargeSimulation(
         medium=insulator_medium,
         structures=[insulator, solid_structure],
         center=(0, 0, 0),
@@ -478,19 +484,19 @@ def make_device_cond_sim():
     return cond_sim
 
 
-def test_device_sim(log_capture):  # noqa: F811
-    """Creates device simulations and performs a bunch of
+def test_heat_charge_sim(log_capture):  # noqa: F811
+    """Creates heat-charge simulations and performs a bunch of
     checks for different conditions"""
-    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_device_bcs()
+    bc_temp, bc_flux, bc_conv, bc_volt, bc_current = make_heat_charge_bcs()
     (
         fluid_structure,
         solid_structure,
         solid_struct_noHeat,
         solid_struct_noElect,
         insulator,
-    ) = make_device_structures()
-    heat_sim = make_device_heat_sim()
-    cond_sim = make_device_cond_sim()
+    ) = make_heat_charge_structures()
+    heat_sim = make_heat_charge_heat_sim()
+    cond_sim = make_heat_charge_cond_sim()
     sim_types = [heat_sim, cond_sim]
 
     # COMMON TESTS FOR ALL SIMULATION TYPES
@@ -513,18 +519,18 @@ def test_device_sim(log_capture):  # noqa: F811
     # SPECIFIC TESTS FOR EACH SIMUALTION TYPE
     # wrong names given
     for pl in [
-        td.DeviceBoundarySpec(
+        td.HeatChargeBoundarySpec(
             condition=bc_temp,
             placement=td.MediumMediumInterface(mediums=["badname", "fluid_medium"]),
         ),
-        td.DeviceBoundarySpec(
+        td.HeatChargeBoundarySpec(
             condition=bc_flux, placement=td.StructureBoundary(structure="no_box")
         ),
-        td.DeviceBoundarySpec(
+        td.HeatChargeBoundarySpec(
             condition=bc_conv,
             placement=td.StructureStructureInterface(structures=["no_box", "solid_structure"]),
         ),
-        td.DeviceBoundarySpec(
+        td.HeatChargeBoundarySpec(
             condition=bc_temp, placement=td.StructureSimulationBoundary(structure="no_mesh")
         ),
     ]:
@@ -561,10 +567,10 @@ def test_device_sim(log_capture):  # noqa: F811
 
     # fail if 'HeatFromElectricSource' is provided in simulations where only BCs/sources
     # are provided that are either HEAT or CONDUCTION
-    bc_spec_HEAT = td.DeviceBoundarySpec(
+    bc_spec_HEAT = td.HeatChargeBoundarySpec(
         condition=bc_temp, placement=td.StructureBoundary(structure=solid_structure.name)
     )
-    sim = td.DeviceSimulation(
+    sim = td.HeatChargeSimulation(
         medium=solid_structure.medium,
         center=(0, 0, 0),
         size=(3, 3, 3),
@@ -587,7 +593,7 @@ def test_device_sim(log_capture):  # noqa: F811
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
-def test_device_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
+def test_heat_charge_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
     """make sure bounds are working correctly"""
 
     # make sure all things are shifted to this central location
@@ -596,7 +602,7 @@ def test_device_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
     def place_box(center_offset):
         shifted_center = tuple(c + s for (c, s) in zip(center_offset, CENTER_SHIFT))
 
-        _ = td.DeviceSimulation(
+        _ = td.HeatChargeSimulation(
             size=(1.5, 1.5, 1.5),
             center=CENTER_SHIFT,
             medium=td.Medium(electric_spec=td.ConductorSpec(conductivity=1)),
@@ -606,7 +612,7 @@ def test_device_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
                 )
             ],
             boundary_spec=[
-                td.DeviceBoundarySpec(
+                td.HeatChargeBoundarySpec(
                     condition=td.VoltageBC(voltage=1), placement=td.SimulationBoundary()
                 )
             ],
@@ -641,12 +647,12 @@ def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa: F811
     """Make sure we warn if structure extends exactly to simulation edges."""
 
     box = td.Structure(geometry=td.Box(size=box_size), medium=td.Medium(permittivity=2))
-    _ = td.DeviceSimulation(
+    _ = td.HeatChargeSimulation(
         size=(1, 1, 1),
         structures=[box],
         medium=td.Medium(electric_spec=td.ConductorSpec(conductivity=1)),
         boundary_spec=[
-            td.DeviceBoundarySpec(
+            td.HeatChargeBoundarySpec(
                 placement=td.SimulationBoundary(), condition=td.VoltageBC(voltage=1)
             )
         ],
@@ -656,20 +662,20 @@ def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa: F811
     assert_log_level(log_capture, log_level)
 
 
-def make_device_sim_data():
-    """Creates 'DeviceSimulationData' for both HEAT and CONDUCTION simulations"""
-    heat_sim = make_device_heat_sim()
+def make_heat_charge_sim_data():
+    """Creates 'HeatChargeSimulationData' for both HEAT and CONDUCTION simulations"""
+    heat_sim = make_heat_charge_heat_sim()
     temp_data = make_temperature_mnt_data()
 
-    heat_sim_data = td.DeviceSimulationData(
+    heat_sim_data = td.HeatChargeSimulationData(
         simulation=heat_sim,
         data=temp_data,
     )
 
-    cond_sim = make_device_cond_sim()
+    cond_sim = make_heat_charge_cond_sim()
     volt_data = make_voltage_mnt_data()
 
-    cond_sim_data = td.DeviceSimulationData(
+    cond_sim_data = td.HeatChargeSimulationData(
         simulation=cond_sim,
         data=volt_data,
     )
@@ -678,9 +684,9 @@ def make_device_sim_data():
 
 
 def test_sim_data():
-    """Tests 'DeviceSimulationData'. In particular, checks whether data can plotted
+    """Tests 'HeatChargeSimulationData'. In particular, checks whether data can plotted
     and appropriate errors are issued (no data, data is not 2D, etc.)"""
-    heat_sim_data, cond_sim_data = make_device_sim_data()
+    heat_sim_data, cond_sim_data = make_heat_charge_sim_data()
     _ = heat_sim_data.plot_field("test", z=0)
     _ = heat_sim_data.plot_field("tri")
     _ = heat_sim_data.plot_field("tet", y=0.5)

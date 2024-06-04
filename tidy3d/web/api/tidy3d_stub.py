@@ -20,16 +20,16 @@ from ...components.data.monitor_data import ModeSolverData
 from ..core.types import TaskType
 from ...components.simulation import Simulation
 from ...plugins.mode.mode_solver import ModeSolver
-from ...components.device.heat.simulation import HeatSimulation
-from ...components.device.sim_data import HeatSimulationData
-from ...components.device.simulation import DeviceSimulation
-from ...components.device.sim_data import DeviceSimulationData
+from ...components.heat_charge.heat.simulation import HeatSimulation
+from ...components.heat_charge.sim_data import HeatSimulationData
+from ...components.heat_charge.simulation import HeatChargeSimulation
+from ...components.heat_charge.sim_data import HeatChargeSimulationData
 from ...components.eme.simulation import EMESimulation
 from ...components.eme.data.sim_data import EMESimulationData
 
-SimulationType = Union[Simulation, DeviceSimulation, HeatSimulation, EMESimulation]
+SimulationType = Union[Simulation, HeatChargeSimulation, HeatSimulation, EMESimulation]
 SimulationDataType = Union[
-    SimulationData, DeviceSimulationData, HeatSimulationData, EMESimulationData
+    SimulationData, HeatChargeSimulationData, HeatSimulationData, EMESimulationData
 ]
 
 
@@ -72,8 +72,8 @@ class Tidy3dStub(BaseModel, TaskStub):
             sim = ModeSolver.from_file(file_path)
         elif "HeatSimulation" == type_:
             sim = HeatSimulation.from_file(file_path)
-        elif "DeviceSimulation" == type_:
-            sim = DeviceSimulation.from_file(file_path)
+        elif "HeatChargeSimulation" == type_:
+            sim = HeatChargeSimulation.from_file(file_path)
         elif "EMESimulation" == type_:
             sim = EMESimulation.from_file(file_path)
 
@@ -130,7 +130,7 @@ class Tidy3dStub(BaseModel, TaskStub):
             return TaskType.MODE_SOLVER.name
         elif isinstance(self.simulation, HeatSimulation):
             return TaskType.HEAT.name
-        elif isinstance(self.simulation, DeviceSimulation):
+        elif isinstance(self.simulation, HeatChargeSimulation):
             return TaskType.HEAT.name
         elif isinstance(self.simulation, EMESimulation):
             return TaskType.EME.name
@@ -178,8 +178,8 @@ class Tidy3dStubData(BaseModel, TaskStubData):
             sim_data = ModeSolverData.from_file(file_path)
         elif "HeatSimulationData" == type_:
             sim_data = HeatSimulationData.from_file(file_path)
-        elif "DeviceSimulationData" == type_:
-            sim_data = DeviceSimulationData.from_file(file_path)
+        elif "HeatChargeSimulationData" == type_:
+            sim_data = HeatChargeSimulationData.from_file(file_path)
         elif "EMESimulationData" == type_:
             sim_data = EMESimulationData.from_file(file_path)
 

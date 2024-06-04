@@ -7,11 +7,11 @@ import pydantic.v1 as pd
 
 from ...types import Ax
 from ...viz import add_ax_if_none, equal_aspect
-from ..simulation import DeviceSimulation
+from ..simulation import HeatChargeSimulation
 from ....log import log
 
 
-class HeatSimulation(DeviceSimulation):
+class HeatSimulation(HeatChargeSimulation):
     """Contains all information about heat simulation.
 
     Example
@@ -35,7 +35,7 @@ class HeatSimulation(DeviceSimulation):
     ...     grid_spec=td.UniformUnstructuredGrid(dl=0.1),
     ...     sources=[td.HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         td.DeviceBoundarySpec(
+    ...         td.HeatChargeBoundarySpec(
     ...             placement=td.StructureBoundary(structure="box"),
     ...             condition=td.TemperatureBC(temperature=500),
     ...         )
@@ -49,7 +49,7 @@ class HeatSimulation(DeviceSimulation):
         """Issue warning for 'HeatSimulations'."""
         log.warning(
             "Setting up deprecated 'HeatSimulation'. "
-            "Consider defining 'DeviceSimulation' instead."
+            "Consider defining 'HeatChargeSimulation' instead."
         )
         return values
 

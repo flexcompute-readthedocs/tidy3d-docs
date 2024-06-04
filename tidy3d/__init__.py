@@ -131,25 +131,25 @@ from .components.bc_placement import MediumMediumInterface
 from .components.bc_placement import StructureSimulationBoundary
 from .components.bc_placement import SimulationBoundary
 
-# device and heat
-from .components.device_spec import FluidSpec, SolidSpec, ConductorSpec, InsulatorSpec
-from .components.device.heat.simulation import HeatSimulation
-from .components.device.simulation import DeviceSimulation
-from .components.device.sim_data import HeatSimulationData, DeviceSimulationData
-from .components.device.monitor_data import TemperatureData, VoltageData
-from .components.device.boundary import (
+# heat-charge
+from .components.heat_charge_spec import FluidSpec, SolidSpec, ConductorSpec, InsulatorSpec
+from .components.heat_charge.heat.simulation import HeatSimulation
+from .components.heat_charge.simulation import HeatChargeSimulation
+from .components.heat_charge.sim_data import HeatSimulationData, HeatChargeSimulationData
+from .components.heat_charge.monitor_data import TemperatureData, VoltageData
+from .components.heat_charge.boundary import (
     TemperatureBC,
     ConvectionBC,
     HeatFluxBC,
     HeatBoundarySpec,
-    DeviceBoundarySpec,
+    HeatChargeBoundarySpec,
     VoltageBC,
     CurrentBC,
     InsulatingBC,
 )
-from .components.device.source import UniformHeatSource, HeatSource, HeatFromElectricSource
-from .components.device.monitor import TemperatureMonitor, VoltageMonitor
-from .components.device.grid import UniformUnstructuredGrid, DistanceUnstructuredGrid
+from .components.heat_charge.source import UniformHeatSource, HeatSource, HeatFromElectricSource
+from .components.heat_charge.monitor import TemperatureMonitor, VoltageMonitor
+from .components.heat_charge.grid import UniformUnstructuredGrid, DistanceUnstructuredGrid
 
 # EME
 from .components.eme.simulation import EMESimulation
@@ -358,10 +358,10 @@ __all__ = [
     "DistanceUnstructuredGrid",
     "TemperatureData",
     "TemperatureMonitor",
-    "DeviceSimulation",
-    "DeviceSimulationData",
+    "HeatChargeSimulation",
+    "HeatChargeSimulationData",
     "VoltageData",
-    "DeviceBoundarySpec",
+    "HeatChargeBoundarySpec",
     "VoltageMonitor",
     "SpaceTimeModulation",
     "SpaceModulation",

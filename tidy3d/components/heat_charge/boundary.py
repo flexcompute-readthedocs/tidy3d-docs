@@ -14,11 +14,11 @@ from ...constants import KELVIN, HEAT_FLUX, HEAT_TRANSFER_COEFF
 from ...constants import VOLT, CURRENT_DENSITY
 
 
-class DeviceBC(ABC, Tidy3dBaseModel):
-    """Abstract device boundary conditions."""
+class HeatChargeBC(ABC, Tidy3dBaseModel):
+    """Abstract heat-charge boundary conditions."""
 
 
-class TemperatureBC(DeviceBC):
+class TemperatureBC(HeatChargeBC):
     """Constant temperature thermal boundary conditions.
 
     Example
@@ -33,7 +33,7 @@ class TemperatureBC(DeviceBC):
     )
 
 
-class HeatFluxBC(DeviceBC):
+class HeatFluxBC(HeatChargeBC):
     """Constant flux thermal boundary conditions.
 
     Example
@@ -48,7 +48,7 @@ class HeatFluxBC(DeviceBC):
     )
 
 
-class ConvectionBC(DeviceBC):
+class ConvectionBC(HeatChargeBC):
     """Convective thermal boundary conditions.
 
     Example
@@ -69,7 +69,7 @@ class ConvectionBC(DeviceBC):
     )
 
 
-class VoltageBC(DeviceBC):
+class VoltageBC(HeatChargeBC):
     """Electric potential (voltage) boundary condition.
     Sets a potential at the specified boundary.
 
@@ -85,7 +85,7 @@ class VoltageBC(DeviceBC):
     )
 
 
-class CurrentBC(DeviceBC):
+class CurrentBC(HeatChargeBC):
     """Current boundary conditions.
 
     Example
@@ -100,7 +100,7 @@ class CurrentBC(DeviceBC):
     )
 
 
-class InsulatingBC(DeviceBC):
+class InsulatingBC(HeatChargeBC):
     """Insulation boundary condition.
     Ensures electric fields as well as the surface recombination current density
     are set to zero.
@@ -111,13 +111,13 @@ class InsulatingBC(DeviceBC):
     """
 
 
-DeviceBoundaryConditionType = Union[
+HeatChargeBoundaryConditionType = Union[
     TemperatureBC, HeatFluxBC, ConvectionBC, VoltageBC, CurrentBC, InsulatingBC
 ]
 
 
-class DeviceBoundarySpec(Tidy3dBaseModel):
-    """Device boundary conditions specification.
+class HeatChargeBoundarySpec(Tidy3dBaseModel):
+    """Heat-Charge boundary conditions specification.
 
     Example
     -------
@@ -134,13 +134,13 @@ class DeviceBoundarySpec(Tidy3dBaseModel):
         discriminator=TYPE_TAG_STR,
     )
 
-    condition: DeviceBoundaryConditionType = pd.Field(
+    condition: HeatChargeBoundaryConditionType = pd.Field(
         title="Boundary Conditions",
         description="Boundary conditions to apply at the selected location.",
         discriminator=TYPE_TAG_STR,
     )
 
 
-HeatBoundarySpec = DeviceBoundarySpec
+HeatBoundarySpec = HeatChargeBoundarySpec
 """Heat BC specification
 NOTE: here for backward-compatibility only."""

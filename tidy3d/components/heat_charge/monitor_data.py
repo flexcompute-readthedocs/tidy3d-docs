@@ -1,4 +1,4 @@
-"""Monitor level data, store the DataArrays associated with a single device monitor."""
+"""Monitor level data, store the DataArrays associated with a single heat-charge monitor."""
 from __future__ import annotations
 from typing import Union, Tuple, Optional
 
@@ -8,8 +8,8 @@ import numpy as np
 import pydantic.v1 as pd
 import copy
 
-from .monitor import TemperatureMonitor, VoltageMonitor, DeviceMonitorType
-from ..base import skip_if_fields_missing, cached_property
+from .monitor import TemperatureMonitor, VoltageMonitor, HeatChargeMonitorType
+from ..base import skip_if_fields_missing
 from ..base_sim.data.monitor_data import AbstractMonitorData
 from ..data.data_array import SpatialDataArray
 from ..data.dataset import TriangularGridDataset, TetrahedralGridDataset
@@ -24,10 +24,10 @@ FieldDataset = Union[
 ]
 
 
-class DeviceMonitorData(AbstractMonitorData, ABC):
-    """Abstract base class of objects that store data pertaining to a single :class:`DeviceMonitor`."""
+class HeatChargeMonitorData(AbstractMonitorData, ABC):
+    """Abstract base class of objects that store data pertaining to a single :class:`HeatChargeMonitor`."""
 
-    monitor: DeviceMonitorType = pd.Field(
+    monitor: HeatChargeMonitorType = pd.Field(
         ...,
         title="Monitor",
         description="Monitor associated with the data.",
@@ -45,8 +45,8 @@ class DeviceMonitorData(AbstractMonitorData, ABC):
         description="Symmetry center of the original simulation in x, y, and z.",
     )
 
-    @cached_property
-    def symmetry_expanded_copy(self) -> DeviceMonitorData:
+    @property
+    def symmetry_expanded_copy(self) -> HeatChargeMonitorData:
         """Return copy of self with symmetry applied."""
         return self.copy()
 
@@ -54,7 +54,8 @@ class DeviceMonitorData(AbstractMonitorData, ABC):
     def field_name(self, val: str) -> str:
         """Gets the name of the fields to be plot."""
 
-    def _symmetry_expanded_copy(self, property: FieldDataset) -> FieldDataset:
+    # def _symmetry_expanded_copy(self, property: FieldDataset) -> FieldDataset:
+    def _symmetry_expanded_copy(self, property):
         """Return the property with symmetry applied."""
 
         # no symmetry
@@ -119,7 +120,7 @@ class DeviceMonitorData(AbstractMonitorData, ABC):
         return new_property
 
 
-class TemperatureData(DeviceMonitorData):
+class TemperatureData(HeatChargeMonitorData):
     """Data associated with a :class:`TemperatureMonitor`: spatial temperature field.
 
     Example
@@ -169,7 +170,7 @@ class TemperatureData(DeviceMonitorData):
         else:
             return "T, K"
 
-    @cached_property
+    @property
     def symmetry_expanded_copy(self) -> TemperatureData:
         """Return copy of self with symmetry applied."""
 
@@ -177,7 +178,7 @@ class TemperatureData(DeviceMonitorData):
         return self.updated_copy(temperature=new_temp, symmetry=(0, 0, 0))
 
 
-class VoltageData(DeviceMonitorData):
+class VoltageData(HeatChargeMonitorData):
     """Data associated with a :class:`VoltageMonitor`: spatial electric potential field.
 
     Example
@@ -227,7 +228,7 @@ class VoltageData(DeviceMonitorData):
 
         return val
 
-    @cached_property
+    @property
     def symmetry_expanded_copy(self) -> VoltageData:
         """Return copy of self with symmetry applied."""
 
@@ -235,4 +236,4 @@ class VoltageData(DeviceMonitorData):
         return self.updated_copy(voltage=new_phi, symmetry=(0, 0, 0))
 
 
-DeviceMonitorDataType = Union[TemperatureData, VoltageData]
+HeatChargeMonitorDataType = Union[TemperatureData, VoltageData]

@@ -11,11 +11,11 @@ from ..constants import SPECIFIC_HEAT_CAPACITY, THERMAL_CONDUCTIVITY, CONDUCTIVI
 
 
 # Liquid class
-class AbstractDeviceSpec(ABC, Tidy3dBaseModel):
+class AbstractHeatChargeSpec(ABC, Tidy3dBaseModel):
     """Abstract heat material specification."""
 
 
-class FluidSpec(AbstractDeviceSpec):
+class FluidSpec(AbstractHeatChargeSpec):
     """Fluid medium. Heat simulations will not solve for temperature
     in a structure that has a medium with this 'heat_spec'.
 
@@ -25,7 +25,7 @@ class FluidSpec(AbstractDeviceSpec):
     """
 
 
-class SolidSpec(AbstractDeviceSpec):
+class SolidSpec(AbstractHeatChargeSpec):
     """Solid medium for heat simulations.
 
     Example
@@ -49,7 +49,7 @@ class SolidSpec(AbstractDeviceSpec):
     )
 
 
-class InsulatorSpec(AbstractDeviceSpec):
+class InsulatorSpec(AbstractHeatChargeSpec):
     """Insulating medium. Conduction simulations will not solve for electric
     potential in a structure that has a medium with this 'electric_spec'.
 
@@ -59,7 +59,7 @@ class InsulatorSpec(AbstractDeviceSpec):
     """
 
 
-class ConductorSpec(AbstractDeviceSpec):
+class ConductorSpec(AbstractHeatChargeSpec):
     """Conductor medium for conduction simulations.
 
     Example

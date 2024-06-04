@@ -30,7 +30,7 @@ from ..exceptions import ValidationError, SetupError
 from ..log import log
 from .transformation import RotationType
 from .parameter_perturbation import ParameterPerturbation
-from .device_spec import ThermalSpecType, ElectricSpecType
+from .heat_charge_spec import ThermalSpecType, ElectricSpecType
 from .time_modulation import ModulationSpec
 
 # evaluate frequency as this number (Hz) if inf

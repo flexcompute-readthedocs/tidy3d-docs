@@ -1,4 +1,4 @@
-"""Defines device material specifications"""
+"""Defines heat-charge material specifications for 'HeatChargeSimulation'"""
 from __future__ import annotations
 
 from abc import ABC
@@ -18,9 +18,9 @@ from ...exceptions import SetupError
 from ...log import log
 
 
-class DeviceSource(AbstractSource, ABC):
-    """Abstract source for device simulations. All source types
-    for 'DeviceSimulation' derive from this class."""
+class HeatChargeSource(AbstractSource, ABC):
+    """Abstract source for heat-charge simulations. All source types
+    for 'HeatChargeSimulation' derive from this class."""
 
     structures: Tuple[str, ...] = pd.Field(
         title="Target Structures",
@@ -41,7 +41,7 @@ class DeviceSource(AbstractSource, ABC):
         return val
 
 
-class HeatSource(DeviceSource):
+class HeatSource(HeatChargeSource):
     """Adds a volumetric heat source (heat sink if negative values
     are provided) to specific structures in the scene.
 
@@ -58,7 +58,7 @@ class HeatSource(DeviceSource):
     )
 
 
-class HeatFromElectricSource(DeviceSource):
+class HeatFromElectricSource(HeatChargeSource):
     """Volumetric heat source generated from an electric simulation.
     If a `HeatFromElectricSource` is specified as a source, appropriate boundary
     conditions for an electric simulation must be provided, since such a simulation
@@ -79,7 +79,7 @@ class UniformHeatSource(HeatSource):
     >>> heat_source = UniformHeatSource(rate=1, structures=["box"])
     """
 
-    # NOTE: this is basically a wrapper for backwards compatibility.
+    # NOTE: wrapper for backwards compatibility.
 
     @pd.root_validator(skip_on_failure=True)
     def issue_warning_deprecated(cls, values):
@@ -91,4 +91,4 @@ class UniformHeatSource(HeatSource):
         return values
 
 
-DeviceSourceType = Union[HeatSource, HeatFromElectricSource, UniformHeatSource]
+HeatChargeSourceType = Union[HeatSource, HeatFromElectricSource, UniformHeatSource]

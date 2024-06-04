@@ -10,10 +10,10 @@ import pydantic.v1 as pd
 
 from .boundary import TemperatureBC, HeatFluxBC, ConvectionBC
 from .boundary import VoltageBC, CurrentBC, InsulatingBC
-from .boundary import DeviceBoundarySpec
-from ..device_spec import SolidSpec, ConductorSpec
-from .source import DeviceSourceType, UniformHeatSource, HeatSource, HeatFromElectricSource
-from .monitor import DeviceMonitorType, VoltageMonitor, TemperatureMonitor
+from .boundary import HeatChargeBoundarySpec
+from ..heat_charge_spec import SolidSpec, ConductorSpec
+from .source import HeatChargeSourceType, UniformHeatSource, HeatSource, HeatFromElectricSource
+from .monitor import HeatChargeMonitorType, VoltageMonitor, TemperatureMonitor
 from .grid import UnstructuredGridType, UniformUnstructuredGrid, DistanceUnstructuredGrid
 from .viz import HEAT_BC_COLOR_TEMPERATURE, HEAT_BC_COLOR_FLUX, HEAT_BC_COLOR_CONVECTION
 from .viz import plot_params_heat_bc, plot_params_heat_source, HEAT_SOURCE_CMAP
@@ -35,26 +35,26 @@ from ...constants import inf, VOLUMETRIC_HEAT_RATE
 
 from ...log import log
 
-DEVICE_BACK_STRUCTURE_STR = "<<<DEVICE_BACKGROUND_STRUCTURE>>>"
+HEAT_CHARGE_BACK_STRUCTURE_STR = "<<<HEAT_CHARGE_BACKGROUND_STRUCTURE>>>"
 
 HeatBCTypes = (TemperatureBC, HeatFluxBC, ConvectionBC)
 HeatSourceTypes = (UniformHeatSource, HeatSource, HeatFromElectricSource)
 ElectricBCTypes = (VoltageBC, CurrentBC, InsulatingBC)
 
 
-class DeviceSimulationType(str, Enum):
+class HeatChargeSimulationType(str, Enum):
     """Enumeration of the types of simulations currently supported"""
 
     HEAT = "HEAT"
     CONDUCTION = "CONDUCTION"
 
 
-class DeviceSimulation(AbstractSimulation):
+class HeatChargeSimulation(AbstractSimulation):
     """This class is used to define thermo-electric simulations.
 
     Notes
     -----
-        'DeviceSimulation' supports different types of simulations. It solves the
+        'HeatChargeSimulation' supports different types of simulations. It solves the
         drift-diffusion equations (or simplified subsets of the same) using the
         Finite-Volume (FV) method.
 
@@ -83,7 +83,7 @@ class DeviceSimulation(AbstractSimulation):
     Example
     -------
     >>> from tidy3d import Medium, SolidSpec, FluidSpec, UniformUnstructuredGrid, TemperatureMonitor
-    >>> heat_sim = DeviceSimulation(
+    >>> heat_sim = HeatChargeSimulation(
     ...     size=(3.0, 3.0, 3.0),
     ...     structures=[
     ...         Structure(
@@ -101,7 +101,7 @@ class DeviceSimulation(AbstractSimulation):
     ...     grid_spec=UniformUnstructuredGrid(dl=0.1),
     ...     sources=[HeatSource(rate=1, structures=["box"])],
     ...     boundary_spec=[
-    ...         DeviceBoundarySpec(
+    ...         HeatChargeBoundarySpec(
     ...             placement=StructureBoundary(structure="box"),
     ...             condition=TemperatureBC(temperature=500),
     ...         )
@@ -110,19 +110,19 @@ class DeviceSimulation(AbstractSimulation):
     ... )
     """
 
-    sources: Tuple[DeviceSourceType, ...] = pd.Field(
+    sources: Tuple[HeatChargeSourceType, ...] = pd.Field(
         (),
-        title="Device sources",
-        description="List of device sources.",
+        title="Heat-Charge sources",
+        description="List of heat-charge sources.",
     )
 
-    monitors: Tuple[annotate_type(DeviceMonitorType), ...] = pd.Field(
+    monitors: Tuple[annotate_type(HeatChargeMonitorType), ...] = pd.Field(
         (),
         title="Monitors",
         description="Monitors in the simulation.",
     )
 
-    boundary_spec: Tuple[DeviceBoundarySpec, ...] = pd.Field(
+    boundary_spec: Tuple[HeatChargeBoundarySpec, ...] = pd.Field(
         (),
         title="Boundary Condition Specifications",
         description="List of boundary condition specifications.",
@@ -130,7 +130,7 @@ class DeviceSimulation(AbstractSimulation):
 
     grid_spec: UnstructuredGridType = pd.Field(
         title="Grid Specification",
-        description="Grid specification for device simulation.",
+        description="Grid specification for heat-charge simulation.",
         discriminator=TYPE_TAG_STR,
     )
 
@@ -266,7 +266,7 @@ class DeviceSimulation(AbstractSimulation):
         num_zero_dims = np.sum(zero_dimensions)
 
         if num_zero_dims > 1:
-            mssg = f"Your current 'DeviceSimulation' has zero size along the {zero_dim_str}dimensions. "
+            mssg = f"Your current 'HeatChargeSimulation' has zero size along the {zero_dim_str}dimensions. "
             mssg += "Only 2- and 3-D simulations are currently supported."
             raise SetupError(mssg)
 
@@ -318,7 +318,7 @@ class DeviceSimulation(AbstractSimulation):
 
         if len(val) == 0 or all(isinstance(bc_spec.condition, NeumannBCs) for bc_spec in val):
             raise SetupError(
-                "Your 'DeviceSimulation' contains only Neumann-type boundary conditions. "
+                "Your 'HeatChargeSimulation' contains only Neumann-type boundary conditions. "
                 "Steady-state solution is undefined in this case. "
                 f"Current Neumann BCs are {names_neumann_Bcs}"
             )
@@ -337,7 +337,7 @@ class DeviceSimulation(AbstractSimulation):
             if structure_name not in structures_names:
                 log.warning(
                     f"Structure '{structure_name}' listed as a non-refined structure in "
-                    "'DeviceSimulation.grid_spec' is not present in 'DeviceSimulation.structures'"
+                    "'HeatChargeSimulation.grid_spec' is not present in 'HeatChargeSimulation.structures'"
                 )
 
         return val
@@ -365,7 +365,7 @@ class DeviceSimulation(AbstractSimulation):
     @pd.validator("sources", always=True)
     @skip_if_fields_missing(["structures"])
     def names_exist_sources(cls, val, values):
-        """Error if a device source point to non-existing structures."""
+        """Error if a heat-charge source point to non-existing structures."""
         structures = values.get("structures")
         structures_names = {s.name for s in structures}
 
@@ -394,12 +394,12 @@ class DeviceSimulation(AbstractSimulation):
         simulation_types = cls._check_simulation_types(values=values)
 
         for sim_type in simulation_types:
-            if sim_type == DeviceSimulationType.HEAT:
+            if sim_type == HeatChargeSimulationType.HEAT:
                 if len(failed_solid_idx) > 0:
                     raise SetupError(
                         "No solid materials ('SolidSpec') are detected in heat simulation. Solution domain is empty."
                     )
-            elif sim_type == DeviceSimulationType.CONDUCTION:
+            elif sim_type == HeatChargeSimulationType.CONDUCTION:
                 if len(failed_elect_idx) > 0:
                     raise SetupError(
                         "No conducting materials ('ConductorSpec') are detected in conduction simulation. Solution domain is empty."
@@ -413,7 +413,7 @@ class DeviceSimulation(AbstractSimulation):
         HeatBCTypes=HeatBCTypes,
         ElectricBCTypes=ElectricBCTypes,
         HeatSourceTypes=HeatSourceTypes,
-    ) -> list[DeviceSimulationType]:
+    ) -> list[HeatChargeSimulationType]:
         """Given model dictionary ``values``, check the type of simulations to be run
         based on BCs and sources.
         """
@@ -426,13 +426,13 @@ class DeviceSimulation(AbstractSimulation):
 
         for boundary in boundaries:
             if isinstance(boundary.condition, HeatBCTypes):
-                simulation_types.append(DeviceSimulationType.HEAT)
+                simulation_types.append(HeatChargeSimulationType.HEAT)
             if isinstance(boundary.condition, ElectricBCTypes):
-                simulation_types.append(DeviceSimulationType.CONDUCTION)
+                simulation_types.append(HeatChargeSimulationType.CONDUCTION)
 
         for source in sources:
             if isinstance(source, HeatSourceTypes):
-                simulation_types.append(DeviceSimulationType.HEAT)
+                simulation_types.append(HeatChargeSimulationType.HEAT)
 
         return set(simulation_types)
 
@@ -452,7 +452,7 @@ class DeviceSimulation(AbstractSimulation):
             if isinstance(source, HeatFromElectricSource) and len(simulation_types) < 2:
                 raise SetupError(
                     f"Using 'HeatFromElectricSource' requires the definition of both "
-                    f"{DeviceSimulationType.CONDUCTION.name} and {DeviceSimulationType.HEAT.name}. "
+                    f"{HeatChargeSimulationType.CONDUCTION.name} and {HeatChargeSimulationType.HEAT.name}. "
                     f"Your simulation setup contains only conditions of type {simulation_types[0].name}"
                 )
 
@@ -515,20 +515,20 @@ class DeviceSimulation(AbstractSimulation):
         simulation_types = self._get_simulation_types()
         if property is None:
             if len(simulation_types) == 1:
-                if DeviceSimulationType.CONDUCTION in simulation_types:
+                if HeatChargeSimulationType.CONDUCTION in simulation_types:
                     property = "electric_conductivity"
-                elif DeviceSimulationType.HEAT in simulation_types:
+                elif HeatChargeSimulationType.HEAT in simulation_types:
                     property = "heat_conductivity"
             else:
                 raise ValueError(
                     "'plot_property' must be called with argument 'property' in "
-                    "'DeviceSimulations' with multiple physics, i.e., a 'DeviceSimulation' "
-                    f"with both {DeviceSimulationType.HEAT.name} and "
-                    f"{DeviceSimulationType.CONDUCTION.name} simulation properties."
+                    "'HeatChargeSimulations' with multiple physics, i.e., a 'HeatChargeSimulation' "
+                    f"with both {HeatChargeSimulationType.HEAT.name} and "
+                    f"{HeatChargeSimulationType.CONDUCTION.name} simulation properties."
                 )
 
         if property != "source":
-            ax = self.scene.plot_device_property(
+            ax = self.scene.plot_heat_charge_property(
                 ax=ax,
                 x=x,
                 y=y,
@@ -591,7 +591,7 @@ class DeviceSimulation(AbstractSimulation):
         plane = Box(center=center, size=size)
 
         # get boundary conditions in the plane
-        boundaries = self._construct_device_boundaries(
+        boundaries = self._construct_heat_charge_boundaries(
             structures=structures,
             plane=plane,
             boundary_spec=self.boundary_spec,
@@ -610,7 +610,7 @@ class DeviceSimulation(AbstractSimulation):
 
         return ax
 
-    def _get_bc_plot_params(self, boundary_spec: DeviceBoundarySpec) -> PlotParams:
+    def _get_bc_plot_params(self, boundary_spec: HeatChargeBoundarySpec) -> PlotParams:
         """Constructs the plot parameters for given boundary conditions."""
 
         plot_params = plot_params_heat_bc
@@ -626,7 +626,7 @@ class DeviceSimulation(AbstractSimulation):
         return plot_params
 
     def _plot_boundary_condition(
-        self, shape: Shapely, boundary_spec: DeviceBoundarySpec, ax: Ax
+        self, shape: Shapely, boundary_spec: HeatChargeBoundarySpec, ax: Ax
     ) -> Ax:
         """Plot a structure's cross section shape for a given boundary condition."""
         plot_params_bc = self._get_bc_plot_params(boundary_spec=boundary_spec)
@@ -635,8 +635,10 @@ class DeviceSimulation(AbstractSimulation):
 
     @staticmethod
     def _structure_to_bc_spec_map(
-        plane: Box, structures: Tuple[Structure, ...], boundary_spec: Tuple[DeviceBoundarySpec, ...]
-    ) -> Dict[str, DeviceBoundarySpec]:
+        plane: Box,
+        structures: Tuple[Structure, ...],
+        boundary_spec: Tuple[HeatChargeBoundarySpec, ...],
+    ) -> Dict[str, HeatChargeBoundarySpec]:
         """Construct structure name to bc spec inverse mapping. One structure may correspond to
         multiple boundary conditions."""
 
@@ -663,14 +665,16 @@ class DeviceSimulation(AbstractSimulation):
                             struct_to_bc_spec[structure] = [bc_spec]
 
             if isinstance(bc_place, SimulationBoundary):
-                struct_to_bc_spec[DEVICE_BACK_STRUCTURE_STR] = [bc_spec]
+                struct_to_bc_spec[HEAT_CHARGE_BACK_STRUCTURE_STR] = [bc_spec]
 
         return struct_to_bc_spec
 
     @staticmethod
     def _medium_to_bc_spec_map(
-        plane: Box, structures: Tuple[Structure, ...], boundary_spec: Tuple[DeviceBoundarySpec, ...]
-    ) -> Dict[str, DeviceBoundarySpec]:
+        plane: Box,
+        structures: Tuple[Structure, ...],
+        boundary_spec: Tuple[HeatChargeBoundarySpec, ...],
+    ) -> Dict[str, HeatChargeBoundarySpec]:
         """Construct medium name to bc spec inverse mapping. One medium may correspond to
         multiple boundary conditions."""
 
@@ -694,10 +698,10 @@ class DeviceSimulation(AbstractSimulation):
     @staticmethod
     def _construct_forward_boundaries(
         shapes: Tuple[Tuple[str, str, Shapely, Tuple[float, float, float, float]], ...],
-        struct_to_bc_spec: Dict[str, DeviceBoundarySpec],
-        med_to_bc_spec: Dict[str, DeviceBoundarySpec],
+        struct_to_bc_spec: Dict[str, HeatChargeBoundarySpec],
+        med_to_bc_spec: Dict[str, HeatChargeBoundarySpec],
         background_structure_shape: Shapely,
-    ) -> Tuple[Tuple[DeviceBoundarySpec, Shapely], ...]:
+    ) -> Tuple[Tuple[HeatChargeBoundarySpec, Shapely], ...]:
         """Construct Simulation, StructureSimulation, Structure, and MediumMedium boundaries."""
 
         # forward foop to take care of Simulation, StructureSimulation, Structure,
@@ -786,9 +790,9 @@ class DeviceSimulation(AbstractSimulation):
     @staticmethod
     def _construct_reverse_boundaries(
         shapes: Tuple[Tuple[str, str, Shapely, Bound], ...],
-        struct_to_bc_spec: Dict[str, DeviceBoundarySpec],
+        struct_to_bc_spec: Dict[str, HeatChargeBoundarySpec],
         background_structure_shape: Shapely,
-    ) -> Tuple[Tuple[DeviceBoundarySpec, Shapely], ...]:
+    ) -> Tuple[Tuple[HeatChargeBoundarySpec, Shapely], ...]:
         """Construct StructureStructure boundaries."""
 
         # backward foop to take care of StructureStructure
@@ -852,11 +856,11 @@ class DeviceSimulation(AbstractSimulation):
         return filtered_boundaries
 
     @staticmethod
-    def _construct_device_boundaries(
+    def _construct_heat_charge_boundaries(
         structures: List[Structure],
         plane: Box,
-        boundary_spec: List[DeviceBoundarySpec],
-    ) -> List[Tuple[DeviceBoundarySpec, Shapely]]:
+        boundary_spec: List[HeatChargeBoundarySpec],
+    ) -> List[Tuple[HeatChargeBoundarySpec, Shapely]]:
         """Compute list of boundary lines to plot on plane.
 
         Parameters
@@ -887,12 +891,12 @@ class DeviceSimulation(AbstractSimulation):
         background_structure_shape = shapes[0][2]
 
         # construct an inverse mapping structure -> bc for present structures
-        struct_to_bc_spec = DeviceSimulation._structure_to_bc_spec_map(
+        struct_to_bc_spec = HeatChargeSimulation._structure_to_bc_spec_map(
             plane=plane, structures=structures, boundary_spec=boundary_spec
         )
 
         # construct an inverse mapping medium -> bc for present mediums
-        med_to_bc_spec = DeviceSimulation._medium_to_bc_spec_map(
+        med_to_bc_spec = HeatChargeSimulation._medium_to_bc_spec_map(
             plane=plane, structures=structures, boundary_spec=boundary_spec
         )
 
@@ -900,7 +904,7 @@ class DeviceSimulation(AbstractSimulation):
 
         # 1. forward foop to take care of Simulation, StructureSimulation, Structure,
         # and MediumMediums
-        boundaries = DeviceSimulation._construct_forward_boundaries(
+        boundaries = HeatChargeSimulation._construct_forward_boundaries(
             shapes=shapes,
             struct_to_bc_spec=struct_to_bc_spec,
             med_to_bc_spec=med_to_bc_spec,
@@ -908,7 +912,7 @@ class DeviceSimulation(AbstractSimulation):
         )
 
         # 2. reverse loop: construct structure-structure boundary
-        struct_struct_boundaries = DeviceSimulation._construct_reverse_boundaries(
+        struct_struct_boundaries = HeatChargeSimulation._construct_reverse_boundaries(
             shapes=shapes,
             struct_to_bc_spec=struct_to_bc_spec,
             background_structure_shape=background_structure_shape,
@@ -1035,7 +1039,7 @@ class DeviceSimulation(AbstractSimulation):
 
     def _get_structure_source_plot_params(
         self,
-        source: DeviceSourceType,
+        source: HeatChargeSourceType,
         source_min: float,
         source_max: float,
         alpha: float = None,
@@ -1060,7 +1064,7 @@ class DeviceSimulation(AbstractSimulation):
 
     def _plot_shape_structure_source(
         self,
-        source: DeviceSourceType,
+        source: HeatChargeSourceType,
         shape: Shapely,
         source_min: float,
         source_max: float,
@@ -1078,7 +1082,7 @@ class DeviceSimulation(AbstractSimulation):
         return ax
 
     @classmethod
-    def from_scene(cls, scene: Scene, **kwargs) -> DeviceSimulation:
+    def from_scene(cls, scene: Scene, **kwargs) -> HeatChargeSimulation:
         """Create a simulation from a :class:.`Scene` instance. Must provide additional parameters
         to define a valid simulation (for example, ``size``, ``grid_spec``, etc).
 
@@ -1106,13 +1110,13 @@ class DeviceSimulation(AbstractSimulation):
         ...         ),
         ...     ),
         ... )
-        >>> sim = DeviceSimulation.from_scene(
+        >>> sim = HeatChargeSimulation.from_scene(
         ...     scene=scene,
         ...     center=(0, 0, 0),
         ...     size=(5, 6, 7),
         ...     grid_spec=UniformUnstructuredGrid(dl=0.4),
         ...     boundary_spec=[
-        ...         DeviceBoundarySpec(
+        ...         HeatChargeBoundarySpec(
         ...             placement=StructureBoundary(structure="box"),
         ...             condition=TemperatureBC(temperature=500),
         ...         )
@@ -1126,7 +1130,7 @@ class DeviceSimulation(AbstractSimulation):
             **kwargs,
         )
 
-    def _get_simulation_types(self) -> list[DeviceSimulationType]:
+    def _get_simulation_types(self) -> list[HeatChargeSimulationType]:
         """
         Checks through BCs and sources and returns the
         types of simulations.
@@ -1147,7 +1151,7 @@ class DeviceSimulation(AbstractSimulation):
         if heat_source_present and not heat_BCs_present:
             raise SetupError("Heat sources defined but no heat BCs present.")
         elif heat_BCs_present or heat_source_present:
-            simulation_types.append(DeviceSimulationType.HEAT)
+            simulation_types.append(HeatChargeSimulationType.HEAT)
 
         # check for conduction simulation
         electric_spec_present = False
@@ -1166,7 +1170,7 @@ class DeviceSimulation(AbstractSimulation):
                 "structures have a '.medium' with `.electric_spec` present"
             )
         elif electric_BCs_present and electric_spec_present:
-            simulation_types.append(DeviceSimulationType.CONDUCTION)
+            simulation_types.append(HeatChargeSimulationType.CONDUCTION)
 
         return simulation_types
 
