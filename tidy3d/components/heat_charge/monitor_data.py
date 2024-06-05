@@ -241,7 +241,7 @@ class VoltageData(HeatChargeMonitorData):
         return self.updated_copy(voltage=new_phi, symmetry=(0, 0, 0))
 
 
-class TemporalDeviceDataset(Tidy3dBaseModel):
+class TemporalHeatChargeDataset(Tidy3dBaseModel):
     """Class to deal with time-varying device fields."""
 
     base_data: Union[FieldDataset] = pd.Field(title="Base data", description="Spatial dataset")
@@ -305,7 +305,7 @@ class TemporalData(HeatChargeMonitorData):
         ..., title="Monitor", description="Time-varying temperature or voltage monitor."
     )
 
-    time_series: Optional[TemporalDeviceDataset] = pd.Field(
+    time_series: Optional[TemporalHeatChargeDataset] = pd.Field(
         None,
         title="time series",
         description="Container for time-varying data. This can contain either "
@@ -328,7 +328,7 @@ class TemporalData(HeatChargeMonitorData):
         return val
 
     @property
-    def symmetry_expanded_copy(self) -> TemporalDeviceDataset:
+    def symmetry_expanded_copy(self) -> TemporalData:
         """Return copy of self with symmetry applied."""
 
         new_time_series = []
@@ -337,7 +337,22 @@ class TemporalData(HeatChargeMonitorData):
             data = self.time_series.return_time_step(n)
             new_time_series.append((self._symmetry_expanded_copy(property=data)).values)
 
-        return self.time_series.updated_copy(field_time_series=new_time_series)
+        return self.updated_copy(
+            time_series=self.time_series.updated_copy(field_time_series=new_time_series)
+        )
+
+    def field_name(self, val: str) -> str:
+        """Gets the name of the fields to be plot."""
+        if val == "abs^2":
+            if isinstance(self.monitor, TemporalTemperatureMonitor):
+                return "|T|², K²"
+            elif isinstance(self.monitor, TemporalVoltageMonitor):
+                return "|V|², sigma²"
+        else:
+            if isinstance(self.monitor, TemporalTemperatureMonitor):
+                return "T, K"
+            elif isinstance(self.monitor, TemporalVoltageMonitor):
+                return "V, sigma"
 
 
 HeatChargeMonitorDataType = Union[TemperatureData, VoltageData, TemporalData]

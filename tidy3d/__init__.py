@@ -136,7 +136,12 @@ from .components.heat_charge_spec import FluidSpec, SolidSpec, ConductorSpec, In
 from .components.heat_charge.heat.simulation import HeatSimulation
 from .components.heat_charge.simulation import HeatChargeSimulation
 from .components.heat_charge.sim_data import HeatSimulationData, HeatChargeSimulationData
-from .components.heat_charge.monitor_data import TemperatureData, VoltageData
+from .components.heat_charge.monitor_data import (
+    TemperatureData,
+    VoltageData,
+    TemporalTemperatureMonitor,
+    TemporalVoltageMonitor,
+)
 from .components.heat_charge.boundary import (
     TemperatureBC,
     ConvectionBC,
