@@ -64,7 +64,12 @@ class HeatChargeSimulation(AbstractSimulation):
                 BCs, etc.
             * Conduction simulations: the conduction equation, div(sigma*grad(psi))=0,
                 (with sigma being the electric conductivity) is solved for specified BCs.
+            * Unsteady heat simulations: by defining an 'UnsteadySpec' with an intial value
+                for temperature one can run an unsteady heat simulation.
+            * Electro-Quasistatic (EQS) simulation can be run by specifying an 'UnsteadySpec'
+                in a conduction simulation with an initial value for voltage.
 
+        COUPLING
         Coupling between these simulations is currently limited to 1-way coupling between
         heat and conduction simulations. Coupling is specified by defining a heat source of
         type 'HeatFromElectricSource'. With this coupling, joule heating is calculated as part
@@ -78,8 +83,18 @@ class HeatChargeSimulation(AbstractSimulation):
                 previously run CONDUCTION simulations must have run previously. Since the CONDUCTION
                 and HEAT meshes may differ, an interpolation between them will be performed prior to
                 starting the HEAT simulation.
-        Note also that additional heat sources can be applied, in which case, they will be added on
+        Additional heat sources can be defined, in which case, they will be added on
         top of the coupling heat source.
+
+        UNSTEADY SIMULATIONS.
+        Unsteady simulations are defined with a 'time_spec' of type 'UnsteadySpec'. When specified one can
+        also specify either an 'initial_temperature' and/or 'initial_voltage'. These last entries tell the
+        solver whether HEAT and/or CONDUCTION unsteady simulations are to be run.
+        NOTE ON COUPLING UNSTEADY RUNS. When using 'HeatFromElectricSource' along with 'UnsteadySpec' in simulations
+        where both UNSTEADY HEAT and CONDUCTION simulations will be run, the coupling does not happen at each time-
+        step. Once the CONDUCTION simulation has finished the electric potential field at the last step will be
+        taken for the heat source calculation used in the unsteady HEAT case.
+
 
     Example
     -------
