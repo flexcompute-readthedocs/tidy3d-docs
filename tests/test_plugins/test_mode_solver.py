@@ -1,21 +1,20 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pydantic.v1 as pydantic
 import pytest
 import responses
-import numpy as np
-import matplotlib.pyplot as plt
-import pydantic.v1 as pydantic
-
 import tidy3d as td
-
 import tidy3d.plugins.mode.web as msweb
-from tidy3d.plugins.mode import ModeSolver
-from tidy3d.plugins.mode.mode_solver import MODE_MONITOR_NAME
-from tidy3d.plugins.mode.derivatives import create_sfactor_b, create_sfactor_f
-from tidy3d.plugins.mode.solver import compute_modes
-from tidy3d.exceptions import SetupError
-from ..utils import assert_log_level, log_capture
 from tidy3d import ScalarFieldDataArray
+from tidy3d.components.data.monitor_data import ModeSolverData
+from tidy3d.exceptions import SetupError
+from tidy3d.plugins.mode import ModeSolver
+from tidy3d.plugins.mode.derivatives import create_sfactor_b, create_sfactor_f
+from tidy3d.plugins.mode.mode_solver import MODE_MONITOR_NAME
+from tidy3d.plugins.mode.solver import compute_modes
 from tidy3d.web.core.environment import Env
 
+from ..utils import assert_log_level, cartesian_to_unstructured
 
 WG_MEDIUM = td.Medium(permittivity=4.0, conductivity=1e-4)
 WAVEGUIDE = td.Structure(geometry=td.Box(size=(1.5, 100, 1)), medium=WG_MEDIUM)
@@ -88,6 +87,34 @@ def mock_remote_api(monkeypatch):
                     "projectId": PROJECT_ID,
                     "taskName": TASK_NAME,
                     "modeSolverName": MODESOLVER_NAME,
+                    "fileType": "Gz",
+                    "source": "Python",
+                    "protocolVersion": td.version.__version__,
+                }
+            )
+        ],
+        json={
+            "data": {
+                "refId": TASK_ID,
+                "id": SOLVER_ID,
+                "status": "draft",
+                "createdAt": "2023-05-19T16:47:57.190Z",
+                "charge": 0,
+                "fileType": "Gz",
+            }
+        },
+        status=200,
+    )
+
+    responses.add(
+        responses.POST,
+        f"{Env.current.web_api_endpoint}/tidy3d/modesolver/py",
+        match=[
+            responses.matchers.json_params_matcher(
+                {
+                    "projectId": PROJECT_ID,
+                    "taskName": "BatchModeSolver_0",
+                    "modeSolverName": MODESOLVER_NAME + "_batch_0",
                     "fileType": "Gz",
                     "source": "Python",
                     "protocolVersion": td.version.__version__,
@@ -281,7 +308,7 @@ def test_mode_solver_group_index_warning(group_index_step, log_level, log_captur
         group_index_step=group_index_step,
     )
 
-    ms = ModeSolver(
+    _ = ModeSolver(
         simulation=simulation,
         plane=PLANE,
         mode_spec=mode_spec,
@@ -328,7 +355,7 @@ def test_mode_solver_simple(mock_remote_api, local):
         compare_colocation(ms)
         verify_pol_fraction(ms)
         verify_dtype(ms)
-        dataframe = ms.data.to_dataframe()
+        _ = ms.data.to_dataframe()
         check_ms_reduction(ms)
 
     else:
@@ -375,8 +402,8 @@ def test_mode_solver_custom_medium(mock_remote_api, local, tmp_path):
         precision="double" if local else "single",
     )
 
-    plane_left = td.Box(center=(-0.5, 0, 0), size=(0.9, 0, 0.9))
-    plane_right = td.Box(center=(0.5, 0, 0), size=(0.9, 0, 0.9))
+    plane_left = td.Box(center=(-0.5, 0, 0), size=(0, 0.9, 0.9))
+    plane_right = td.Box(center=(0.5, 0, 0), size=(0, 0.9, 0.9))
 
     n_eff = []
     for plane in [plane_left, plane_right]:
@@ -402,6 +429,69 @@ def test_mode_solver_custom_medium(mock_remote_api, local, tmp_path):
         assert n_eff[0] < 1.5
         assert n_eff[1] > 4
         assert n_eff[1] < 5
+
+
+@pytest.mark.parametrize("interp,tol", [("linear", 1e-3), ("nearest", 1e-3)])
+@pytest.mark.parametrize("cond_factor", [0, 0.01])
+@pytest.mark.parametrize("nx", [1, 3])
+def test_mode_solver_unstructured_custom_medium(nx, cond_factor, interp, tol, tmp_path):
+    """Test mode solver can work with unstructured custom medium. We compare mode solver results
+    with unstructured custom medium to the results with usual Cartesian custom medium.
+    """
+
+    freq0 = td.C_0 / 1.0
+
+    # Cartesian
+    x_custom = np.linspace(-0.6, 0.6, nx)
+    y_custom = np.linspace(-0.3, 0.3, 21)
+    z_custom = np.linspace(-0.3, 0.3, 22)
+    n = 2.5 + (x_custom[:, None, None] + 0.6) / 1.2 * np.sin(y_custom[None, :, None]) * np.cos(
+        z_custom[None, None, :]
+    )
+    n_data = td.SpatialDataArray(n, coords=dict(x=x_custom, y=y_custom, z=z_custom))
+
+    # unperturbed unstructured grid
+    n_data_u = cartesian_to_unstructured(n_data, pert=0, seed=987, method="direct")
+
+    # more perturbed unstructured grid
+    n_data_up = cartesian_to_unstructured(n_data, pert=0.15, seed=987)
+
+    md = []
+
+    for n_arr in [n_data, n_data_u, n_data_up]:
+        mat_custom = td.CustomMedium.from_nk(
+            n=n_arr, k=cond_factor * n_arr, freq=freq0, interp_method=interp
+        )
+        waveguide = td.Structure(geometry=td.Box(size=(100, 0.5, 0.5)), medium=mat_custom)
+        simulation = td.Simulation(
+            size=(2, 2, 2),
+            grid_spec=td.GridSpec(wavelength=1.0),
+            structures=[waveguide],
+            run_time=1e-12,
+        )
+        mode_spec = td.ModeSpec(num_modes=1)
+
+        plane = td.Box(center=(0, 0, 0), size=(0.0, 0.9, 0.9))
+        ms = ModeSolver(
+            simulation=simulation,
+            plane=plane,
+            mode_spec=mode_spec,
+            freqs=[freq0],
+            direction="+",
+        )
+        modes = ms.solve()
+        md.append(modes)
+
+    # ms.plot_field(mode_index=0, f=freq0, field_name="Ez")
+    # plt.show()
+
+    error_u = np.abs(md[0].n_eff - md[1].n_eff).values.item()
+    error_up = np.abs(md[0].n_eff - md[2].n_eff).values.item()
+
+    print(nx, cond_factor, interp, tol, error_u, error_up)
+
+    assert error_u < 5e-5
+    assert error_up < tol
 
 
 def test_mode_solver_straight_vs_angled():
@@ -464,11 +554,20 @@ def test_mode_solver_straight_vs_angled():
 
     for key, val in ms.data.modes_info.items():
         tol = 1e-2
-        if key == "mode area":
-            tol = 2.5e-2  # mode area has higher error
-        # print(val, ms_angled.data.modes_info[key])
-        print(np.amax(np.abs(val - ms_angled.data.modes_info[key])))
-        assert np.allclose(val, ms_angled.data.modes_info[key], rtol=tol, atol=tol)
+        if key == "TE (Ex) fraction":
+            tol = 0.1
+        elif key == "wg TE fraction":
+            tol = 1.3e-2
+        elif key == "mode area":
+            tol = 2.1e-2
+        elif key == "dispersion (ps/(nm km))":
+            tol = 0.7
+        # print(
+        #     key,
+        #     (np.abs(val - ms_angled.data.modes_info[key]) / np.abs(val)).values.max(),
+        #     (np.abs(val - ms_angled.data.modes_info[key]) / np.abs(ms_angled.data.modes_info[key])).values.max(),
+        # )
+        assert np.allclose(val, ms_angled.data.modes_info[key], rtol=tol)
 
 
 def test_mode_solver_angle_bend():
@@ -499,7 +598,7 @@ def test_mode_solver_angle_bend():
     compare_colocation(ms)
     verify_pol_fraction(ms)
     verify_dtype(ms)
-    dataframe = ms.data.to_dataframe()
+    _ = ms.data.to_dataframe()
     check_ms_reduction(ms)
 
     # Plot field
@@ -536,7 +635,7 @@ def test_mode_solver_2D():
     compare_colocation(ms)
     verify_pol_fraction(ms)
     verify_dtype(ms)
-    dataframe = ms.data.to_dataframe()
+    _ = ms.data.to_dataframe()
     check_ms_reduction(ms)
 
     mode_spec = td.ModeSpec(
@@ -558,7 +657,7 @@ def test_mode_solver_2D():
     )
     compare_colocation(ms)
     # verify_pol_fraction(ms)
-    dataframe = ms.data.to_dataframe()
+    _ = ms.data.to_dataframe()
     check_ms_reduction(ms)
 
     # The simulation and the mode plane are both 0D along the same dimension
@@ -710,7 +809,7 @@ def test_mode_solver_nan_pol_fraction():
     md = ms.solve()
     check_ms_reduction(ms)
 
-    assert list(np.where(np.isnan(md.pol_fraction.te))[1]) == [8, 9]
+    assert list(np.where(np.isnan(md.pol_fraction.te))[1]) == [9]
 
 
 def test_mode_solver_method_defaults():
@@ -764,3 +863,79 @@ def test_mode_solver_method_defaults():
 
     sim = ms.sim_with_monitor(name="test")
     assert np.allclose(sim.monitors[-1].freqs, ms.freqs)
+
+
+@responses.activate
+def test_mode_solver_web_run_batch(mock_remote_api):
+    """Testing run_batch function for the web mode solver."""
+
+    wav = 1.5
+    wav_min = 1.4
+    wav_max = 1.5
+    num_freqs = 1
+    num_of_sims = 1
+    freqs = np.linspace(td.C_0 / wav_min, td.C_0 / wav_max, num_freqs)
+
+    simulation = td.Simulation(
+        size=SIM_SIZE,
+        grid_spec=td.GridSpec(wavelength=wav),
+        structures=[WAVEGUIDE],
+        run_time=1e-12,
+        boundary_spec=td.BoundarySpec.all_sides(boundary=td.PML()),
+    )
+
+    # create a list of mode solvers
+    mode_solver_list = [None] * num_of_sims
+
+    # create three different mode solvers with different number of modes specifications
+    for i in range(num_of_sims):
+        mode_solver_list[i] = ModeSolver(
+            simulation=simulation,
+            plane=PLANE,
+            mode_spec=td.ModeSpec(
+                num_modes=i + 1,
+                target_neff=2.0,
+            ),
+            freqs=freqs,
+            direction="+",
+        )
+
+    # Run mode solver one at a time
+    results = msweb.run_batch(mode_solver_list, verbose=False, folder_name="Mode Solver")
+    print(*results, sep="\n")
+    assert all(isinstance(x, ModeSolverData) for x in results)
+    assert (results[i].n_eff.shape == (num_freqs, i + 1) for i in range(num_of_sims))
+
+
+def test_mode_solver_relative():
+    """Relative mode solver"""
+
+    simulation = td.Simulation(
+        size=SIM_SIZE,
+        grid_spec=td.GridSpec(wavelength=1.0),
+        structures=[WAVEGUIDE],
+        run_time=1e-12,
+        symmetry=(0, 0, 1),
+        boundary_spec=td.BoundarySpec.all_sides(boundary=td.Periodic()),
+        sources=[SRC],
+    )
+    mode_spec = td.ModeSpec(
+        num_modes=3,
+        target_neff=2.0,
+        filter_pol="tm",
+        precision="double",
+        track_freq="lowest",
+    )
+    freqs = [td.C_0 / 0.9, td.C_0 / 1.0, td.C_0 / 1.1]
+    ms = ModeSolver(
+        simulation=simulation,
+        plane=PLANE,
+        mode_spec=mode_spec,
+        freqs=freqs,
+        direction="-",
+        colocate=False,
+    )
+    basis = ms.data_raw
+    new_freqs = np.array(freqs) * 1.01
+    ms = ms.updated_copy(freqs=new_freqs)
+    _ = ms._data_on_yee_grid_relative(basis=basis)

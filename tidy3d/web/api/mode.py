@@ -1,29 +1,33 @@
 """Web API for mode solver"""
 
 from __future__ import annotations
-from typing import Optional, Callable
 
-from datetime import datetime
 import os
 import pathlib
 import tempfile
 import time
+from datetime import datetime
+from typing import Callable, List, Optional
 
 import pydantic.v1 as pydantic
 from botocore.exceptions import ClientError
+from joblib import Parallel, delayed
+from rich.progress import Progress
 
-from ...components.simulation import Simulation
 from ...components.data.monitor_data import ModeSolverData
+from ...components.medium import AbstractCustomMedium
+from ...components.simulation import Simulation
+from ...components.types import Literal
 from ...exceptions import WebError
-from ...log import log, get_logging_console
+from ...log import get_logging_console, log
+from ...plugins.mode.mode_solver import MODE_MONITOR_NAME, ModeSolver
+from ...version import __version__
 from ..core.core_config import get_logger_console
+from ..core.environment import Env
 from ..core.http_util import http
 from ..core.s3utils import download_file, download_gz_file, upload_file
 from ..core.task_core import Folder
 from ..core.types import ResourceLifecycle, Submittable
-
-from ...plugins.mode.mode_solver import ModeSolver, MODE_MONITOR_NAME
-from ...version import __version__
 
 SIMULATION_JSON = "simulation.json"
 SIM_FILE_HDF5_GZ = "simulation.hdf5.gz"
@@ -36,6 +40,10 @@ MODESOLVER_LOG = "output/result.log"
 MODESOLVER_RESULT = "output/result.hdf5"
 MODESOLVER_RESULT_GZ = "output/mode_solver_data.hdf5.gz"
 
+DEFAULT_NUM_WORKERS = 10
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_DELAY = 10  # in seconds
+
 
 def run(
     mode_solver: ModeSolver,
@@ -46,7 +54,7 @@ def run(
     verbose: bool = True,
     progress_callback_upload: Callable[[float], None] = None,
     progress_callback_download: Callable[[float], None] = None,
-    reduce_simulation: bool = True,
+    reduce_simulation: Literal["auto", True, False] = "auto",
 ) -> ModeSolverData:
     """Submits a :class:`.ModeSolver` to server, starts running, monitors progress, downloads,
     and loads results as a :class:`.ModeSolverData` object.
@@ -64,15 +72,14 @@ def run(
     results_file : str = "mode_solver.hdf5"
         Path to download results file (.hdf5).
     verbose : bool = True
-        If `True`, will print status, otherwise, will run silently.
+        If ``True``, will print status, otherwise, will run silently.
     progress_callback_upload : Callable[[float], None] = None
         Optional callback function called when uploading file with ``bytes_in_chunk`` as argument.
     progress_callback_download : Callable[[float], None] = None
         Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
-    reduce_simulation : bool = True
-        Restrict simulation to mode solver region. This can help reduce the amount of uploaded and
-        dowloaded data.
-
+    reduce_simulation : Literal["auto", True, False] = "auto"
+        Restrict simulation to mode solver region. If "auto", then simulation is automatically
+        restricted if it contains custom mediums.
     Returns
     -------
     :class:`.ModeSolverData`
@@ -82,6 +89,20 @@ def run(
     log_level = "DEBUG" if verbose else "INFO"
     if verbose:
         console = get_logging_console()
+
+    if reduce_simulation == "auto":
+        sim_mediums = mode_solver.simulation.scene.mediums
+        contains_custom = any(isinstance(med, AbstractCustomMedium) for med in sim_mediums)
+        reduce_simulation = contains_custom
+
+        if reduce_simulation:
+            log.warning(
+                "The associated 'Simulation' object contains custom mediums. It will be "
+                "automatically restricted to the mode solver plane to reduce data for uploading. "
+                "To force uploading the original 'Simulation' object use 'reduce_simulation=False'."
+                " Setting 'reduce_simulation=True' will force simulation reduction in all cases and"
+                " silence this warning."
+            )
 
     if reduce_simulation:
         mode_solver = mode_solver.reduced_simulation_copy
@@ -120,6 +141,109 @@ def run(
     return task.get_result(
         to_file=results_file, verbose=verbose, progress_callback=progress_callback_download
     )
+
+
+def run_batch(
+    mode_solvers: List[ModeSolver],
+    task_name: str = "BatchModeSolver",
+    folder_name: str = "BatchModeSolvers",
+    results_files: List[str] = None,
+    verbose: bool = True,
+    max_workers: int = DEFAULT_NUM_WORKERS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_delay: float = DEFAULT_RETRY_DELAY,
+    progress_callback_upload: Callable[[float], None] = None,
+    progress_callback_download: Callable[[float], None] = None,
+) -> List[ModeSolverData]:
+    """
+    Submits a batch of ModeSolver to the server concurrently, manages progress, and retrieves results.
+
+    Parameters
+    ----------
+    mode_solvers : List[ModeSolver]
+        List of mode solvers to be submitted to the server.
+    task_name : str
+        Base name for tasks. Each task in the batch will have a unique index appended to this base name.
+    folder_name : str
+        Name of the folder where tasks are stored on the server's web UI.
+    results_files : List[str], optional
+        List of file paths where the results for each ModeSolver should be downloaded. If None, a default path based on the folder name and index is used.
+    verbose : bool
+        If True, displays a progress bar. If False, runs silently.
+    max_workers : int
+        Maximum number of concurrent workers to use for processing the batch of simulations.
+    max_retries : int
+        Maximum number of retries for each simulation in case of failure before giving up.
+    retry_delay : int
+        Delay in seconds between retries when a simulation fails.
+    progress_callback_upload : Callable[[float], None], optional
+        Optional callback function called when uploading file with ``bytes_in_chunk`` as argument.
+    progress_callback_download : Callable[[float], None], optional
+        Optional callback function called when downloading file with ``bytes_in_chunk`` as argument.
+
+
+    Returns
+    -------
+    List[ModeSolverData]
+        A list of ModeSolverData objects containing the results from each simulation in the batch. ``None`` is placed in the list for simulations that fail after all retries.
+    """
+    console = get_logging_console()
+
+    if not all(isinstance(x, ModeSolver) for x in mode_solvers):
+        console.log(
+            "Validation Error: All items in `mode_solvers` must be instances of `ModeSolver`."
+        )
+        return []
+
+    num_mode_solvers = len(mode_solvers)
+
+    if results_files is None:
+        results_files = [f"mode_solver_batch_results_{i}.hdf5" for i in range(num_mode_solvers)]
+
+    def handle_mode_solver(index, progress, pbar):
+        retries = 0
+        while retries <= max_retries:
+            try:
+                result = run(
+                    mode_solver=mode_solvers[index],
+                    task_name=f"{task_name}_{index}",
+                    mode_solver_name=f"mode_solver_batch_{index}",
+                    folder_name=folder_name,
+                    results_file=results_files[index],
+                    verbose=False,
+                    progress_callback_upload=progress_callback_upload,
+                    progress_callback_download=progress_callback_download,
+                )
+                if verbose:
+                    progress.update(pbar, advance=1)
+                return result
+            except Exception as e:
+                console.log(f"Error in mode solver {index}: {str(e)}")
+                if retries < max_retries:
+                    time.sleep(retry_delay)
+                    retries += 1
+                else:
+                    console.log(f"The {index}-th mode solver failed after {max_retries} tries.")
+                    if verbose:
+                        progress.update(pbar, advance=1)
+                    return None
+
+    if verbose:
+        console.log(f"[cyan]Running a batch of [deep_pink4]{num_mode_solvers} mode solvers.\n")
+        with Progress(console=console) as progress:
+            pbar = progress.add_task("Status:", total=num_mode_solvers)
+            results = Parallel(n_jobs=max_workers, backend="threading")(
+                delayed(handle_mode_solver)(i, progress, pbar) for i in range(num_mode_solvers)
+            )
+            # Make sure the progress bar is complete
+            progress.update(pbar, completed=num_mode_solvers, refresh=True)
+            console.log("[green]A batch of `ModeSolver` tasks completed successfully!")
+    else:
+        results = Parallel(n_jobs=max_workers, backend="threading")(
+            delayed(handle_mode_solver)(i, None, None) for i in range(num_mode_solvers)
+        )
+
+    return results
 
 
 class ModeSolverTask(ResourceLifecycle, Submittable, extra=pydantic.Extra.allow):
@@ -196,17 +320,28 @@ class ModeSolverTask(ResourceLifecycle, Submittable, extra=pydantic.Extra.allow)
 
         mode_solver.validate_pre_upload()
         mode_solver.simulation.validate_pre_upload(source_required=False)
-        resp = http.post(
-            MODESOLVER_API,
-            {
-                "projectId": folder.folder_id,
-                "taskName": task_name,
-                "protocolVersion": __version__,
-                "modeSolverName": mode_solver_name,
-                "fileType": "Gz",
-                "source": "Python",
-            },
-        )
+
+        response_body = {
+            "projectId": folder.folder_id,
+            "taskName": task_name,
+            "protocolVersion": __version__,
+            "modeSolverName": mode_solver_name,
+            "fileType": "Gz",
+            "source": "Python",
+        }
+
+        resp = http.post(MODESOLVER_API, response_body)
+
+        # TODO: actually fix the root cause later.
+        # sometimes POST for mode returns None and crashes the log.info call.
+        # For now this catches it and raises a better error that we can debug.
+        if resp is None:
+            raise WebError(
+                "'ModeSolver' POST request returned 'None'. If you received this error, please "
+                "raise an issue on the Tidy3D front end GitHub repository referencing the following"
+                f"response body '{response_body}'."
+            )
+
         log.info(
             "Mode solver created with task_id='%s', solver_id='%s'.", resp["refId"], resp["id"]
         )
@@ -313,7 +448,10 @@ class ModeSolverTask(ResourceLifecycle, Submittable, extra=pydantic.Extra.allow)
         The mode solver must be uploaded to the server with the :meth:`ModeSolverTask.upload` method
         before this step.
         """
-        http.post(f"{MODESOLVER_API}/{self.task_id}/{self.solver_id}/run")
+        http.post(
+            f"{MODESOLVER_API}/{self.task_id}/{self.solver_id}/run",
+            {"enableCaching": Env.current.enable_caching},
+        )
 
     def delete(self):
         """Delete the mode solver and its corresponding task from the server."""

@@ -1,23 +1,36 @@
 """Objects that define how data is recorded from simulation."""
+
 from abc import ABC, abstractmethod
-from typing import Union, Tuple
+from typing import Tuple, Union
 
-import pydantic.v1 as pydantic
 import numpy as np
+import pydantic.v1 as pydantic
 
-from .types import Ax, EMField, ArrayFloat1D, FreqArray, FreqBound, Bound, Size
-from .types import Literal, Direction, Coordinate, Axis, ObsGridArray, BoxSurface
-from .validators import assert_plane, validate_freqs_not_empty, validate_freqs_min
-from .base import cached_property, Tidy3dBaseModel, skip_if_fields_missing
-from .mode import ModeSpec
-from .apodization import ApodizationSpec
-from .medium import MediumType
-from .viz import ARROW_COLOR_MONITOR, ARROW_ALPHA
-from ..constants import HERTZ, SECOND, MICROMETER, RADIAN, inf
+from ..constants import HERTZ, MICROMETER, RADIAN, SECOND, inf
 from ..exceptions import SetupError, ValidationError
 from ..log import log
-
+from .apodization import ApodizationSpec
+from .base import Tidy3dBaseModel, cached_property, skip_if_fields_missing
 from .base_sim.monitor import AbstractMonitor
+from .medium import MediumType
+from .mode import ModeSpec
+from .types import (
+    ArrayFloat1D,
+    Ax,
+    Axis,
+    Bound,
+    BoxSurface,
+    Coordinate,
+    Direction,
+    EMField,
+    FreqArray,
+    FreqBound,
+    Literal,
+    ObsGridArray,
+    Size,
+)
+from .validators import assert_plane, validate_freqs_min, validate_freqs_not_empty
+from .viz import ARROW_ALPHA, ARROW_COLOR_MONITOR
 
 BYTES_REAL = 4
 BYTES_COMPLEX = 8
@@ -216,14 +229,14 @@ class AbstractFieldMonitor(Monitor, ABC):
         description="Collection of field components to store in the monitor.",
     )
 
-    interval_space: Tuple[
-        pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt
-    ] = pydantic.Field(
-        (1, 1, 1),
-        title="Spatial Interval",
-        description="Number of grid step intervals between monitor recordings. If equal to 1, "
-        "there will be no downsampling. If greater than 1, the step will be applied, but the "
-        "first and last point of the monitor grid are always included.",
+    interval_space: Tuple[pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt] = (
+        pydantic.Field(
+            (1, 1, 1),
+            title="Spatial Interval",
+            description="Number of grid step intervals between monitor recordings. If equal to 1, "
+            "there will be no downsampling. If greater than 1, the step will be applied, but the "
+            "first and last point of the monitor grid are always included.",
+        )
     )
 
     colocate: bool = pydantic.Field(
@@ -232,6 +245,23 @@ class AbstractFieldMonitor(Monitor, ABC):
         description="Toggle whether fields should be colocated to grid cell boundaries (i.e. "
         "primal grid nodes).",
     )
+
+    def _storage_size_solver(self, num_cells: int, tmesh: ArrayFloat1D) -> int:
+        """Size of intermediate data recorded by the monitor during a solver run."""
+        final_data_size = self.storage_size(num_cells=num_cells, tmesh=tmesh)
+        if len(self.fields) == 0:
+            return 0
+
+        # internally solver stores all E components if any one is requested, and same for H
+        field_components_factor = 0
+        if any(comp[0] == "E" for comp in self.fields):
+            field_components_factor += 3
+        if any(comp[0] == "H" for comp in self.fields):
+            field_components_factor += 3
+
+        # take out the stored field components factor and use the solver factor instead
+        solver_data_size = final_data_size / len(self.fields) * field_components_factor
+        return solver_data_size
 
 
 class PlanarMonitor(Monitor, ABC):
@@ -252,6 +282,12 @@ class AbstractModeMonitor(PlanarMonitor, FreqMonitor):
         ...,
         title="Mode Specification",
         description="Parameters to feed to mode solver which determine modes measured by monitor.",
+    )
+
+    store_fields_direction: Direction = pydantic.Field(
+        None,
+        title="Store Fields",
+        description="Propagation direction for the mode field profiles stored from mode solving.",
     )
 
     def plot(
@@ -438,14 +474,14 @@ class PermittivityMonitor(FreqMonitor):
         "physical meaning - they do not correspond to the subpixel-averaged ones.",
     )
 
-    interval_space: Tuple[
-        pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt
-    ] = pydantic.Field(
-        (1, 1, 1),
-        title="Spatial Interval",
-        description="Number of grid step intervals between monitor recordings. If equal to 1, "
-        "there will be no downsampling. If greater than 1, the step will be applied, but the "
-        "first and last point of the monitor grid are always included.",
+    interval_space: Tuple[pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt] = (
+        pydantic.Field(
+            (1, 1, 1),
+            title="Spatial Interval",
+            description="Number of grid step intervals between monitor recordings. If equal to 1, "
+            "there will be no downsampling. If greater than 1, the step will be applied, but the "
+            "first and last point of the monitor grid are always included.",
+        )
     )
 
     apodization: ApodizationSpec = pydantic.Field(
@@ -599,11 +635,11 @@ class ModeMonitor(AbstractModeMonitor):
     ------
 
         The fields recorded by frequency monitors (and hence also mode monitors) are automatically
-        normalized by the power amplitude spectrum of the source. For multiple sources, the user can select which
-        source to use for the normalization too.
+        normalized by the power amplitude spectrum of the source. For multiple sources, the user can
+        select which source to use for the normalization too.
 
-        We can also use the mode amplitudes recorded in the mode monitor to reveal the decomposition of the radiated
-        power into forward- and backward-propagating modes, respectively.
+        We can also use the mode amplitudes recorded in the mode monitor to reveal the decomposition
+        of the radiated power into forward- and backward-propagating modes, respectively.
 
         .. TODO give an example of how to extract the data from this mode.
 
@@ -640,8 +676,13 @@ class ModeMonitor(AbstractModeMonitor):
 
     def storage_size(self, num_cells: int, tmesh: int) -> int:
         """Size of monitor storage given the number of points after discretization."""
-        # stores 3 complex numbers per frequency, per mode.
-        return 3 * BYTES_COMPLEX * len(self.freqs) * self.mode_spec.num_modes
+        amps_size = 3 * BYTES_COMPLEX * len(self.freqs) * self.mode_spec.num_modes
+        fields_size = 0
+        if self.store_fields_direction is not None:
+            fields_size = 6 * BYTES_COMPLEX * num_cells * len(self.freqs) * self.mode_spec.num_modes
+            if self.mode_spec.precision == "double":
+                fields_size *= 2
+        return amps_size + fields_size
 
 
 class ModeSolverMonitor(AbstractModeMonitor):
@@ -672,6 +713,20 @@ class ModeSolverMonitor(AbstractModeMonitor):
         description="Toggle whether fields should be colocated to grid cell boundaries (i.e. "
         "primal grid nodes).",
     )
+
+    @pydantic.root_validator(skip_on_failure=True)
+    def set_store_fields(cls, values):
+        """Ensure 'store_fields_direction' is compatible with 'direction'."""
+        store_fields_direction = values["store_fields_direction"]
+        direction = values["direction"]
+        if store_fields_direction is None:
+            values["store_fields_direction"] = direction
+        elif store_fields_direction != direction:
+            raise ValidationError(
+                f"The values of 'direction' ({direction}) and 'store_fields_direction' "
+                f"({store_fields_direction}) must be equal."
+            )
+        return values
 
     def storage_size(self, num_cells: int, tmesh: int) -> int:
         """Size of monitor storage given the number of points after discretization."""
@@ -716,7 +771,7 @@ class FieldProjectionSurface(Tidy3dBaseModel):
 
     @pydantic.validator("monitor", always=True)
     def is_plane(cls, val):
-        """Ensures that the monitor is a plane, i.e., its `size` attribute has exactly 1 zero"""
+        """Ensures that the monitor is a plane, i.e., its ``size`` attribute has exactly 1 zero"""
         size = val.size
         if size.count(0.0) != 1:
             raise ValidationError(f"Monitor '{val.name}' must be planar, given size={size}")
@@ -746,19 +801,19 @@ class AbstractFieldProjectionMonitor(SurfaceIntegrationMonitor, FreqMonitor):
         "in the far field of the device.",
     )
 
-    interval_space: Tuple[
-        pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt
-    ] = pydantic.Field(
-        (1, 1, 1),
-        title="Spatial Interval",
-        description="Number of grid step intervals at which near fields are recorded for "
-        "projection to the far field, along each direction. If equal to 1, there will be no "
-        "downsampling. If greater than 1, the step will be applied, but the first and last "
-        "point of the monitor grid are always included. Using values greater than 1 can "
-        "help speed up server-side far field projections with minimal accuracy loss, "
-        "especially in cases where it is necessary for the grid resolution to be high for "
-        "the FDTD simulation, but such a high resolution is unnecessary for the purpose of "
-        "projecting the recorded near fields to the far field.",
+    interval_space: Tuple[pydantic.PositiveInt, pydantic.PositiveInt, pydantic.PositiveInt] = (
+        pydantic.Field(
+            (1, 1, 1),
+            title="Spatial Interval",
+            description="Number of grid step intervals at which near fields are recorded for "
+            "projection to the far field, along each direction. If equal to 1, there will be no "
+            "downsampling. If greater than 1, the step will be applied, but the first and last "
+            "point of the monitor grid are always included. Using values greater than 1 can "
+            "help speed up server-side far field projections with minimal accuracy loss, "
+            "especially in cases where it is necessary for the grid resolution to be high for "
+            "the FDTD simulation, but such a high resolution is unnecessary for the purpose of "
+            "projecting the recorded near fields to the far field.",
+        )
     )
 
     window_size: Tuple[pydantic.NonNegativeFloat, pydantic.NonNegativeFloat] = pydantic.Field(
@@ -1184,7 +1239,7 @@ class FieldProjectionKSpaceMonitor(AbstractFieldProjectionMonitor):
      Notes
      -----
 
-         The :attr:`center` and :attr:`size`
+        The :attr:`center` and :attr:`size`
         fields define where the monitor will be placed in order to record near fields, typically
         very close to the structure of interest. The near fields are then
         projected to far-field locations defined in k-space by ``ux``, ``uy``, and ``proj_distance``,
@@ -1346,6 +1401,10 @@ class DiffractionMonitor(PlanarMonitor, FreqMonitor):
         """Size of monitor storage given the number of points after discretization."""
         # assumes 1 diffraction order per frequency; actual size will be larger
         return BYTES_COMPLEX * len(self.freqs)
+
+    def _storage_size_solver(self, num_cells: int, tmesh: ArrayFloat1D) -> int:
+        """Size of intermediate data recorded by the monitor during a solver run."""
+        return BYTES_COMPLEX * num_cells * len(self.freqs) * 6
 
 
 # types of monitors that are accepted by simulation

@@ -1,9 +1,8 @@
-"""handles filesystem, storage
-"""
-import os
-import tempfile
+"""handles filesystem, storage"""
 
+import os
 import pathlib
+import tempfile
 import urllib
 from datetime import datetime
 from enum import Enum
@@ -12,13 +11,20 @@ from typing import Callable, Mapping
 import boto3
 from boto3.s3.transfer import TransferConfig
 from pydantic.v1 import BaseModel, Field
-from rich.progress import TextColumn, Progress, BarColumn, DownloadColumn
-from rich.progress import TransferSpeedColumn, TimeRemainingColumn
-from .http_util import http
-from .file_util import extract_gzip_file
-from .environment import Env
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
+
 from .core_config import get_logger_console
+from .environment import Env
 from .exceptions import WebError
+from .file_util import extract_gzip_file
+from .http_util import http
 
 
 class _UserCredential(BaseModel):
@@ -391,6 +397,10 @@ def download_gz_file(
     # The tempfile is set as ``hdf5.gz`` so that the mock download in the webapi tests works
     tmp_file, tmp_file_path = tempfile.mkstemp(".hdf5.gz")
     os.close(tmp_file)
+
+    # make the leading directories in the 'to_file', if any
+    to_file = pathlib.Path(to_file)
+    to_file.parent.mkdir(parents=True, exist_ok=True)
     try:
         download_file(
             resource_id,

@@ -1,10 +1,9 @@
-import pytest
 import tempfile
 
+import pytest
 import responses
-from responses import matchers
-
 import tidy3d as td
+from responses import matchers
 from tidy3d.web.core import http_util
 from tidy3d.web.core.environment import Env, EnvironmentConfig
 from tidy3d.web.core.task_core import Folder, SimulationTask
@@ -214,6 +213,7 @@ def test_submit(set_api_key):
                     "protocolVersion": http_util.get_version(),
                     "solverVersion": None,
                     "workerGroup": None,
+                    "enableCaching": Env.current.enable_caching,
                 }
             )
         ],

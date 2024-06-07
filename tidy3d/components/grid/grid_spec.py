@@ -1,26 +1,26 @@
-""" Defines classes specifying meshing in 1D and a collective class for 3D """
+"""Defines classes specifying meshing in 1D and a collective class for 3D"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pydantic.v1 as pd
 
-from .grid import Coords1D, Coords, Grid
-from .mesher import GradedMesher, MesherType
+from ...constants import C_0, MICROMETER, fp_eps
+from ...exceptions import SetupError
+from ...log import log
 from ..base import Tidy3dBaseModel
-from ..types import Axis, Symmetry, annotate_type, TYPE_TAG_STR
+from ..geometry.base import Box
 from ..source import SourceType
 from ..structure import Structure, StructureType
-from ..geometry.base import Box
-from ...log import log
-from ...exceptions import SetupError
-from ...constants import MICROMETER, C_0, fp_eps
+from ..types import TYPE_TAG_STR, Axis, Symmetry, annotate_type
+from .grid import Coords, Coords1D, Grid
+from .mesher import GradedMesher, MesherType
 
 
 class GridSpec1d(Tidy3dBaseModel, ABC):
-
     """Abstract base class, defines 1D grid generation specifications."""
 
     def make_coords(
@@ -134,7 +134,6 @@ class GridSpec1d(Tidy3dBaseModel, ABC):
 
 
 class UniformGrid(GridSpec1d):
-
     """Uniform 1D grid. The most standard way to define a simulation is to use a constant grid size in each of the three directions.
 
     Example
@@ -197,7 +196,6 @@ class UniformGrid(GridSpec1d):
 
 
 class CustomGrid(GridSpec1d):
-
     """Custom 1D grid supplied as a list of grid cell sizes centered on the simulation center.
 
     Example
@@ -266,26 +264,44 @@ class CustomGrid(GridSpec1d):
         buffer = fp_eps * size
         bound_min = center - size / 2 - buffer
         bound_max = center + size / 2 + buffer
-        bound_coords = bound_coords[bound_coords <= bound_max]
-        bound_coords = bound_coords[bound_coords >= bound_min]
 
-        # if not extending to simulation bounds, repeat beginning and end
-        dl_min = dl[0]
-        dl_max = dl[-1]
-        while bound_coords[0] - dl_min >= bound_min:
-            bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
-        while bound_coords[-1] + dl_max <= bound_max:
-            bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
+        if bound_max < bound_coords[0] or bound_min > bound_coords[-1]:
+            axis_name = "xyz"[axis]
+            raise SetupError(
+                f"Simulation domain does not overlap with the provided custom grid in '{axis_name}' direction."
+            )
 
-        # in case a `custom_offset` is provided, it's possible the bounds were numerically within
-        # the simulation bounds but were still chopped off, which is fixed here
-        if self.custom_offset is not None:
-            if np.isclose(bound_coords[0] - dl_min, bound_min):
+        if size == 0:
+            # in case of zero-size dimension return the boundaries between which simulation falls
+            ind = np.searchsorted(bound_coords, center, side="right")
+
+            # in case when the center coincides with the right most boundary
+            if ind >= len(bound_coords):
+                ind = len(bound_coords) - 1
+
+            return bound_coords[ind - 1 : ind + 1]
+
+        else:
+            bound_coords = bound_coords[bound_coords <= bound_max]
+            bound_coords = bound_coords[bound_coords >= bound_min]
+
+            # if not extending to simulation bounds, repeat beginning and end
+            dl_min = dl[0]
+            dl_max = dl[-1]
+            while bound_coords[0] - dl_min >= bound_min:
                 bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
-            if np.isclose(bound_coords[-1] + dl_max, bound_max):
+            while bound_coords[-1] + dl_max <= bound_max:
                 bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
 
-        return bound_coords
+            # in case a `custom_offset` is provided, it's possible the bounds were numerically within
+            # the simulation bounds but were still chopped off, which is fixed here
+            if self.custom_offset is not None:
+                if np.isclose(bound_coords[0] - dl_min, bound_min):
+                    bound_coords = np.insert(bound_coords, 0, bound_coords[0] - dl_min)
+                if np.isclose(bound_coords[-1] + dl_max, bound_max):
+                    bound_coords = np.append(bound_coords, bound_coords[-1] + dl_max)
+
+            return bound_coords
 
 
 class AutoGrid(GridSpec1d):
@@ -334,6 +350,7 @@ class AutoGrid(GridSpec1d):
         "structures present in the simulation, including override structures "
         "with ``enforced=True``. It is a soft bound, meaning that the actual minimal "
         "grid size might be slightly smaller.",
+        units=MICROMETER,
     )
 
     mesher: MesherType = pd.Field(
@@ -429,7 +446,6 @@ GridType = Union[UniformGrid, CustomGrid, AutoGrid]
 
 
 class GridSpec(Tidy3dBaseModel):
-
     """Collective grid specification for all three dimensions.
 
     Example

@@ -1,36 +1,40 @@
 """global configuration / base class for pydantic models used to make simulation."""
+
 from __future__ import annotations
 
+import hashlib
+import io
 import json
-import pathlib
 import os
+import pathlib
 import tempfile
 from functools import wraps
-from typing import List, Callable, Dict, Union, Tuple, Any
 from math import ceil
-import io
-import hashlib
+from typing import Any, Callable, Dict, List, Tuple, Union
 
-import rich
-import pydantic.v1 as pydantic
-from pydantic.v1.fields import ModelField
-import yaml
-import numpy as np
 import h5py
+import numpy as np
+import pydantic.v1 as pydantic
+import rich
 import xarray as xr
+import yaml
+from autograd.builtins import dict as dict_ag
+from autograd.tracer import isbox
+from pydantic.v1.fields import ModelField
 
-from .types import ComplexNumber, Literal, TYPE_TAG_STR
-from .data.data_array import DataArray, DATA_ARRAY_MAP
-from .file_util import compress_file_to_gzip, extract_gzip_file
 from ..exceptions import FileError
 from ..log import log
-
+from .autograd import AutogradFieldMap, Box, get_static
+from .data.data_array import AUTOGRAD_KEY, DATA_ARRAY_MAP, DataArray
+from .file_util import compress_file_to_gzip, extract_gzip_file
+from .types import TYPE_TAG_STR, ComplexNumber, Literal
 
 INDENT_JSON_FILE = 4  # default indentation of json string in json files
 INDENT = None  # default indentation of json string used internally
 JSON_TAG = "JSON_STRING"
 # If json string is larger than ``MAX_STRING_LENGTH``, split the string when storing in hdf5
-MAX_STRING_LENGTH = 1e9
+MAX_STRING_LENGTH = 1_000_000_000
+FORBID_SPECIAL_CHARACTERS = ["/"]
 
 
 def cache(prop):
@@ -173,6 +177,7 @@ class Tidy3dBaseModel(pydantic.BaseModel):
             np.ndarray: ndarray_encoder,
             complex: lambda x: ComplexNumber(real=x.real, imag=x.imag),
             xr.DataArray: DataArray._json_encoder,
+            Box: lambda x: x._value,
         }
         frozen = True
         allow_mutation = False
@@ -180,17 +185,93 @@ class Tidy3dBaseModel(pydantic.BaseModel):
 
     _cached_properties = pydantic.PrivateAttr({})
 
-    def copy(self, **kwargs) -> Tidy3dBaseModel:
+    @pydantic.root_validator(skip_on_failure=True)
+    def _special_characters_not_in_name(cls, values):
+        name = values.get("name")
+        if name:
+            for character in FORBID_SPECIAL_CHARACTERS:
+                if character in name:
+                    raise ValueError(
+                        f"Special character '{character}' not allowed in component name {name}."
+                    )
+        return values
+
+    attrs: dict = pydantic.Field(
+        {},
+        title="Attributes",
+        description="Dictionary storing arbitrary metadata for a Tidy3D object. "
+        "This dictionary can be freely used by the user for storing data without affecting the "
+        "operation of Tidy3D as it is not used internally. "
+        "Note that, unlike regular Tidy3D fields, ``attrs`` are mutable. "
+        "For example, the following is allowed for setting an ``attr`` ``obj.attrs['foo'] = bar``. "
+        "Also note that `Tidy3D`` will raise a ``TypeError`` if ``attrs`` contain objects "
+        "that can not be serialized. One can check if ``attrs`` are serializable "
+        "by calling ``obj.json()``.",
+    )
+
+    def copy(self, deep: bool = True, **kwargs) -> Tidy3dBaseModel:
         """Copy a Tidy3dBaseModel.  With ``deep=True`` as default."""
-        if "deep" in kwargs and kwargs["deep"] is False:
-            raise ValueError("Can't do shallow copy of component, set `deep=True` in copy().")
-        kwargs.update(dict(deep=True))
+        kwargs.update(deep=deep)
         new_copy = pydantic.BaseModel.copy(self, **kwargs)
         return self.validate(new_copy.dict())
 
-    def updated_copy(self, **kwargs) -> Tidy3dBaseModel:
+    def updated_copy(self, path: str = None, deep: bool = True, **kwargs) -> Tidy3dBaseModel:
+        """Make copy of a component instance with ``**kwargs`` indicating updated field values.
+
+        Note
+        ----
+        If ``path`` supplied, applies the updated copy with the update performed on the sub-
+        component corresponding to the path. For indexing into a tuple or list, use the integer
+        value.
+
+        Example
+        -------
+        >>> sim = simulation.updated_copy(size=new_size, path=f"structures/{i}/geometry") # doctest: +SKIP
+        """
+
+        if not path:
+            return self._updated_copy(**kwargs, deep=deep)
+
+        path_components = path.split("/")
+
+        field_name = path_components[0]
+
+        try:
+            sub_component = getattr(self, field_name)
+        except AttributeError as e:
+            raise AttributeError(
+                f"Could not field field '{field_name}' in the sub-component `path`. "
+                f"Found fields of '{tuple(self.__fields__.keys())}'. "
+                "Please double check the `path` passed to `.updated_copy()`."
+            ) from e
+
+        if isinstance(sub_component, (list, tuple)):
+            integer_index_path = path_components[1]
+
+            try:
+                index = int(integer_index_path)
+            except ValueError:
+                raise ValueError(
+                    f"Could not grab integer index from path '{path}'. "
+                    f"Please correct the sub path containing '{integer_index_path}' to be an "
+                    f"integer index into '{field_name}' (containing {len(sub_component)} elements)."
+                )
+
+            sub_component_list = list(sub_component)
+            sub_component = sub_component_list[index]
+            sub_path = "/".join(path_components[2:])
+
+            sub_component_list[index] = sub_component.updated_copy(path=sub_path, **kwargs)
+            new_component = tuple(sub_component_list)
+        else:
+            sub_path = "/".join(path_components[1:])
+            new_component = sub_component.updated_copy(path=sub_path, **kwargs)
+
+        return self._updated_copy(**{field_name: new_component})
+
+    def _updated_copy(self, deep: bool = True, **kwargs) -> Tidy3dBaseModel:
         """Make copy of a component instance with ``**kwargs`` indicating updated field values."""
-        return self.copy(update=kwargs)
+        return self.copy(update=kwargs, deep=deep)
 
     def help(self, methods: bool = False) -> None:
         """Prints message describing the fields and methods of a :class:`Tidy3dBaseModel`.
@@ -761,7 +842,7 @@ class Tidy3dBaseModel(pydantic.BaseModel):
         return hash(self) >= hash(other)
 
     def __eq__(self, other):
-        """Define == for two Tidy3DBaseModels."""
+        """Define == for two Tidy3dBaseModels."""
         if other is None:
             return False
 
@@ -776,6 +857,9 @@ class Tidy3dBaseModel(pydantic.BaseModel):
             for key in dict1.keys():
                 val1 = dict1[key]
                 val2 = dict2[key]
+
+                val1 = get_static(val1)
+                val2 = get_static(val2)
 
                 # if one of val1 or val2 is None (exclusive OR)
                 if (val1 is None) != (val2 is None):
@@ -843,6 +927,116 @@ class Tidy3dBaseModel(pydantic.BaseModel):
         json_string = make_json_compatible(json_string)
         return json_string
 
+    def strip_traced_fields(
+        self, starting_path: tuple[str] = (), include_untraced_data_arrays: bool = False
+    ) -> AutogradFieldMap:
+        """Extract a dictionary mapping paths in the model to the data traced by ``autograd``.
+
+        Parameters
+        ----------
+        starting_path : tuple[str, ...] = ()
+            If provided, starts recursing in self.dict() from this path of field names
+        include_untraced_data_arrays : bool = False
+            Whether to include ``DataArray`` objects without tracers.
+            We need to include these when returning data, but are unnecessary for structures.
+
+        Returns
+        -------
+        dict
+            mapping of traced fields used by ``autograd``
+
+        """
+
+        field_mapping = {}
+
+        def handle_value(x: Any, path: tuple[str, ...]) -> None:
+            """recursively update ``field_mapping`` with path to the autograd data."""
+
+            # this is a leaf node that we want to trace, add this path and data to the mapping
+            if isbox(x):
+                field_mapping[path] = x
+
+            # for data arrays, need to be more careful as their tracers are stored in attrs
+            elif isinstance(x, DataArray):
+                # try to grab the traced values from the `attrs` (if traced)
+                if AUTOGRAD_KEY in x.attrs:
+                    field_mapping[path] = x.attrs[AUTOGRAD_KEY]
+
+                # or just grab the static value out of the values
+                elif include_untraced_data_arrays:
+                    field_mapping[path] = get_static(x.values)
+
+            # for sequences, add (i,) to the path and handle each value individually
+            elif isinstance(x, (list, tuple)):
+                for i, val in enumerate(x):
+                    sub_paths = path + (i,)
+                    handle_value(val, path=sub_paths)
+
+            # for dictionaries, add the (key,) to the path and handle each value individually
+            elif isinstance(x, dict):
+                for key, val in x.items():
+                    sub_paths = path + (key,)
+                    handle_value(val, path=sub_paths)
+
+        # recursively parse the dictionary of this object
+        self_dict = self.dict()
+
+        # if an include_only string was provided, only look at that subset of the dict
+        if starting_path:
+            for key in starting_path:
+                self_dict = self_dict[key]
+
+        handle_value(self_dict, path=starting_path)
+
+        # convert the resulting field_mapping to an autograd-traced dictionary
+        return dict_ag(field_mapping)
+
+    def insert_traced_fields(self, field_mapping: AutogradFieldMap) -> Tidy3dBaseModel:
+        """Recursively insert a map of paths to autograd-traced fields into a copy of this obj."""
+
+        self_dict = self.dict()
+
+        def insert_value(x, path: tuple[str, ...], sub_dict: dict):
+            """Insert a value into the path into a dictionary."""
+            current_dict = sub_dict
+            for key in path[:-1]:
+                if isinstance(current_dict[key], tuple):
+                    current_dict[key] = list(current_dict[key])
+                current_dict = current_dict[key]
+
+            final_key = path[-1]
+            if isinstance(current_dict[final_key], tuple):
+                current_dict[final_key] = list(current_dict[final_key])
+
+            sub_element = current_dict[final_key]
+            if isinstance(sub_element, DataArray):
+                current_dict[final_key] = sub_element.copy(deep=False, data=x)
+                if "AUTOGRAD" in sub_element.attrs:
+                    current_dict[final_key].attrs["AUTOGRAD"] = x
+            else:
+                current_dict[final_key] = x
+
+        for path, value in field_mapping.items():
+            insert_value(value, path=path, sub_dict=self_dict)
+
+        return self.parse_obj(self_dict)
+
+    def to_static(self) -> Tidy3dBaseModel:
+        """Version of object with all autograd-traced fields removed."""
+
+        # get dictionary of all traced fields
+        field_mapping = self.strip_traced_fields()
+
+        # shortcut to just return self if no tracers found, for performance
+        if not field_mapping:
+            return self
+
+        # convert all fields to static values
+        field_mapping_static = {key: get_static(val) for key, val in field_mapping.items()}
+
+        # insert the static values into a copy of self
+        return self.insert_traced_fields(field_mapping_static)
+
     @classmethod
     def add_type_field(cls) -> None:
         """Automatically place "type" field with model name in the model field dictionary."""
@@ -890,21 +1084,14 @@ class Tidy3dBaseModel(pydantic.BaseModel):
                 # handle cases where default values are pydantic models
                 default_val = f"{default_val.__class__.__name__}({default_val})"
                 default_val = (", ").join(default_val.split(" "))
-                default_val = default_val.replace("=", "")
 
             # make first line: name : type = default
             default_str = "" if field.required else f" = {default_val}"
-            doc += f"\n\t\t``{field_name}``: Attribute: :attr:`{field_name}` \n"
-            doc += "\n\t\t\t .. list-table::"
-            doc += "\n\t\t\t\t:widths: 20 80\n"
-            doc += "\n\t\t\t\t* -    ``Type``"
-            doc += f"\n\t\t\t\t  -    *{data_type}*"
-            doc += "\n\t\t\t\t* -    ``Default``"
-            doc += f"\n\t\t\t\t  -     {default_str}"
+            doc += f"    {field_name} : {data_type}{default_str}\n"
 
             # get field metadata
             field_info = field.field_info
-            # doc += "        "
+            doc += "        "
 
             # add units (if present)
             units = field_info.extra.get("units")
@@ -918,14 +1105,12 @@ class Tidy3dBaseModel(pydantic.BaseModel):
                     unitstr += ")"
                 else:
                     unitstr = units
-                doc += "\n\t\t\t\t* -    ``Units``"
-                doc += f"\n\t\t\t\t  -    `{unitstr}`"
+                doc += f"[units = {unitstr}].  "
 
             # add description
             description_str = field_info.description
             if description_str is not None:
-                doc += "\n\t\t\t\t* -    ``Description``"
-                doc += f"\n\t\t\t\t  -    {description_str}\n"
+                doc += f"{description_str}\n"
 
         # add in remaining things in the docs
         if original_docstrings:

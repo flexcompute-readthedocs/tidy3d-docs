@@ -5,7 +5,7 @@ Adjoint
 
 .. toctree::
 
-    adjoint_readme
+    ../../../tidy3d/plugins/adjoint/README
 
 .. autosummary::
    :toctree: ../_autosummary/
@@ -15,6 +15,7 @@ Adjoint
    tidy3d.plugins.adjoint.web.run_async
    tidy3d.plugins.adjoint.JaxBox
    tidy3d.plugins.adjoint.JaxPolySlab
+   tidy3d.plugins.adjoint.JaxComplexPolySlab
    tidy3d.plugins.adjoint.JaxMedium
    tidy3d.plugins.adjoint.JaxAnisotropicMedium
    tidy3d.plugins.adjoint.JaxCustomMedium

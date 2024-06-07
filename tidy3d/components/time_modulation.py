@@ -1,19 +1,21 @@
-""" Defines time modulation to the medium"""
+"""Defines time modulation to the medium"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Union
 from math import isclose
+from typing import Union
 
-import pydantic.v1 as pd
 import numpy as np
+import pydantic.v1 as pd
 
-from .base import Tidy3dBaseModel, cached_property, skip_if_fields_missing
-from .types import InterpMethod, Bound
-from .time import AbstractTimeDependence
-from .data.data_array import SpatialDataArray
-from ..exceptions import ValidationError
 from ..constants import HERTZ, RADIAN
+from ..exceptions import ValidationError
+from .base import Tidy3dBaseModel, cached_property, skip_if_fields_missing
+from .data.data_array import SpatialDataArray
+from .data.validators import validate_no_nans
+from .time import AbstractTimeDependence
+from .types import Bound, InterpMethod
 
 
 class AbstractTimeModulation(AbstractTimeDependence, ABC):
@@ -144,6 +146,9 @@ class SpaceModulation(AbstractSpaceModulation):
         title="Interpolation method",
         description="Method of interpolation to use to obtain values at spatial locations on the Yee grids.",
     )
+
+    _no_nans_amplitude = validate_no_nans("amplitude")
+    _no_nans_phase = validate_no_nans("phase")
 
     @pd.validator("amplitude", always=True)
     def _real_amplitude(cls, val):
@@ -290,7 +295,7 @@ class ModulationSpec(Tidy3dBaseModel):
 
     @cached_property
     def applied_modulation(self) -> bool:
-        """Check if any modulation has been applied to `permittivity` or `conductivity`."""
+        """Check if any modulation has been applied to ``permittivity`` or ``conductivity``."""
         return self.permittivity is not None or self.conductivity is not None
 
     def sel_inside(self, bounds: Bound) -> ModulationSpec:

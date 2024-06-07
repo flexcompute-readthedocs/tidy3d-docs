@@ -1,69 +1,19 @@
-""" Defines 'types' that various fields can be """
+"""Defines 'types' that various fields can be"""
 
-from typing import Tuple, Union, Any
-import functools
+from typing import Tuple, Union
 
 # Literal only available in python 3.8 + so try import otherwise use extensions
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-from typing_extensions import Annotated
-
+import autograd.numpy as np
 import pydantic.v1 as pydantic
-import numpy as np
 from matplotlib.axes import Axes
 from shapely.geometry.base import BaseGeometry
-from ..exceptions import ValidationError, Tidy3dImportError
+from typing_extensions import Annotated
 
-
-try:
-    import trimesh
-except ImportError:
-    trimesh = None
-
-vtk = {
-    "mod": None,
-    "id_type": np.int64,
-    "vtk_to_numpy": None,
-    "numpy_to_vtkIdTypeArray": None,
-    "numpy_to_vtk": None,
-}
-
-
-def requires_vtk(fn):
-    """When decorating a method, requires that vtk is available."""
-
-    @functools.wraps(fn)
-    def _fn(*args, **kwargs):
-        if vtk["mod"] is None:
-            try:
-                import vtk as vtk_mod
-                from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
-                from vtk.util.numpy_support import numpy_to_vtkIdTypeArray
-                from vtkmodules.vtkCommonCore import vtkLogger
-
-                vtk["mod"] = vtk_mod
-                vtk["vtk_to_numpy"] = vtk_to_numpy
-                vtk["numpy_to_vtkIdTypeArray"] = numpy_to_vtkIdTypeArray
-                vtk["numpy_to_vtk"] = numpy_to_vtk
-
-                vtkLogger.SetStderrVerbosity(vtkLogger.VERBOSITY_WARNING)
-
-                if vtk["mod"].vtkIdTypeArray().GetDataTypeSize() == 4:
-                    vtk["id_type"] = np.int32
-
-            except ImportError:
-                raise Tidy3dImportError(
-                    "The package 'vtk' is required for this operation, but it was not found. "
-                    "Please install the 'vtk' dependencies using, for example, "
-                    "'pip install -r requirements/vtk.txt'."
-                )
-
-        return fn(*args, **kwargs)
-
-    return _fn
-
+from ..exceptions import ValidationError
 
 # type tag default name
 TYPE_TAG_STR = "type"
@@ -118,9 +68,7 @@ class ArrayLike:
     def convert_to_numpy(cls, val):
         """Convert the value to np.ndarray and provide some casting."""
         arr_numpy = np.array(val, ndmin=1, dtype=cls.dtype, copy=True)
-        arr_tidy3d = np.ndarray(shape=arr_numpy.shape, dtype=arr_numpy.dtype)
-        arr_tidy3d[:] = arr_numpy
-        return arr_tidy3d
+        return arr_numpy
 
     @classmethod
     def check_dims(cls, val):
@@ -174,6 +122,7 @@ def constrained_array(
 
 
 # pre-define a set of commonly used array like instances for import and use in type hints
+ArrayInt1D = constrained_array(dtype=int, ndim=1)
 ArrayFloat1D = constrained_array(dtype=float, ndim=1)
 ArrayFloat2D = constrained_array(dtype=float, ndim=2)
 ArrayFloat3D = constrained_array(dtype=float, ndim=3)
@@ -245,7 +194,7 @@ Shapely = BaseGeometry
 PlanePosition = Literal["bottom", "middle", "top"]
 ClipOperationType = Literal["union", "intersection", "difference", "symmetric_difference"]
 BoxSurface = Literal["x-", "x+", "y-", "y+", "z-", "z+"]
-TrimeshType = Any if trimesh is None else trimesh.Trimesh
+
 
 """ medium """
 

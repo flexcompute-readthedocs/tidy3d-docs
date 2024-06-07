@@ -1,17 +1,16 @@
 """Defines specification for mode solver."""
 
-from typing import Tuple, Union
 from math import isclose
+from typing import Tuple, Union
 
-import pydantic.v1 as pd
 import numpy as np
+import pydantic.v1 as pd
 
-from ..constants import MICROMETER, RADIAN, GLANCING_CUTOFF, fp_eps
+from ..constants import GLANCING_CUTOFF, MICROMETER, RADIAN, fp_eps
+from ..exceptions import SetupError, ValidationError
+from ..log import log
 from .base import Tidy3dBaseModel, skip_if_fields_missing
 from .types import Axis2D, Literal, TrackFreq
-from ..log import log
-from ..exceptions import SetupError, ValidationError
-
 
 GROUP_INDEX_STEP = 0.005
 
@@ -157,7 +156,7 @@ class ModeSpec(Tidy3dBaseModel):
     @pd.validator("bend_radius", always=True)
     def bend_radius_not_zero(cls, val, values):
         """Check that ``bend_raidus`` magnitude is not close to zero.`"""
-        if val and isclose(val, 0):
+        if val is not None and isclose(val, 0):
             raise SetupError("The magnitude of 'bend_radius' must be larger than 0.")
         return val
 

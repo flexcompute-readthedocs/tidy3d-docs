@@ -1,20 +1,20 @@
 """Abstract base for simulation data structures."""
+
 from __future__ import annotations
-from typing import Dict, Tuple, Union
 
 from abc import ABC
+from typing import Dict, Tuple, Union
 
-import xarray as xr
-import pydantic.v1 as pd
 import numpy as np
+import pydantic.v1 as pd
+import xarray as xr
 
-from .monitor_data import AbstractMonitorData
-from ..simulation import AbstractSimulation
-from ...data.dataset import UnstructuredGridDatasetType
-from ...base import Tidy3dBaseModel
-from ...base import skip_if_fields_missing
-from ...types import FieldVal
 from ....exceptions import DataError, Tidy3dKeyError, ValidationError
+from ...base import Tidy3dBaseModel, skip_if_fields_missing
+from ...data.dataset import UnstructuredGridDatasetType
+from ...types import FieldVal
+from ..simulation import AbstractSimulation
+from .monitor_data import AbstractMonitorData
 
 
 class AbstractSimulationData(Tidy3dBaseModel, ABC):
@@ -101,11 +101,11 @@ class AbstractSimulationData(Tidy3dBaseModel, ABC):
         xarray.DataArray
             Value extracted from the field component.
         """
-        if val == "real":
+        if val in ("real", "re"):
             field_value = field_component.real
             field_value = field_value.rename(f"Re{{{field_component.name}}}")
 
-        elif val == "imag":
+        elif val in ("imag", "im"):
             field_value = field_component.imag
             field_value = field_value.rename(f"Im{{{field_component.name}}}")
 
@@ -120,5 +120,10 @@ class AbstractSimulationData(Tidy3dBaseModel, ABC):
         elif val == "phase":
             field_value = np.arctan2(field_component.imag, field_component.real)
             field_value = field_value.rename(f"∠{field_component.name}")
+
+        else:
+            raise Tidy3dKeyError(
+                f"Couldn't find 'val={val}'. Must be one of 'real', 're', 'imag', 'im', 'abs', 'abs^2', 'phase'."
+            )
 
         return field_value

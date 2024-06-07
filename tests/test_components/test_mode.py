@@ -1,7 +1,8 @@
 """Tests mode objects."""
-import pytest
-import pydantic.v1 as pydantic
+
 import numpy as np
+import pydantic.v1 as pydantic
+import pytest
 import tidy3d as td
 
 
@@ -22,6 +23,11 @@ def test_modes():
 def test_bend_axis_not_given():
     with pytest.raises(pydantic.ValidationError):
         _ = td.ModeSpec(bend_radius=1.0, bend_axis=None)
+
+
+def test_zero_radius():
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.ModeSpec(bend_radius=0.0, bend_axis=1)
 
 
 def test_glancing_incidence():
