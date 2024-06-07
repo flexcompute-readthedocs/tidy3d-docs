@@ -2,30 +2,56 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import List, Tuple, Any, Union, Callable
-from math import isclose
 import functools
 import pathlib
+from abc import ABC, abstractmethod
+from typing import Any, Callable, List, Tuple, Union
 
+import autograd.numpy as np
 import pydantic.v1 as pydantic
-import numpy as np
 import shapely
+import xarray as xr
 from matplotlib import patches
 
-from ..base import Tidy3dBaseModel, cached_property
-from ..types import Ax, Axis, PlanePosition, Shapely, ClipOperationType, annotate_type
-from ..types import Bound, Size, Coordinate, Coordinate2D
-from ..types import ArrayFloat2D, ArrayFloat3D, MatrixReal4x4
-from ..viz import add_ax_if_none, equal_aspect, PLOT_BUFFER, ARROW_LENGTH
-from ..viz import PlotParams, plot_params_geometry, polygon_patch, arrow_style
-from ..transformation import RotationAroundAxis
+from ...constants import LARGE_NUMBER, MICROMETER, RADIAN, fp_eps, inf
+from ...exceptions import (
+    SetupError,
+    Tidy3dError,
+    Tidy3dImportError,
+    Tidy3dKeyError,
+    ValidationError,
+)
 from ...log import log
-from ...exceptions import SetupError, ValidationError
-from ...exceptions import Tidy3dKeyError, Tidy3dError, Tidy3dImportError
-from ...constants import MICROMETER, LARGE_NUMBER, RADIAN, inf, fp_eps
-from ...packaging import verify_packages_import, check_import
-
+from ...packaging import check_import, verify_packages_import
+from ..autograd import TracedCoordinate, TracedSize, get_static, integrate_within_bounds
+from ..base import Tidy3dBaseModel, cached_property
+from ..data.dataset import ElectromagneticFieldDataset, PermittivityDataset
+from ..transformation import RotationAroundAxis
+from ..types import (
+    ArrayFloat2D,
+    ArrayFloat3D,
+    Ax,
+    Axis,
+    Bound,
+    ClipOperationType,
+    Coordinate,
+    Coordinate2D,
+    MatrixReal4x4,
+    PlanePosition,
+    Shapely,
+    Size,
+    annotate_type,
+)
+from ..viz import (
+    ARROW_LENGTH,
+    PLOT_BUFFER,
+    PlotParams,
+    add_ax_if_none,
+    arrow_style,
+    equal_aspect,
+    plot_params_geometry,
+    polygon_patch,
+)
 
 POLY_GRID_SIZE = 1e-12
 
@@ -78,7 +104,7 @@ class Geometry(Tidy3dBaseModel, ABC):
         def point_inside(x: float, y: float, z: float):
             """Returns ``True`` if a single point ``(x, y, z)`` is inside."""
             shapes_intersect = self.intersections_plane(z=z)
-            loc = shapely.Point(x, y)
+            loc = self.make_shapely_point(x, y)
             return any(shape.contains(loc) for shape in shapes_intersect)
 
         arrays = tuple(map(np.array, (x, y, z)))
@@ -95,6 +121,26 @@ class Geometry(Tidy3dBaseModel, ABC):
         shapes = {np.array(arr).shape for arr in arrays}
         if len(shapes) > 1:
             raise ValueError("All coordinate inputs (x, y, z) must have the same shape.")
+
+    @staticmethod
+    def make_shapely_box(minx: float, miny: float, maxx: float, maxy: float) -> shapely.box:
+        """Make a shapely box ensuring everything untraced."""
+
+        minx = get_static(minx)
+        miny = get_static(miny)
+        maxx = get_static(maxx)
+        maxy = get_static(maxy)
+
+        return shapely.box(minx, miny, maxx, maxy)
+
+    @staticmethod
+    def make_shapely_point(minx: float, miny: float) -> shapely.Point:
+        """Make a shapely Point ensuring everything untraced."""
+
+        minx = get_static(minx)
+        miny = get_static(miny)
+
+        return shapely.Point(minx, miny)
 
     def _inds_inside_bounds(
         self, x: np.ndarray[float], y: np.ndarray[float], z: np.ndarray[float]
@@ -226,13 +272,20 @@ class Geometry(Tidy3dBaseModel, ABC):
         )
         return plane.intersections_with(self)
 
-    def intersects(self, other) -> bool:
+    def intersects(
+        self, other, strict_inequality: Tuple[bool, bool, bool] = [False, False, False]
+    ) -> bool:
         """Returns ``True`` if two :class:`Geometry` have intersecting `.bounds`.
 
         Parameters
         ----------
         other : :class:`Geometry`
             Geometry to check intersection with.
+        strict_inequality : Tuple[bool, bool, bool] = [False, False, False]
+            For each dimension, defines whether to include equality in the boundaries comparison.
+            If ``False``, equality is included, and two geometries that only intersect at their
+            boundaries will evaluate as ``True``. If ``True``, such geometries will evaluate as
+            ``False``.
 
         Returns
         -------
@@ -243,14 +296,19 @@ class Geometry(Tidy3dBaseModel, ABC):
         self_bmin, self_bmax = self.bounds
         other_bmin, other_bmax = other.bounds
 
-        # are all of other's minimum coordinates less than self's maximum coordinate?
-        in_minus = all(o <= s for (s, o) in zip(self_bmax, other_bmin))
+        for smin, omin, smax, omax, strict in zip(
+            self_bmin, other_bmin, self_bmax, other_bmax, strict_inequality
+        ):
+            # are all of other's minimum coordinates less than self's maximum coordinate?
+            in_minus = omin < smax if strict else omin <= smax
+            # are all of other's maximum coordinates greater than self's minimum coordinate?
+            in_plus = omax > smin if strict else omax >= smin
 
-        # are all of other's maximum coordinates greater than self's minimum coordinate?
-        in_plus = all(o >= s for (s, o) in zip(self_bmin, other_bmax))
+            # if either failed, return False
+            if not all((in_minus, in_plus)):
+                return False
 
-        # for intersection of bounds, both must be true
-        return in_minus and in_plus
+        return True
 
     def intersects_plane(self, x: float = None, y: float = None, z: float = None) -> bool:
         """Whether self intersects plane specified by one non-None value of x,y,z.
@@ -533,6 +591,7 @@ class Geometry(Tidy3dBaseModel, ABC):
     @staticmethod
     def _evaluate_inf(array):
         """Processes values and evaluates any infs into large (signed) numbers."""
+        array = get_static(np.array(array))
         return np.where(np.isinf(array), np.sign(array) * LARGE_NUMBER, array)
 
     @staticmethod
@@ -1368,6 +1427,20 @@ class Geometry(Tidy3dBaseModel, ABC):
         pathlib.Path(fname).parent.mkdir(parents=True, exist_ok=True)
         library.write_gds(fname)
 
+    def compute_derivatives(
+        self,
+        field_paths: list[tuple[str, ...]],
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> dict[str, Any]:
+        """Compute the adjoint derivative for this geometry."""
+
+        raise NotImplementedError(f"Can't compute derivative for 'Geometry': '{type(self)}'.")
+
     def _as_union(self) -> List[Geometry]:
         """Return a list of geometries that, united, make up the given geometry."""
         if isinstance(self, GeometryGroup):
@@ -1448,7 +1521,7 @@ class Geometry(Tidy3dBaseModel, ABC):
 class Centered(Geometry, ABC):
     """Geometry with a well defined center."""
 
-    center: Coordinate = pydantic.Field(
+    center: TracedCoordinate = pydantic.Field(
         (0.0, 0.0, 0.0),
         title="Center",
         description="Center of object in x, y, and z.",
@@ -1741,7 +1814,7 @@ class Box(SimplePlaneIntersection, Centered):
     >>> b = Box(center=(1,2,3), size=(2,2,2))
     """
 
-    size: Size = pydantic.Field(
+    size: TracedSize = pydantic.Field(
         ...,
         title="Size",
         description="Size in x, y, and z directions.",
@@ -1971,10 +2044,10 @@ class Box(SimplePlaneIntersection, Centered):
         maxy = y0 + Ly / 2
 
         # handle case where the box vertices are identical
-        if isclose(minx, maxx) and isclose(miny, maxy):
-            return [shapely.Point(minx, miny)]
+        if np.isclose(minx, maxx) and np.isclose(miny, maxy):
+            return [self.make_shapely_point(minx, miny)]
 
-        return [shapely.box(minx, miny, maxx, maxy)]
+        return [self.make_shapely_box(minx, miny, maxx, maxy)]
 
     def inside(
         self, x: np.ndarray[float], y: np.ndarray[float], z: np.ndarray[float]
@@ -2036,7 +2109,8 @@ class Box(SimplePlaneIntersection, Centered):
 
         # intersect all shapes with the input self
         bs_min, bs_max = (self.pop_axis(bounds, axis=normal_ind)[1] for bounds in self.bounds)
-        shapely_box = shapely.box(bs_min[0], bs_min[1], bs_max[0], bs_max[1])
+
+        shapely_box = self.make_shapely_box(bs_min[0], bs_min[1], bs_max[0], bs_max[1])
         shapely_box = Geometry.evaluate_inf_shape(shapely_box)
         return [Geometry.evaluate_inf_shape(shape) & shapely_box for shape in shapes_plane]
 
@@ -2262,6 +2336,199 @@ class Box(SimplePlaneIntersection, Centered):
             + length[1] * length[2] * in_bounds_factor[0]
             + length[2] * length[0] * in_bounds_factor[1]
         )
+
+    """ Autograd code """
+
+    def compute_derivatives(
+        self,
+        field_paths: list[tuple[str, ...]],
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> dict[str, Any]:
+        """Compute adjoint derivatives for each of the ``field_path``s."""
+
+        # get gradients w.r.t. each of the 6 faces (in normal direction)
+        vjps_faces = self.derivative_faces(
+            E_der_map=E_der_map,
+            D_der_map=D_der_map,
+            eps_data=eps_data,
+            eps_in=eps_in,
+            eps_out=eps_out,
+            bounds=bounds,
+        )
+
+        # post-process these values to give the gradients w.r.t. center and size
+        vjps_center_size = self.derivatives_center_size(vjps_faces=vjps_faces)
+
+        # store only the gradients asked for in 'field_paths'
+        derivative_map = {}
+        for field_path in field_paths:
+            field_name, *index = field_path
+
+            if field_name in vjps_center_size:
+                # if the vjp calls for a specific index into the tuple
+                if index and len(index) == 1:
+                    index = int(index[0])
+                    if field_path not in derivative_map:
+                        derivative_map[field_path] = vjps_center_size[field_name][index]
+
+                # otherwise, just grab the whole array
+                else:
+                    derivative_map[field_path] = vjps_center_size[field_name]
+
+        return derivative_map
+
+    @staticmethod
+    def derivatives_center_size(vjps_faces: Bound) -> dict[str, Coordinate]:
+        """Derivatives with respect to the ``center`` and ``size`` fields in the ``Box``."""
+
+        vjps_faces_min, vjps_faces_max = np.array(vjps_faces)
+
+        # post-process min and max face gradients into center and size
+        vjp_center = vjps_faces_max - vjps_faces_min
+        vjp_size = (vjps_faces_min + vjps_faces_max) / 2.0
+
+        return dict(
+            center=tuple(vjp_center.tolist()),
+            size=tuple(vjp_size.tolist()),
+        )
+
+    def derivative_faces(
+        self,
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> Bound:
+        """Derivative with respect to normal position of 6 faces of ``Box``."""
+
+        # change in permittivity between inside and outside
+        vjp_faces = np.zeros((2, 3))
+
+        for min_max_index, _ in enumerate((0, -1)):
+            for axis in range(3):
+                vjp_face = self.derivative_face(
+                    min_max_index=min_max_index,
+                    axis_normal=axis,
+                    E_der_map=E_der_map,
+                    D_der_map=D_der_map,
+                    eps_data=eps_data,
+                    eps_in=eps_in,
+                    eps_out=eps_out,
+                    bounds=bounds,
+                )
+
+                # record vjp for this face
+                vjp_faces[min_max_index, axis] = vjp_face
+
+        return vjp_faces
+
+    def derivative_face(
+        self,
+        min_max_index: int,
+        axis_normal: Axis,
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> float:
+        """Compute the derivative w.r.t. shifting a face in the normal direction."""
+
+        # normal and tangential dims
+        dim_normal, dims_perp = self.pop_axis("xyz", axis=axis_normal)
+        fld_normal, flds_perp = self.pop_axis(("Ex", "Ey", "Ez"), axis=axis_normal)
+
+        # normal and tangential fields
+        D_normal = D_der_map.field_components[fld_normal]
+        Es_perp = tuple(E_der_map.field_components[key] for key in flds_perp)
+
+        # normal and tangential bounds
+        bounds_T = np.array(bounds).T  # put (xyz) first dimension
+        bounds_normal, bounds_perp = self.pop_axis(bounds_T, axis=axis_normal)
+
+        # define the integration plane
+        coord_normal_face = bounds_normal[min_max_index]
+        bounds_perp = np.array(bounds_perp).T  # put (min / max) first dimension for integrator
+
+        # normal field data coordinates
+        fld_coords_normal = D_normal.coords[dim_normal]
+
+        # condition: a face is entirely outside of the domain, skip!
+        sign = (-1, 1)[min_max_index]
+        normal_coord_positive = sign * coord_normal_face
+        fld_coords_positive = sign * fld_coords_normal
+        if all(fld_coords_positive < normal_coord_positive):
+            log.info(
+                f"skipping VJP for 'Box' face '{dim_normal}{'-+'[min_max_index]}' "
+                "as it is entirely outside of the simulation domain."
+            )
+            return 0.0
+
+        # grab permittivity data inside and outside edge in normal direction
+        eps_xyz = [eps_data.field_components[f"eps_{dim}{dim}"] for dim in "xyz"]
+
+        # number of cells from the edge of data to register "inside" (index = num_cells_in - 1)
+        num_cells_in = 4
+
+        # if not enough data, just use best guess using eps in medium and simulation
+        if any(len(eps.coords[dim_normal]) <= num_cells_in for eps in eps_xyz):
+            eps_xyz_inside = 3 * [eps_in]
+            eps_xyz_outside = 3 * [eps_out]
+            # TODO: not tested...
+
+        # otherwise, try to grab the data at the edges
+        else:
+            if min_max_index == 0:
+                index_out, index_in = (0, num_cells_in - 1)
+            else:
+                index_out, index_in = (-1, -num_cells_in - 1)
+            eps_xyz_inside = [eps.isel(**{dim_normal: index_in}) for eps in eps_xyz]
+            eps_xyz_outside = [eps.isel(**{dim_normal: index_out}) for eps in eps_xyz]
+
+        # put in normal / tangential basis
+        eps_in_normal, eps_in_perps = self.pop_axis(eps_xyz_inside, axis=axis_normal)
+        eps_out_normal, eps_out_perps = self.pop_axis(eps_xyz_outside, axis=axis_normal)
+
+        # compute integration pre-factors
+        delta_eps_perps = [eps_in - eps_out for eps_in, eps_out in zip(eps_in_perps, eps_out_perps)]
+        delta_eps_inv_normal = 1.0 / eps_in_normal - 1.0 / eps_out_normal
+
+        def integrate_face(arr: xr.DataArray) -> complex:
+            """Interpolate and integrate a scalar field data over the face using bounds."""
+
+            arr_at_face = arr.interp(**{dim_normal: coord_normal_face})
+
+            integral_result = integrate_within_bounds(
+                arr=arr_at_face,
+                dims=dims_perp,
+                bounds=bounds_perp,
+            )
+
+            return complex(integral_result.sum(dim="f"))
+
+        # put together VJP using D_normal and E_perp integration
+        vjp_value = 0.0
+
+        # perform D-normal integral
+        integrand_D = -delta_eps_inv_normal * D_normal
+        integral_D = integrate_face(integrand_D)
+        vjp_value += integral_D
+
+        # perform E-perpendicular integrals
+        for E_perp, delta_eps_perp in zip(Es_perp, delta_eps_perps):
+            integrand_E = E_perp * delta_eps_perp
+            integral_E = integrate_face(integrand_E)
+            vjp_value += integral_E
+
+        return np.real(vjp_value)
 
 
 """Compound subclasses"""

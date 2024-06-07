@@ -6,8 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Support for `.gz` files in `Simulation` version updater.
-- Warning if a nonuniform custom medium is intersecting `PlaneWave`, `GaussianBeam`, `AstigmaticGaussianBeam`, `FieldProjectionCartesianMonitor`, `FieldProjectionAngleMonitor`, `FieldProjectionKSpaceMonitor`, and `DiffractionMonitor`.
+- Automatic differentiation supported natively in Tidy3D components, and through the `web.run()` and `web.run_async()` functions through `autograd`.
+- A batch of `ModeSolver` objects can be run concurrently using `tidy3d.plugins.mode.web.run_batch()`
+- `RectangularWaveguide.plot_field` optionally draws geometry edges over fields. 
+- `RectangularWaveguide` supports layered cladding above and below core.
+- `SubpixelSpec` accepted by `Simulation.subpixel` to select subpixel averaging methods separately for dielectric, metal, and PEC materials. Specifically, added support for conformal mesh methods near PEC structures that can be specified through the field `pec` in the `SubpixelSpec` class. Note: previously, `subpixel=False` was implementing staircasing for every material except PEC. Now, `subpixel=False` implements direct staircasing for all materials. For PEC, the behavior of `subpixel=False` in Tidy3D < 2.7 is now achieved through `subpixel=SubpixelSpec(pec=HeuristicPECStaircasing())`, while `subpixel=True` in Tidy3D < 2.7 is now achieved through `subpixel=SubpixelSpec(pec=Staircasing())`. The default is `subpixel=SubpixelSpec(pec=PECConformal())` for more accurate PEC modelling.
+- Lossless `Green2008` variant for crystalline silicon added to material library.
+
+### Changed
+- Default variant for silicon dioxide in material library switched from `Horiba` to `Palik_Lossless`.
+
+### Changed
+- Sources and monitors which are exactly at the simulation domain boundaries will now error. They can still be placed very close to the boundaries, but need to be on the inside of the region.
+
+### Fixed
+- `ModeSolver.plot_field` correctly returning the plot axes.
+- Avoid error if non-positive refractive index used for integration resolution in adjoint.
+- Make `Batch.monitor` robust if the run status is not found.
+
+## [2.7.0rc2] - 2024-05-14
+
+### Added
 - Tidy3D objects may store arbitrary metadata in an `.attrs` dictionary.
 - `JaxSimulation` now supports the following GDS export methods: `to_gds()`, `to_gds_file()`, `to_gdspy()`, and `to_gdstk()`.
 - `RunTimeSpec` accepted by `Simulation.run_time` to adaptively set the run time based on Q-factor, propagation length, and other factors.
@@ -17,14 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-upload validator to check that mode sources overlap with more than 2 grid cells.
 - Support `2DMedium` for `Transformed`/`GeometryGroup`/`ClipOperation` geometries.
 - `num_proc` argument to `tidy3d.plugins.adjoint.web.run_local` to control the number of processes used on the local machine for gradient processing.
+- Support for complex and self-intersecting polyslabs in adjoint module via `JaxComplexPolySlab`.
+- Support for `.gz` files in `Simulation` version updater.
+- Warning if a nonuniform custom medium is intersecting `PlaneWave`, `GaussianBeam`, `AstigmaticGaussianBeam`, `FieldProjectionCartesianMonitor`, `FieldProjectionAngleMonitor`, `FieldProjectionKSpaceMonitor`, and `DiffractionMonitor`.
+- Added a `CoaxialLumpedPort` and `CoaxialLumpedResistor` for coaxial type transmission lines and excitations.
 
 ### Changed
-- `tidy3d convert` from `.lsf` files to tidy3d scripts is moved to another repository at `https://github.com/hirako22/Lumerical-to-Tidy3D-Converter`.
-- Relax validation of smallest triangles area in `TriangleMesh`.
+- `tidy3d convert` from `.lsf` files to tidy3d scripts has moved to another repository at `https://github.com/hirako22/Lumerical-to-Tidy3D-Converter`.
+- Relax validation of smallest triangle area in `TriangleMesh`.
 
 ### Fixed
 - Bug in plotting and computing tilted plane intersections of transformed 0 thickness geometries.
-- `Simulation.to_gdspy()` and `Simulation.to_gdstk()` now place polygons in GDS layer `(0, 0)` when no `gds_layer_dtype_map` is provided instead of erroring.
+- `Simulation.to_gdspy()` and `Simulation.to_gdstk()` now place polygons in GDS layer `(0, 0)` when no `gds_layer_dtype_map` is provided, instead of erroring.
 - `task_id` now properly stored in `JaxSimulationData`.
 - Bug in `FastDispersionFitter` when poles move close to input frequencies.
 - Bug in plotting polarization vector of angled sources.
@@ -39,7 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduces the `microwave` plugin which includes `ImpedanceCalculator` for computing the characteristic impedance of transmission lines.
 - `Simulation` now accepts `LumpedElementType`, which currently only supports the `LumpedResistor` type. `LumpedPort` together with `LumpedResistor` make up the new `TerminalComponentModeler` in the `smatrix` plugin.
 - Uniaxial medium Lithium Niobate to material library.
-- Added support for conformal mesh methods near PEC structures that can be specified through the field `pec_conformal_mesh_spec` in the `Simulation` class. Note: previously, `subpixel=False` was implementing staircasing for every material except PEC. Now, `subpixel=False` implements direct staircasing for all materials. For PEC, the behavior of `subpixel=False` in Tidy3D < 2.7 is now achieved through `subpixel=True` and `pec_conformal_mesh_spec=HeuristicConformalMeshSpec()`, while `subpixel=True` in Tidy3D < 2.7 is now achieved through the default settings `subpixel=True` and `pec_conformal_mesh_spec=StaircasingConformalMeshSpec()`. Additionally, a new `BenklerConformalMeshSpec()` was introduced for more accurate PEC modelling.
 - Properties `num_time_steps_adjoint` and `tmesh_adjoint` to `JaxSimulation` to estimate adjoint run time.
 - Ability to add `path` to `updated_copy()` method to recursively update sub-components of a tidy3d model. For example `sim2 = sim.updated_copy(size=new_size, path="structures/0/geometry")` creates a recursively updated copy of `sim` where `sim.structures[0].geometry` is updated with `size=new_size`.
 - Python 3.12 support. Python 3.8 deprecation. Updated dependencies.
@@ -1208,7 +1230,8 @@ which fields are to be projected is now determined automatically based on the me
 - Job and Batch classes for better simulation handling (eventually to fully replace webapi functions).
 - A large number of small improvements and bug fixes.
 
-[Unreleased]: https://github.com/flexcompute/tidy3d/compare/v2.7.0rc1...pre/2.7
+[Unreleased]: https://github.com/flexcompute/tidy3d/compare/v2.7.0rc2...pre/2.7
+[2.7.0rc2]: https://github.com/flexcompute/tidy3d/compare/v2.6.4...v2.7.0rc2
 [2.7.0rc1]: https://github.com/flexcompute/tidy3d/compare/v2.6.3...v2.7.0rc1
 [2.6.4]: https://github.com/flexcompute/tidy3d/compare/v2.6.3...v2.6.4
 [2.6.3]: https://github.com/flexcompute/tidy3d/compare/v2.6.2...v2.6.3

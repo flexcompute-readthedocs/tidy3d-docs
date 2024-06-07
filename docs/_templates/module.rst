@@ -1,12 +1,14 @@
 :html_theme.sidebar_secondary.remove:
 {{ fullname | escape | underline}}
 
+.. currentmodule:: tidy3d
+
 .. autoclass:: {{ fullname }}
    :members:
    :show-inheritance:
    :undoc-members:
    :member-order: bysource
-   :exclude-members: SchemaConfig,__init__,Config
+   :exclude-members: SchemaConfig,__init__,Config,attrs,chunk,copy,json,log
 
    {% block attributes %}
    {% if attributes %}

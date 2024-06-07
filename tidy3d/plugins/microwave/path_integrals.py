@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
-import pydantic.v1 as pd
-import numpy as np
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union
+from typing import Union
 
-from ...components.data.monitor_data import FieldData, FieldTimeData, ModeSolverData
+import numpy as np
+import pydantic.v1 as pd
+
+from ...components.base import Tidy3dBaseModel, cached_property
 from ...components.data.data_array import (
+    FreqDataArray,
+    FreqModeDataArray,
     ScalarFieldDataArray,
     ScalarFieldTimeDataArray,
     ScalarModeFieldDataArray,
+    TimeDataArray,
 )
-from ...components.data.data_array import FreqDataArray, TimeDataArray, FreqModeDataArray
-from ...components.base import cached_property, Tidy3dBaseModel
-from ...components.types import Axis, Direction
+from ...components.data.monitor_data import FieldData, FieldTimeData, ModeSolverData
 from ...components.geometry.base import Box
+from ...components.types import Axis, Direction
 from ...components.validators import assert_line, assert_plane
-from ...exceptions import Tidy3dError, DataError
+from ...exceptions import DataError, Tidy3dError
 
 MonitorDataTypes = Union[FieldData, FieldTimeData, ModeSolverData]
 EMScalarFieldType = Union[ScalarFieldDataArray, ScalarFieldTimeDataArray, ScalarModeFieldDataArray]
@@ -26,7 +29,9 @@ IntegralResultTypes = Union[FreqDataArray, FreqModeDataArray, TimeDataArray]
 
 
 class AbstractAxesRH(Tidy3dBaseModel, ABC):
-    """Represents an axis-aligned right-handed coordinate system with one axis preferred."""
+    """Represents an axis-aligned right-handed coordinate system with one axis preferred.
+    Typically `main_axis` would refer to the normal axis of a plane.
+    """
 
     @cached_property
     @abstractmethod
@@ -34,14 +39,27 @@ class AbstractAxesRH(Tidy3dBaseModel, ABC):
         """Get the preferred axis."""
 
     @cached_property
-    def remaining_axes(self) -> Tuple[Axis, Axis]:
+    def remaining_axes(self) -> tuple[Axis, Axis]:
         """Get in-plane axes, ordered to maintain a right-handed coordinate system."""
-        axes: List[Axis] = [0, 1, 2]
+        axes: list[Axis] = [0, 1, 2]
         axes.pop(self.main_axis)
         if self.main_axis == 1:
             return (axes[1], axes[0])
         else:
             return (axes[0], axes[1])
+
+    @cached_property
+    def remaining_dims(self) -> tuple[str, str]:
+        """Get in-plane dimensions, ordered to maintain a right-handed coordinate system."""
+        dim1 = "xyz"[self.remaining_axes[0]]
+        dim2 = "xyz"[self.remaining_axes[1]]
+        return (dim1, dim2)
+
+    @cached_property
+    def local_dims(self) -> tuple[str, str, str]:
+        """Get in-plane dimensions with in-plane dims first, followed by the `main_axis` dimension."""
+        dim3 = "xyz"[self.main_axis]
+        return self.remaining_dims + tuple(dim3)
 
 
 class AxisAlignedPathIntegral(AbstractAxesRH, Box):
@@ -110,10 +128,8 @@ class AxisAlignedPathIntegral(AbstractAxesRH, Box):
 
     def _get_field_along_path(self, scalar_field: EMScalarFieldType) -> EMScalarFieldType:
         """Returns a selection of the input ``scalar_field`` ready for integration."""
-        axis1 = self.remaining_axes[0]
-        axis2 = self.remaining_axes[1]
-        coord1 = "xyz"[axis1]
-        coord2 = "xyz"[axis2]
+        (axis1, axis2) = self.remaining_axes
+        (coord1, coord2) = self.remaining_dims
 
         if self.snap_path_to_grid:
             # Coordinates that are not integrated
@@ -248,15 +264,15 @@ class CurrentIntegralAxisAligned(AbstractAxesRH, Box):
                 return index
         raise Tidy3dError("Failed to identify axis.")
 
-    def _to_path_integrals(self, h_horizontal, h_vertical) -> Tuple[AxisAlignedPathIntegral, ...]:
+    def _to_path_integrals(self, h_horizontal, h_vertical) -> tuple[AxisAlignedPathIntegral, ...]:
         """Returns four ``AxisAlignedPathIntegral`` instances, which represent a contour
         integral around the surface defined by ``self.size``."""
         ax1 = self.remaining_axes[0]
         ax2 = self.remaining_axes[1]
 
         if self.snap_contour_to_grid:
-            coord1 = "xyz"[ax1]
-            coord2 = "xyz"[ax2]
+            (coord1, coord2) = self.remaining_dims
+
             # Locations where horizontal paths will be snapped
             v_bounds = [
                 self.center[ax2] - self.size[ax2] / 2,

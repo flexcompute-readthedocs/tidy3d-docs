@@ -2,58 +2,100 @@
 
 from __future__ import annotations
 
-from typing import Dict, Tuple, List, Set, Union
-from abc import ABC, abstractmethod
-
-import pydantic.v1 as pydantic
-import numpy as np
-import xarray as xr
-import matplotlib as mpl
 import math
 import pathlib
+from abc import ABC, abstractmethod
+from typing import Dict, List, Set, Tuple, Union
 
-from .base import cached_property
-from .base import skip_if_fields_missing
-from .validators import assert_objects_in_sim_bounds
-from .validators import validate_mode_objects_symmetry
-from .geometry.base import Geometry, Box
-from .geometry.mesh import TriangleMesh
-from .geometry.utils import flatten_groups, traverse_geometries
-from .geometry.utils_2d import get_bounds, get_thickened_geom
-from .geometry.utils_2d import subdivide, snap_coordinate_to_grid
-from .types import Ax, FreqBound, Axis, annotate_type, InterpMethod, Symmetry
-from .types import Literal, TYPE_TAG_STR
-from .grid.grid import Coords1D, Grid, Coords
-from .grid.grid_spec import GridSpec, UniformGrid, AutoGrid, CustomGrid
-from .grid.grid_spec import ConformalMeshSpecType, StaircasingConformalMeshSpec
-from .medium import MediumType, AbstractMedium
-from .medium import AbstractCustomMedium, Medium, Medium2D, MediumType3D
-from .medium import AnisotropicMedium, FullyAnisotropicMedium, AbstractPerturbationMedium
-from .boundary import BoundarySpec, BlochBoundary, PECBoundary, PMCBoundary, Periodic, Boundary
-from .boundary import PML, StablePML, Absorber, AbsorberSpec
-from .structure import Structure, MeshOverrideStructure
-from .source import SourceType, PlaneWave, GaussianBeam, AstigmaticGaussianBeam, CustomFieldSource
-from .source import CustomCurrentSource, CustomSourceTime, ContinuousWave
-from .source import TFSF, Source, ModeSource
-from .monitor import ModeMonitor, MonitorType, Monitor, FreqMonitor, SurfaceIntegrationMonitor
-from .monitor import AbstractModeMonitor, FieldMonitor, TimeMonitor, FieldTimeMonitor
-from .monitor import PermittivityMonitor, DiffractionMonitor, AbstractFieldProjectionMonitor
-from .monitor import FieldProjectionAngleMonitor, FieldProjectionKSpaceMonitor
-from .lumped_element import LumpedElementType, LumpedResistor
-from .data.dataset import Dataset, CustomSpatialDataType
-from .viz import add_ax_if_none, equal_aspect
-from .scene import Scene, MAX_NUM_MEDIUMS
-from .run_time_spec import RunTimeSpec
-from .viz import PlotParams
-from .viz import plot_params_pml, plot_params_override_structures
-from .viz import plot_params_pec, plot_params_pmc, plot_params_bloch, plot_sim_3d
+import autograd.numpy as np
+import matplotlib as mpl
+import pydantic.v1 as pydantic
+import xarray as xr
 
 from ..constants import C_0, SECOND, fp_eps, inf
-from ..exceptions import SetupError, ValidationError, Tidy3dError, Tidy3dImportError
+from ..exceptions import SetupError, Tidy3dError, Tidy3dImportError, ValidationError
 from ..log import log
 from ..updater import Updater
-
+from .autograd import AutogradFieldMap
+from .base import cached_property, skip_if_fields_missing
 from .base_sim.simulation import AbstractSimulation
+from .boundary import (
+    PML,
+    Absorber,
+    AbsorberSpec,
+    BlochBoundary,
+    Boundary,
+    BoundarySpec,
+    PECBoundary,
+    Periodic,
+    PMCBoundary,
+    StablePML,
+)
+from .data.dataset import CustomSpatialDataType, Dataset
+from .geometry.base import Box, Geometry
+from .geometry.mesh import TriangleMesh
+from .geometry.utils import flatten_groups, traverse_geometries
+from .geometry.utils_2d import get_bounds, get_thickened_geom, snap_coordinate_to_grid, subdivide
+from .grid.grid import Coords, Coords1D, Grid
+from .grid.grid_spec import AutoGrid, CustomGrid, GridSpec, UniformGrid
+from .lumped_element import LumpedElementType
+from .medium import (
+    AbstractCustomMedium,
+    AbstractMedium,
+    AbstractPerturbationMedium,
+    AnisotropicMedium,
+    FullyAnisotropicMedium,
+    Medium,
+    Medium2D,
+    MediumType,
+    MediumType3D,
+)
+from .monitor import (
+    AbstractFieldProjectionMonitor,
+    AbstractModeMonitor,
+    DiffractionMonitor,
+    FieldMonitor,
+    FieldProjectionAngleMonitor,
+    FieldProjectionKSpaceMonitor,
+    FieldTimeMonitor,
+    FreqMonitor,
+    ModeMonitor,
+    Monitor,
+    MonitorType,
+    PermittivityMonitor,
+    SurfaceIntegrationMonitor,
+    TimeMonitor,
+)
+from .run_time_spec import RunTimeSpec
+from .scene import MAX_NUM_MEDIUMS, Scene
+from .source import (
+    TFSF,
+    AstigmaticGaussianBeam,
+    ContinuousWave,
+    CustomCurrentSource,
+    CustomFieldSource,
+    CustomSourceTime,
+    GaussianBeam,
+    ModeSource,
+    PlaneWave,
+    Source,
+    SourceType,
+)
+from .structure import MeshOverrideStructure, Structure
+from .subpixel_spec import SubpixelSpec
+from .types import TYPE_TAG_STR, Ax, Axis, FreqBound, InterpMethod, Literal, Symmetry, annotate_type
+from .validators import assert_objects_in_sim_bounds, validate_mode_objects_symmetry
+from .viz import (
+    PlotParams,
+    add_ax_if_none,
+    equal_aspect,
+    plot_params_bloch,
+    plot_params_override_structures,
+    plot_params_pec,
+    plot_params_pmc,
+    plot_params_pml,
+    plot_sim_3d,
+)
 
 try:
     gdstk_available = True
@@ -150,15 +192,20 @@ class AbstractYeeGridSimulation(AbstractSimulation, ABC):
         * `Using automatic nonuniform meshing <../../notebooks/AutoGrid.html>`_
     """
 
-    subpixel: bool = pydantic.Field(
-        True,
+    subpixel: Union[bool, SubpixelSpec] = pydantic.Field(
+        SubpixelSpec(),
         title="Subpixel Averaging",
-        description="If ``True``, uses subpixel averaging of the permittivity "
-        "based on structure definition, resulting in much higher accuracy for a given grid size.",
+        description="Apply subpixel averaging methods of the permittivity on structure interfaces "
+        "to result in much higher accuracy for a given grid size. Supply a :class:`SubpixelSpec` "
+        "to this field to select subpixel averaging methods separately on dielectric, metal, and "
+        "PEC material interfaces. Alternatively, user may supply a boolean value: "
+        "``True`` to apply the default subpixel averaging methods corresponding to ``SubpixelSpec()`` "
+        ", or ``False`` to apply staircasing.",
     )
     """
-    If ``True``, uses subpixel averaging of the permittivity based on structure definition, resulting in much
-    higher accuracy for a given grid size.,
+    Supply :class:`SubpixelSpec` to select subpixel averaging methods separately for dielectric, metal, and
+    PEC material interfaces. Alternatively, supply ``True`` to use default subpixel averaging methods,
+    or ``False`` to staircase all structure interfaces.
 
     **1D Illustration**
 
@@ -251,6 +298,19 @@ class AbstractYeeGridSimulation(AbstractSimulation, ABC):
         if isinstance(monitor, SurfaceIntegrationMonitor):
             return sum(num_cells_in_monitor(mnt) for mnt in monitor.integration_surfaces)
         return num_cells_in_monitor(monitor)
+
+    @cached_property
+    def _subpixel(self) -> SubpixelSpec:
+        """Subpixel averaging method evaluated based on self.subpixel."""
+        if isinstance(self.subpixel, SubpixelSpec):
+            return self.subpixel
+
+        # self.subpixel is boolean
+        # 1) if it's true, use the default dielectric=True, metal=Staircasing, PEC=Benkler
+        if self.subpixel:
+            return SubpixelSpec()
+        # 2) if it's false, apply staircasing on all material boundaries
+        return SubpixelSpec.staircasing()
 
     @equal_aspect
     @add_ax_if_none
@@ -594,6 +654,7 @@ class AbstractYeeGridSimulation(AbstractSimulation, ABC):
             thick_l = boundaries[num_layer[0]] - boundaries[0]
             thick_r = boundaries[-1] - boundaries[-1 - num_layer[1]]
             pml_thicknesses.append((thick_l, thick_r))
+
         return pml_thicknesses
 
     @equal_aspect
@@ -635,7 +696,8 @@ class AbstractYeeGridSimulation(AbstractSimulation, ABC):
         """
         bounds = self.bounds
         for element in self.lumped_elements:
-            ax = element.plot(x=x, y=y, z=z, alpha=alpha, ax=ax, sim_bounds=bounds)
+            kwargs = element.plot_params.include_kwargs(alpha=alpha).to_kwargs()
+            ax = element.to_structure.plot(x=x, y=y, z=z, ax=ax, sim_bounds=bounds, **kwargs)
         ax = Scene._set_plot_bounds(
             bounds=self.simulation_bounds, ax=ax, x=x, y=y, z=z, hlim=hlim, vlim=vlim
         )
@@ -1194,29 +1256,10 @@ class AbstractYeeGridSimulation(AbstractSimulation, ABC):
             snapped_center = snap_coordinate_to_grid(self.grid, center, axis)
             return geom._update_from_bounds(bounds=(snapped_center, snapped_center), axis=axis)
 
+        # Convert lumped elements into structures
         lumped_structures = []
         for lumped_element in self.lumped_elements:
-            _, tan_dirs = self.pop_axis([0, 1, 2], axis=lumped_element.normal_axis)
-
-            if isinstance(lumped_element, LumpedResistor):
-                conductivity = lumped_element.sheet_conductance
-
-                if tan_dirs[0] == lumped_element.voltage_axis:
-                    medium_dict = {
-                        "ss": Medium(conductivity=conductivity),
-                        "tt": self.medium,
-                    }
-                else:
-                    medium_dict = {
-                        "tt": Medium(conductivity=conductivity),
-                        "ss": self.medium,
-                    }
-                lumped_structures.append(
-                    Structure(
-                        geometry=Box(size=lumped_element.size, center=lumped_element.center),
-                        medium=Medium2D(**medium_dict),
-                    )
-                )
+            lumped_structures.append(lumped_element.to_structure)
 
         # Begin volumetric structures grid
         all_structures = list(self.structures) + lumped_structures
@@ -1872,55 +1915,6 @@ class Simulation(AbstractYeeGridSimulation):
     * `Structures <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-3-Structures/#presentation-slides>`_
     """
 
-    subpixel: bool = pydantic.Field(
-        True,
-        title="Subpixel Averaging",
-        description="If ``True``, uses subpixel averaging of the permittivity "
-        "based on structure definition, resulting in much higher accuracy for a given grid size.",
-    )
-    """
-    If ``True``, uses subpixel averaging of the permittivity based on structure definition, resulting in much
-    higher accuracy for a given grid size.,
-
-    **1D Illustration**
-
-    For example, in the image below, two silicon slabs with thicknesses 150nm and 175nm centered in a grid with
-    spatial discretization :math:`\\Delta z = 25\\text{nm}` compute the effective permittivity of each grid point as the
-    average permittivity between the grid points. A simplified equation based on the ratio :math:`\\eta` between the
-    permittivity of the two materials at the interface in this case:
-
-    .. math::
-
-        \\epsilon_{eff} = \\eta \\epsilon_{si} + (1 - \\eta) \\epsilon_{air}
-
-    .. TODO check the actual implementation to be accurate here.
-
-    .. image:: ../../_static/img/subpixel_permittivity_1d.png
-
-    However, in this 1D case, this averaging is accurate because the dominant electric field is parallel to the
-    dielectric grid points.
-
-    You can learn more about the subpixel averaging derivation from Maxwell's equations in 1D in this lecture:
-    `Introduction to subpixel averaging <https://www.flexcompute.com/fdtd101/Lecture-10-Introduction-to-subpixel
-    -averaging/>`_.
-
-    **2D & 3D Usage Caveats**
-
-    *   In 2D, the subpixel averaging implementation depends on the polarization (:math:`s` or :math:`p`)  of the
-        incident electric field on the interface.
-
-    *   In 3D, the subpixel averaging is implemented with tensorial averaging due to arbitrary surface and field
-        spatial orientations.
-
-
-    See Also
-    --------
-
-    **Lectures:**
-        *  `Introduction to subpixel averaging <https://www.flexcompute.com/fdtd101/Lecture-10-Introduction-to-subpixel-averaging/>`_
-        *  `Dielectric constant assignment on Yee grids <https://www.flexcompute.com/fdtd101/Lecture-9-Dielectric-constant-assignment-on-Yee-grids/>`_
-    """
-
     symmetry: Tuple[Symmetry, Symmetry, Symmetry] = pydantic.Field(
         (0, 0, 0),
         title="Symmetries",
@@ -1932,14 +1926,6 @@ class Simulation(AbstractYeeGridSimulation):
         "Note that the vectorial nature of the fields must be taken into account to correctly "
         "determine the symmetry value.",
     )
-
-    pec_conformal_mesh_spec: ConformalMeshSpecType = pydantic.Field(
-        StaircasingConformalMeshSpec(),
-        title="Conformal mesh specifications",
-        description="Conformal mesh specifications applied to PEC strucures.",
-        discriminator=TYPE_TAG_STR,
-    )
-
     """
     You should set the ``symmetry`` parameter in your :class:`Simulation` object using a tuple of integers
     defining reflection symmetry across a plane bisecting the simulation domain normal to the x-, y-, and z-axis.
@@ -2042,7 +2028,7 @@ class Simulation(AbstractYeeGridSimulation):
             _ = val.wavelength_from_sources(sources=values.get("sources"))
         return val
 
-    _sources_in_bounds = assert_objects_in_sim_bounds("sources")
+    _sources_in_bounds = assert_objects_in_sim_bounds("sources", strict_inequality=True)
     _mode_sources_symmetries = validate_mode_objects_symmetry("sources")
     _mode_monitors_symmetries = validate_mode_objects_symmetry("monitors")
 
@@ -2691,7 +2677,7 @@ class Simulation(AbstractYeeGridSimulation):
         structures = values.get("structures")
         structures = structures or []
         medium_bg = values.get("medium")
-        mediums = [medium_bg] + [structure.medium for structure in structures]
+        mediums = [medium_bg] + [structure.to_static().medium for structure in structures]
 
         with log as consolidated_logger:
             for source_index, source in enumerate(values.get("sources")):
@@ -3101,6 +3087,11 @@ class Simulation(AbstractYeeGridSimulation):
                 )
 
     @cached_property
+    def static_structures(self) -> list[Structure]:
+        """Structures in simulation with all autograd tracers removed."""
+        return [structure.to_static() for structure in self.structures]
+
+    @cached_property
     def monitors_data_size(self) -> Dict[str, float]:
         """Dictionary mapping monitor names to their estimated storage size in bytes."""
         data_size = {}
@@ -3213,6 +3204,56 @@ class Simulation(AbstractYeeGridSimulation):
                         f"the simulation run time {self._run_time:1.2e}s. No data will be recorded."
                     )
 
+    """ Autograd adjoint support """
+
+    def with_adjoint_monitors(self, sim_fields: AutogradFieldMap) -> Simulation:
+        """Copy of self with adjoint field and permittivity monitors for every traced structure."""
+
+        # set of indices in the structures needing adjoint monitors
+        structure_indices = {index for (_, index, *_), _ in sim_fields.items()}
+
+        mnts_fld, mnts_eps = self.make_adjoint_monitors(structure_indices=structure_indices)
+        monitors = list(self.monitors) + list(mnts_fld) + list(mnts_eps)
+        return self.copy(update=dict(monitors=monitors))
+
+    def make_adjoint_monitors(self, structure_indices: set[int]) -> tuple[list, list]:
+        """Get lists of field and permittivity monitors for this simulation."""
+
+        freqs = self.freqs_adjoint
+
+        adjoint_monitors_fld = []
+        adjoint_monitors_eps = []
+
+        # make a field and permittivity monitor for every structure needing one
+        for i in structure_indices:
+            structure = self.structures[i]
+
+            mnt_fld, mnt_eps = structure.make_adjoint_monitors(freqs=freqs, index=i)
+
+            adjoint_monitors_fld.append(mnt_fld)
+            adjoint_monitors_eps.append(mnt_eps)
+
+        return adjoint_monitors_fld, adjoint_monitors_eps
+
+    @property
+    def freqs_adjoint(self) -> list[float]:
+        """Unique list of all frequencies. For now should be only one."""
+
+        freqs = set()
+        for mnt in self.monitors:
+            if isinstance(mnt, FreqMonitor):
+                freqs.update(mnt.freqs)
+        freqs = sorted(freqs)
+
+        if len(freqs) > 1:
+            raise ValueError(
+                "Only the same, single frequency is supported in all monitors "
+                "when using autograd differentiation. "
+                f"Found {len(freqs)} distinct frequencies in the monitors."
+            )
+
+        return freqs
+
     """ Accounting """
 
     @cached_property
@@ -3245,7 +3286,7 @@ class Simulation(AbstractYeeGridSimulation):
 
         # get the maximum refractive index evaluated over each of all the source central frequencies
         all_ref_inds = [self.get_refractive_indices(src.source_time.freq0) for src in self.sources]
-        avg_ref_inds = [np.mean(n) for n in all_ref_inds]
+        avg_ref_inds = [np.mean(np.array(n)) for n in all_ref_inds]
         max_ref_ind = np.max(avg_ref_inds)
 
         propagation_time = run_time_spec.quality_factor * max_ref_ind * max_propagation_length / C_0
@@ -3720,9 +3761,12 @@ class Simulation(AbstractYeeGridSimulation):
     @cached_property
     def scaled_courant(self) -> float:
         """When conformal mesh is applied, courant number is scaled down depending on `conformal_mesh_spec`."""
-        if self.subpixel:
-            return self.courant * self.pec_conformal_mesh_spec.courant_ratio
-        return self.courant
+
+        mediums = self.scene.mediums
+        contain_pec_structures = any(medium.is_pec for medium in mediums)
+        return self.courant * self._subpixel.courant_ratio(
+            contain_pec_structures=contain_pec_structures
+        )
 
     @cached_property
     def dt(self) -> float:
@@ -3733,7 +3777,11 @@ class Simulation(AbstractYeeGridSimulation):
         float
             Time step (seconds).
         """
-        dl_mins = [np.min(sizes) for sizes in self.grid.sizes.to_list]
+        dl_mins = [
+            np.min(sizes)
+            for dim, sizes in enumerate(self.grid.sizes.to_list)
+            if self.grid.num_cells[dim] > 1
+        ]
         dl_sum_inv_sq = sum(1 / dl**2 for dl in dl_mins)
         dl_avg = 1 / np.sqrt(dl_sum_inv_sq)
         # material factor
@@ -3834,7 +3882,8 @@ class Simulation(AbstractYeeGridSimulation):
 
         # Add a simulation Box as the first structure
         structures = [Structure(geometry=self.geometry, medium=self.medium)]
-        structures += self.structures
+
+        structures += self.static_structures
 
         grid = self.grid_spec.make_grid(
             structures=structures,

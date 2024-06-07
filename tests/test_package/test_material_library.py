@@ -1,17 +1,30 @@
-import pytest
 import numpy as np
 import pydantic.v1 as pydantic
-
-from tidy3d.material_library.material_library import (
-    VariantItem,
-    MaterialItem,
-    ReferenceData,
-    material_library,
-    export_matlib_to_file,
-    VariantItemUniaxial,
-    MaterialItemUniaxial,
-)
+import pytest
 import tidy3d as td
+from tidy3d.material_library.material_library import (
+    MaterialItem,
+    MaterialItemUniaxial,
+    ReferenceData,
+    VariantItem,
+    VariantItemUniaxial,
+    export_matlib_to_file,
+    material_library,
+)
+
+from ..utils import assert_log_level
+
+
+def test_warning_default_variant_switching(log_capture):
+    """Issue warning for switching default medium variant."""
+
+    # no warning for most materials with no default change
+    _ = td.material_library["cSi"].medium
+    assert_log_level(log_capture, None)
+
+    # issue warning for SiO2
+    _ = td.material_library["SiO2"].medium
+    assert_log_level(log_capture, "WARNING")
 
 
 def test_VariantItem():

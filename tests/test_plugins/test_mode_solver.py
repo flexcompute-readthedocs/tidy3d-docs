@@ -1,22 +1,20 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pydantic.v1 as pydantic
 import pytest
 import responses
-import numpy as np
-import matplotlib.pyplot as plt
-import pydantic.v1 as pydantic
-
 import tidy3d as td
-
 import tidy3d.plugins.mode.web as msweb
-from tidy3d.plugins.mode import ModeSolver
-from tidy3d.plugins.mode.mode_solver import MODE_MONITOR_NAME
-from tidy3d.plugins.mode.derivatives import create_sfactor_b, create_sfactor_f
-from tidy3d.plugins.mode.solver import compute_modes
-from tidy3d.exceptions import SetupError
-from ..utils import assert_log_level, cartesian_to_unstructured
-from ..utils import log_capture  # noqa: F401
 from tidy3d import ScalarFieldDataArray
+from tidy3d.components.data.monitor_data import ModeSolverData
+from tidy3d.exceptions import SetupError
+from tidy3d.plugins.mode import ModeSolver
+from tidy3d.plugins.mode.derivatives import create_sfactor_b, create_sfactor_f
+from tidy3d.plugins.mode.mode_solver import MODE_MONITOR_NAME
+from tidy3d.plugins.mode.solver import compute_modes
 from tidy3d.web.core.environment import Env
 
+from ..utils import assert_log_level, cartesian_to_unstructured
 
 WG_MEDIUM = td.Medium(permittivity=4.0, conductivity=1e-4)
 WAVEGUIDE = td.Structure(geometry=td.Box(size=(1.5, 100, 1)), medium=WG_MEDIUM)
@@ -89,6 +87,34 @@ def mock_remote_api(monkeypatch):
                     "projectId": PROJECT_ID,
                     "taskName": TASK_NAME,
                     "modeSolverName": MODESOLVER_NAME,
+                    "fileType": "Gz",
+                    "source": "Python",
+                    "protocolVersion": td.version.__version__,
+                }
+            )
+        ],
+        json={
+            "data": {
+                "refId": TASK_ID,
+                "id": SOLVER_ID,
+                "status": "draft",
+                "createdAt": "2023-05-19T16:47:57.190Z",
+                "charge": 0,
+                "fileType": "Gz",
+            }
+        },
+        status=200,
+    )
+
+    responses.add(
+        responses.POST,
+        f"{Env.current.web_api_endpoint}/tidy3d/modesolver/py",
+        match=[
+            responses.matchers.json_params_matcher(
+                {
+                    "projectId": PROJECT_ID,
+                    "taskName": "BatchModeSolver_0",
+                    "modeSolverName": MODESOLVER_NAME + "_batch_0",
                     "fileType": "Gz",
                     "source": "Python",
                     "protocolVersion": td.version.__version__,
@@ -269,7 +295,7 @@ def test_mode_solver_validation():
 
 
 @pytest.mark.parametrize("group_index_step, log_level", ((1e-7, "WARNING"), (1e-5, "INFO")))
-def test_mode_solver_group_index_warning(group_index_step, log_level, log_capture):  # noqa: F811
+def test_mode_solver_group_index_warning(group_index_step, log_level, log_capture):
     """Test mode solver setups issuing warnings."""
 
     simulation = td.Simulation(
@@ -650,7 +676,7 @@ def test_mode_solver_2D():
 
 @pytest.mark.parametrize("local", [True, False])
 @responses.activate
-def test_group_index(mock_remote_api, log_capture, local):  # noqa: F811
+def test_group_index(mock_remote_api, log_capture, local):
     """Test group index and dispersion calculation"""
 
     simulation = td.Simulation(
@@ -783,7 +809,7 @@ def test_mode_solver_nan_pol_fraction():
     md = ms.solve()
     check_ms_reduction(ms)
 
-    assert list(np.where(np.isnan(md.pol_fraction.te))[1]) == [8, 9]
+    assert list(np.where(np.isnan(md.pol_fraction.te))[1]) == [9]
 
 
 def test_mode_solver_method_defaults():
@@ -837,3 +863,79 @@ def test_mode_solver_method_defaults():
 
     sim = ms.sim_with_monitor(name="test")
     assert np.allclose(sim.monitors[-1].freqs, ms.freqs)
+
+
+@responses.activate
+def test_mode_solver_web_run_batch(mock_remote_api):
+    """Testing run_batch function for the web mode solver."""
+
+    wav = 1.5
+    wav_min = 1.4
+    wav_max = 1.5
+    num_freqs = 1
+    num_of_sims = 1
+    freqs = np.linspace(td.C_0 / wav_min, td.C_0 / wav_max, num_freqs)
+
+    simulation = td.Simulation(
+        size=SIM_SIZE,
+        grid_spec=td.GridSpec(wavelength=wav),
+        structures=[WAVEGUIDE],
+        run_time=1e-12,
+        boundary_spec=td.BoundarySpec.all_sides(boundary=td.PML()),
+    )
+
+    # create a list of mode solvers
+    mode_solver_list = [None] * num_of_sims
+
+    # create three different mode solvers with different number of modes specifications
+    for i in range(num_of_sims):
+        mode_solver_list[i] = ModeSolver(
+            simulation=simulation,
+            plane=PLANE,
+            mode_spec=td.ModeSpec(
+                num_modes=i + 1,
+                target_neff=2.0,
+            ),
+            freqs=freqs,
+            direction="+",
+        )
+
+    # Run mode solver one at a time
+    results = msweb.run_batch(mode_solver_list, verbose=False, folder_name="Mode Solver")
+    print(*results, sep="\n")
+    assert all(isinstance(x, ModeSolverData) for x in results)
+    assert (results[i].n_eff.shape == (num_freqs, i + 1) for i in range(num_of_sims))
+
+
+def test_mode_solver_relative():
+    """Relative mode solver"""
+
+    simulation = td.Simulation(
+        size=SIM_SIZE,
+        grid_spec=td.GridSpec(wavelength=1.0),
+        structures=[WAVEGUIDE],
+        run_time=1e-12,
+        symmetry=(0, 0, 1),
+        boundary_spec=td.BoundarySpec.all_sides(boundary=td.Periodic()),
+        sources=[SRC],
+    )
+    mode_spec = td.ModeSpec(
+        num_modes=3,
+        target_neff=2.0,
+        filter_pol="tm",
+        precision="double",
+        track_freq="lowest",
+    )
+    freqs = [td.C_0 / 0.9, td.C_0 / 1.0, td.C_0 / 1.1]
+    ms = ModeSolver(
+        simulation=simulation,
+        plane=PLANE,
+        mode_spec=mode_spec,
+        freqs=freqs,
+        direction="-",
+        colocate=False,
+    )
+    basis = ms.data_raw
+    new_freqs = np.array(freqs) * 1.01
+    ms = ms.updated_copy(freqs=new_freqs)
+    _ = ms._data_on_yee_grid_relative(basis=basis)

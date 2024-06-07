@@ -1,25 +1,34 @@
-""" Simulation Level Data """
+"""Simulation Level Data"""
+
 from __future__ import annotations
-from typing import Callable, Tuple, Union
-from abc import ABC
 
-import pathlib
-import xarray as xr
-import pydantic.v1 as pd
-import numpy as np
-import h5py
 import json
+import pathlib
+from abc import ABC
+from collections import defaultdict
+from typing import Callable, Tuple, Union
 
-from .monitor_data import MonitorDataTypes, MonitorDataType, AbstractFieldData, FieldTimeData
-from ..simulation import Simulation
-from ..types import Ax, Axis, annotate_type, FieldVal, PlotScale, ColormapType
-from ..viz import equal_aspect, add_ax_if_none
+import h5py
+import numpy as np
+import pydantic.v1 as pd
+import xarray as xr
+
 from ...exceptions import DataError, Tidy3dKeyError
 from ...log import log
 from ..base import JSON_TAG
-
 from ..base_sim.data.sim_data import AbstractSimulationData
-
+from ..monitor import Monitor
+from ..simulation import Simulation
+from ..source import Source
+from ..structure import Structure
+from ..types import Ax, Axis, ColormapType, FieldVal, PlotScale, annotate_type
+from ..viz import add_ax_if_none, equal_aspect
+from .monitor_data import (
+    AbstractFieldData,
+    FieldTimeData,
+    MonitorDataType,
+    MonitorDataTypes,
+)
 
 DATA_TYPE_MAP = {data.__fields__["monitor"].type_: data for data in MonitorDataTypes}
 
@@ -113,7 +122,7 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
         # colocate to monitor grid boundaries
         return self._at_boundaries(self.load_field_monitor(field_monitor_name))
 
-    def get_poynting_vector(self, field_monitor_name: str) -> xr.Dataset:
+    def _get_poynting_vector(self, field_monitor_data: AbstractFieldData) -> xr.Dataset:
         """return ``xarray.Dataset`` of the Poynting vector at Yee cell centers.
 
         Calculated values represent the instantaneous Poynting vector for time-domain fields and the
@@ -124,8 +133,8 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
 
         Parameters
         ----------
-        field_monitor_name : str
-            Name of field monitor used in the original :class:`Simulation`.
+        field_monitor_data: AbstractFieldData
+            Field monitor data from which to extract Poynting vector.
 
         Returns
         -------
@@ -133,10 +142,9 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
             DataArray containing the Poynting vector calculated based on the field components
             colocated at the center locations of the Yee grid.
         """
-        mon_data = self.load_field_monitor(field_monitor_name)
-        field_dataset = self._at_boundaries(mon_data)
+        field_dataset = self._at_boundaries(field_monitor_data)
 
-        time_domain = isinstance(self.monitor_data[field_monitor_name], FieldTimeData)
+        time_domain = isinstance(field_monitor_data, FieldTimeData)
 
         poynting_components = {}
 
@@ -162,13 +170,42 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
             # 2D monitors have grid correction factors that can be different from 1. For Poynting,
             # it is always the product of a primal-located field and dual-located field, so the
             # total grid correction factor is the product of the two
-            grid_correction = mon_data.grid_dual_correction * mon_data.grid_primal_correction
+            grid_correction = (
+                field_monitor_data.grid_dual_correction * field_monitor_data.grid_primal_correction
+            )
             poynting_components["S" + dim] *= grid_correction
 
         return xr.Dataset(poynting_components)
 
+    def get_poynting_vector(self, field_monitor_name: str) -> xr.Dataset:
+        """return ``xarray.Dataset`` of the Poynting vector at Yee cell centers.
+
+        Calculated values represent the instantaneous Poynting vector for time-domain fields and the
+        complex vector for frequency-domain: ``S = 1/2 E × conj(H)``.
+
+        Only the available components are returned, e.g., if the indicated monitor doesn't include
+        field component `"Ex"`, then `"Sy"` and `"Sz"` will not be calculated.
+
+        Parameters
+        ----------
+        field_monitor_name : str
+            Name of field monitor used in the original :class:`Simulation`.
+
+        Returns
+        -------
+        xarray.DataArray
+            DataArray containing the Poynting vector calculated based on the field components
+            colocated at the center locations of the Yee grid.
+        """
+        field_monitor_data = self.load_field_monitor(field_monitor_name)
+        return self._get_poynting_vector(field_monitor_data=field_monitor_data)
+
     def _get_scalar_field(
-        self, field_monitor_name: str, field_name: str, val: FieldVal, phase: float = 0.0
+        self,
+        field_monitor_name: str,
+        field_name: str,
+        val: FieldVal,
+        phase: float = 0.0,
     ):
         """return ``xarray.DataArray`` of the scalar field of a given monitor at Yee cell centers.
 
@@ -189,9 +226,40 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
             DataArray containing the electric intensity of the field-like monitor.
             Data is interpolated to the center locations on Yee grid.
         """
+        field_monitor_data = self.load_field_monitor(field_monitor_name)
+        return self._get_scalar_field_from_data(
+            field_monitor_data, field_name=field_name, val=val, phase=phase
+        )
+
+    def _get_scalar_field_from_data(
+        self,
+        field_monitor_data: AbstractFieldData,
+        field_name: str,
+        val: FieldVal,
+        phase: float = 0.0,
+    ):
+        """return ``xarray.DataArray`` of the scalar field of a given monitor at Yee cell centers.
+
+        Parameters
+        ----------
+        field_monitor_data : AbstractFieldData
+            Field monitor data from which to extract scalar field.
+        field_name : str
+            Name of the derived field component: one of `('E', 'H', 'S', 'Sx', 'Sy', 'Sz')`.
+        val : Literal['real', 'imag', 'abs', 'abs^2', 'phase'] = 'real'
+            Which part of the field to plot.
+        phase : float = 0.0
+            Optional phase to apply to result
+
+        Returns
+        -------
+        xarray.DataArray
+            DataArray containing the electric intensity of the field-like monitor.
+            Data is interpolated to the center locations on Yee grid.
+        """
 
         if field_name[0] == "S":
-            dataset = self.get_poynting_vector(field_monitor_name)
+            dataset = self._get_poynting_vector(field_monitor_data)
             if len(field_name) > 1:
                 if field_name in dataset:
                     derived_data = dataset[field_name]
@@ -199,7 +267,7 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
                     return self._field_component_value(derived_data, val)
                 raise Tidy3dKeyError(f"Poynting component {field_name} not available")
         else:
-            dataset = self.at_boundaries(field_monitor_name)
+            dataset = self._at_boundaries(field_monitor_data)
 
         dataset = self.apply_phase(data=dataset, phase=phase)
 
@@ -336,6 +404,213 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
                 )
         return data
 
+    def plot_field_monitor_data(
+        self,
+        field_monitor_data: AbstractFieldData,
+        field_name: str,
+        val: FieldVal = "real",
+        scale: PlotScale = "lin",
+        eps_alpha: float = 0.2,
+        phase: float = 0.0,
+        robust: bool = True,
+        vmin: float = None,
+        vmax: float = None,
+        ax: Ax = None,
+        **sel_kwargs,
+    ) -> Ax:
+        """Plot the field data for a monitor with simulation plot overlaid.
+
+        Parameters
+        ----------
+        field_monitor_data : AbstractFieldData
+            Field monitor data to plot.
+        field_name : str
+            Name of ``field`` component to plot (eg. `'Ex'`).
+            Also accepts ``'E'`` and ``'H'`` to plot the vector magnitudes of the electric and
+            magnetic fields, and ``'S'`` for the Poynting vector.
+        val : Literal['real', 'imag', 'abs', 'abs^2', 'phase'] = 'real'
+            Which part of the field to plot.
+        scale : Literal['lin', 'dB']
+            Plot in linear or logarithmic (dB) scale.
+        eps_alpha : float = 0.2
+            Opacity of the structure permittivity.
+            Must be between 0 and 1 (inclusive).
+        phase : float = 0.0
+            Optional phase (radians) to apply to the fields.
+            Only has an effect on frequency-domain fields.
+        robust : bool = True
+            If True and vmin or vmax are absent, uses the 2nd and 98th percentiles of the data
+            to compute the color limits. This helps in visualizing the field patterns especially
+            in the presence of a source.
+        vmin : float = None
+            The lower bound of data range that the colormap covers. If ``None``, they are
+            inferred from the data and other keyword arguments.
+        vmax : float = None
+            The upper bound of data range that the colormap covers. If ``None``, they are
+            inferred from the data and other keyword arguments.
+        ax : matplotlib.axes._subplots.Axes = None
+            matplotlib axes to plot on, if not specified, one is created.
+        sel_kwargs : keyword arguments used to perform ``.sel()`` selection in the monitor data.
+            These kwargs can select over the spatial dimensions (``x``, ``y``, ``z``),
+            frequency or time dimensions (``f``, ``t``) or ``mode_index``, if applicable.
+            For the plotting to work appropriately, the resulting data after selection must contain
+            only two coordinates with len > 1.
+            Furthermore, these should be spatial coordinates (``x``, ``y``, or ``z``).
+
+        Returns
+        -------
+        matplotlib.axes._subplots.Axes
+            The supplied or created matplotlib axes.
+        """
+
+        # get the DataArray corresponding to the monitor_name and field_name
+        # deprecated intensity
+        if field_name == "int":
+            log.warning(
+                "'int' field name is deprecated and will be removed in the future. Please use "
+                "field_name='E' and val='abs^2' for the same effect."
+            )
+            field_name = "E"
+            val = "abs^2"
+
+        if field_name in ("E", "H") or field_name[0] == "S":
+            # Derived fields
+            field_data = self._get_scalar_field_from_data(
+                field_monitor_data, field_name, val, phase=phase
+            )
+        else:
+            # Direct field component (e.g. Ex)
+            if field_name not in field_monitor_data.field_components:
+                raise DataError(f"field_name '{field_name}' not found in data.")
+            field_component = field_monitor_data.field_components[field_name]
+            field_component.name = field_name
+            field_component = self.apply_phase(data=field_component, phase=phase)
+            field_data = self._field_component_value(field_component, val)
+
+        if scale == "dB":
+            if val == "phase":
+                log.warning("Plotting phase component in log scale masks the phase sign.")
+            db_factor = {
+                ("S", "real"): 10,
+                ("S", "imag"): 10,
+                ("S", "abs"): 10,
+                ("S", "abs^2"): 5,
+                ("S", "phase"): 1,
+                ("E", "abs^2"): 10,
+                ("H", "abs^2"): 10,
+            }.get((field_name[0], val), 20)
+            field_data = db_factor * np.log10(np.abs(field_data))
+            field_data.name += " (dB)"
+            cmap_type = "sequential"
+        else:
+            cmap_type = (
+                "cyclic"
+                if val == "phase"
+                else (
+                    "divergent"
+                    if len(field_name) == 2 and val in ("real", "imag", "re", "im")
+                    else "sequential"
+                )
+            )
+
+        # interp out any monitor.size==0 dimensions
+        monitor = field_monitor_data.monitor
+        thin_dims = {
+            "xyz"[dim]: monitor.center[dim]
+            for dim in range(3)
+            if monitor.size[dim] == 0 and "xyz"[dim] not in sel_kwargs
+        }
+        for axis, pos in thin_dims.items():
+            if axis not in field_data.coords:
+                continue
+            if field_data.coords[axis].size <= 1:
+                field_data = field_data.sel(**{axis: pos}, method="nearest")
+            else:
+                field_data = field_data.interp(**{axis: pos}, kwargs=dict(bounds_error=True))
+
+        # warn about new API changes and replace the values
+        if "freq" in sel_kwargs:
+            log.warning(
+                "'freq' supplied to 'plot_field', frequency selection key renamed to 'f' and "
+                "'freq' will error in future release, please update your local script to use "
+                "'f=value'."
+            )
+            sel_kwargs["f"] = sel_kwargs.pop("freq")
+        if "time" in sel_kwargs:
+            log.warning(
+                "'time' supplied to 'plot_field', frequency selection key renamed to 't' and "
+                "'time' will error in future release, please update your local script to use "
+                "'t=value'."
+            )
+            sel_kwargs["t"] = sel_kwargs.pop("time")
+
+        # select the extra coordinates out of the data from user-specified kwargs
+        for coord_name, coord_val in sel_kwargs.items():
+            if (
+                field_data.coords[coord_name].size <= 1
+                or coord_name == "eme_port_index"
+                or coord_name == "eme_cell_index"
+                or coord_name == "sweep_index"
+                or coord_name == "mode_index"
+            ):
+                field_data = field_data.sel(**{coord_name: coord_val}, method=None)
+            else:
+                field_data = field_data.interp(
+                    **{coord_name: coord_val}, kwargs=dict(bounds_error=True)
+                )
+
+        # before dropping coordinates, check if a frequency can be derived from the data that can
+        # be used to plot material permittivity
+        if "f" in sel_kwargs:
+            freq_eps_eval = sel_kwargs["f"]
+        elif "f" in field_data.coords:
+            freq_eps_eval = field_data.coords["f"].values[0]
+        else:
+            freq_eps_eval = None
+
+        field_data = field_data.squeeze(drop=True)
+        non_scalar_coords = {name: c for name, c in field_data.coords.items() if c.size > 1}
+
+        # assert the data is valid for plotting
+        if len(non_scalar_coords) != 2:
+            raise DataError(
+                f"Data after selection has {len(non_scalar_coords)} coordinates "
+                f"({list(non_scalar_coords.keys())}), "
+                "must be 2 spatial coordinates for plotting on plane. "
+                "Please add keyword arguments to `plot_field()` to select out the other coords."
+            )
+
+        spatial_coords_in_data = {
+            coord_name: (coord_name in non_scalar_coords) for coord_name in "xyz"
+        }
+
+        if sum(spatial_coords_in_data.values()) != 2:
+            raise DataError(
+                "All coordinates in the data after selection must be spatial (x, y, z), "
+                f" given {non_scalar_coords.keys()}."
+            )
+
+        # get the spatial coordinate corresponding to the plane
+        planar_coord = [name for name, c in spatial_coords_in_data.items() if c is False][0]
+        axis = "xyz".index(planar_coord)
+        if planar_coord in field_data.coords:
+            position = float(field_data.coords[planar_coord])
+        else:
+            position = monitor.center[axis]
+
+        return self.plot_scalar_array(
+            field_data=field_data,
+            axis=axis,
+            position=position,
+            freq=freq_eps_eval,
+            eps_alpha=eps_alpha,
+            robust=robust,
+            vmin=vmin,
+            vmax=vmax,
+            cmap_type=cmap_type,
+            ax=ax,
+        )
+
     def plot_field(
         self,
         field_monitor_name: str,
@@ -396,149 +671,19 @@ class AbstractYeeGridSimulationData(AbstractSimulationData, ABC):
             The supplied or created matplotlib axes.
         """
 
-        # get the DataArray corresponding to the monitor_name and field_name
-        # deprecated intensity
-        if field_name == "int":
-            log.warning(
-                "'int' field name is deprecated and will be removed in the future. Please use "
-                "field_name='E' and val='abs^2' for the same effect."
-            )
-            field_name = "E"
-            val = "abs^2"
-
-        if field_name in ("E", "H") or field_name[0] == "S":
-            # Derived fields
-            field_data = self._get_scalar_field(field_monitor_name, field_name, val, phase=phase)
-        else:
-            # Direct field component (e.g. Ex)
-            field_monitor_data = self.load_field_monitor(field_monitor_name)
-            if field_name not in field_monitor_data.field_components:
-                raise DataError(f"field_name '{field_name}' not found in data.")
-            field_component = field_monitor_data.field_components[field_name]
-            field_component.name = field_name
-            field_component = self.apply_phase(data=field_component, phase=phase)
-            field_data = self._field_component_value(field_component, val)
-
-        if scale == "dB":
-            if val == "phase":
-                log.warning("Plotting phase component in log scale masks the phase sign.")
-            db_factor = {
-                ("S", "real"): 10,
-                ("S", "imag"): 10,
-                ("S", "abs"): 10,
-                ("S", "abs^2"): 5,
-                ("S", "phase"): 1,
-                ("E", "abs^2"): 10,
-                ("H", "abs^2"): 10,
-            }.get((field_name[0], val), 20)
-            field_data = db_factor * np.log10(np.abs(field_data))
-            field_data.name += " (dB)"
-            cmap_type = "sequential"
-        else:
-            cmap_type = (
-                "cyclic"
-                if val == "phase"
-                else (
-                    "divergent"
-                    if len(field_name) == 2 and val in ("real", "imag", "re", "im")
-                    else "sequential"
-                )
-            )
-
-        # interp out any monitor.size==0 dimensions
-        monitor = self.simulation.get_monitor_by_name(field_monitor_name)
-        thin_dims = {
-            "xyz"[dim]: monitor.center[dim]
-            for dim in range(3)
-            if monitor.size[dim] == 0 and "xyz"[dim] not in sel_kwargs
-        }
-        for axis, pos in thin_dims.items():
-            if axis not in field_data.coords:
-                continue
-            if field_data.coords[axis].size <= 1:
-                field_data = field_data.sel(**{axis: pos}, method="nearest")
-            else:
-                field_data = field_data.interp(**{axis: pos}, kwargs=dict(bounds_error=True))
-
-        # warn about new API changes and replace the values
-        if "freq" in sel_kwargs:
-            log.warning(
-                "'freq' supplied to 'plot_field', frequency selection key renamed to 'f' and "
-                "'freq' will error in future release, please update your local script to use "
-                "'f=value'."
-            )
-            sel_kwargs["f"] = sel_kwargs.pop("freq")
-        if "time" in sel_kwargs:
-            log.warning(
-                "'time' supplied to 'plot_field', frequency selection key renamed to 't' and "
-                "'time' will error in future release, please update your local script to use "
-                "'t=value'."
-            )
-            sel_kwargs["t"] = sel_kwargs.pop("time")
-
-        # select the extra coordinates out of the data from user-specified kwargs
-        for coord_name, coord_val in sel_kwargs.items():
-            if (
-                field_data.coords[coord_name].size <= 1
-                or coord_name == "eme_port_index"
-                or coord_name == "mode_index"
-            ):
-                field_data = field_data.sel(**{coord_name: coord_val}, method=None)
-            else:
-                field_data = field_data.interp(
-                    **{coord_name: coord_val}, kwargs=dict(bounds_error=True)
-                )
-
-        # before dropping coordinates, check if a frequency can be derived from the data that can
-        # be used to plot material permittivity
-        if "f" in sel_kwargs:
-            freq_eps_eval = sel_kwargs["f"]
-        elif "f" in field_data.coords:
-            freq_eps_eval = field_data.coords["f"].values[0]
-        else:
-            freq_eps_eval = None
-
-        field_data = field_data.squeeze(drop=True)
-        non_scalar_coords = {name: c for name, c in field_data.coords.items() if c.size > 1}
-
-        # assert the data is valid for plotting
-        if len(non_scalar_coords) != 2:
-            raise DataError(
-                f"Data after selection has {len(non_scalar_coords)} coordinates "
-                f"({list(non_scalar_coords.keys())}), "
-                "must be 2 spatial coordinates for plotting on plane. "
-                "Please add keyword arguments to `plot_field()` to select out the other coords."
-            )
-
-        spatial_coords_in_data = {
-            coord_name: (coord_name in non_scalar_coords) for coord_name in "xyz"
-        }
-
-        if sum(spatial_coords_in_data.values()) != 2:
-            raise DataError(
-                "All coordinates in the data after selection must be spatial (x, y, z), "
-                f" given {non_scalar_coords.keys()}."
-            )
-
-        # get the spatial coordinate corresponding to the plane
-        planar_coord = [name for name, c in spatial_coords_in_data.items() if c is False][0]
-        axis = "xyz".index(planar_coord)
-        if planar_coord in field_data.coords:
-            position = float(field_data.coords[planar_coord])
-        else:
-            position = monitor.center[axis]
-
-        return self.plot_scalar_array(
-            field_data=field_data,
-            axis=axis,
-            position=position,
-            freq=freq_eps_eval,
+        field_monitor_data = self.load_field_monitor(field_monitor_name)
+        return self.plot_field_monitor_data(
+            field_monitor_data=field_monitor_data,
+            field_name=field_name,
+            val=val,
+            scale=scale,
             eps_alpha=eps_alpha,
+            phase=phase,
             robust=robust,
             vmin=vmin,
             vmax=vmax,
-            cmap_type=cmap_type,
             ax=ax,
+            **sel_kwargs,
         )
 
     @equal_aspect
@@ -804,3 +949,57 @@ class SimulationData(AbstractYeeGridSimulationData):
         simulation = self.simulation.copy(update=dict(normalize_index=normalize_index))
 
         return self.copy(update=dict(simulation=simulation, data=data_normalized))
+
+    def make_adjoint_sim(
+        self, data_vjp_paths: set[tuple], adjoint_monitors: list[Monitor]
+    ) -> Simulation:
+        """Make the adjoint simulation from the original simulation and the VJP-containing data."""
+
+        sim_original = self.simulation
+
+        # generate the adjoint sources
+        sources_adj = self.make_adjoint_sources(data_vjp_paths=data_vjp_paths)
+
+        # grab boundary conditions with flipped Bloch vectors (for adjoint)
+        bc_adj = sim_original.boundary_spec.flipped_bloch_vecs
+
+        # fields to update the 'fwd' simulation with to make it 'adj'
+        sim_adj_update_dict = dict(
+            sources=sources_adj,
+            boundary_spec=bc_adj,
+            monitors=adjoint_monitors,
+        )
+
+        # set the ADJ grid spec wavelength to the original wavelength (for same meshing)
+        grid_spec_original = sim_original.grid_spec
+        if sim_original.sources and grid_spec_original.wavelength is None:
+            wavelength_original = grid_spec_original.wavelength_from_sources(sim_original.sources)
+            grid_spec_adj = grid_spec_original.updated_copy(wavelength=wavelength_original)
+            sim_adj_update_dict["grid_spec"] = grid_spec_adj
+
+        return sim_original.updated_copy(**sim_adj_update_dict)
+
+    def make_adjoint_sources(self, data_vjp_paths: set[tuple]) -> list[Source]:
+        """Generate all of the non-zero sources for the adjoint simulation given the VJP data."""
+
+        # TODO: determine if we can do multi-frequency sources
+
+        # map of index into 'self.data' to the list of datasets we need adjoint sources for
+        adj_src_map = defaultdict(list)
+        for _, index, dataset_name in data_vjp_paths:
+            adj_src_map[index].append(dataset_name)
+
+        # gather a list of adjoint sources for every monitor data in the VJP that needs one
+        sources_adj_all = []
+        for data_index, dataset_names in adj_src_map.items():
+            mnt_data = self.data[data_index]
+            sources_adj = mnt_data.make_adjoint_sources(dataset_names=dataset_names)
+            sources_adj_all += sources_adj
+
+        return sources_adj_all
+
+    def get_adjoint_data(self, structure_index: int, data_type: str) -> MonitorDataType:
+        """Grab the field or permittivity data for a given structure index."""
+
+        monitor_name = Structure.get_monitor_name(index=structure_index, data_type=data_type)
+        return self[monitor_name]

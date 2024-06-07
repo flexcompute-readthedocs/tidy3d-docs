@@ -1,20 +1,23 @@
 """Utilities for 2D geometry manipulation."""
+
+from typing import List, Tuple
+
 import numpy as np
 import shapely
-from typing import Tuple, List
 
-from ..types import Axis
 from ...constants import inf
-from ..geometry.base import Geometry, Box, ClipOperation
+from ..geometry.base import Box, ClipOperation, Geometry
 from ..geometry.polyslab import PolySlab
 from ..grid.grid import Grid
 from ..scene import Scene
 from ..structure import Structure
+from ..types import Axis
 
 
-def increment_float(val: np.float32, sign) -> np.float32:
-    """Applies a small positive or negative shift to a 32bit float using numpy.nextafter,"""
-    """but additionally handles some corner cases."""
+def increment_float(val: float, sign) -> float:
+    """Applies a small positive or negative shift as though `val` is a 32bit float
+    using numpy.nextafter, but additionally handles some corner cases.
+    """
     # Infinity is left unchanged
     if val == inf or val == -inf:
         return val
@@ -23,6 +26,11 @@ def increment_float(val: np.float32, sign) -> np.float32:
         sign = 1
     else:
         sign = -1
+
+    # Avoid small increments within subnormal values
+    if np.abs(val) <= np.finfo(np.float32).tiny:
+        return val + sign * np.finfo(np.float32).tiny
+
     # Numpy seems to skip over the increment from -0.0 and +0.0
     # which is different from c++
     val_inc = np.nextafter(val, sign * inf, dtype=np.float32)

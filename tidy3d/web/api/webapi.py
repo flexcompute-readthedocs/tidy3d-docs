@@ -3,25 +3,26 @@
 import os
 import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Callable
-from requests import HTTPError
+from typing import Callable, Dict, List
+
 import pytz
+from requests import HTTPError
 from rich.progress import Progress
 
-from .tidy3d_stub import Tidy3dStub, Tidy3dStubData, SimulationType, SimulationDataType
-from .connect_util import (
-    wait_for_connection,
-    REFRESH_TIME,
-    get_time_steps_str,
-    get_grid_points_str,
-)
-from ..core.environment import Env
-from ..core.constants import SIM_FILE_HDF5, TaskId
-from ..core.task_core import SimulationTask, Folder
-from ..core.task_info import TaskInfo, ChargeType
 from ...components.types import Literal
-from ...log import log, get_logging_console
 from ...exceptions import WebError
+from ...log import get_logging_console, log
+from ..core.constants import SIM_FILE_HDF5, TaskId
+from ..core.environment import Env
+from ..core.task_core import Folder, SimulationTask
+from ..core.task_info import ChargeType, TaskInfo
+from .connect_util import (
+    REFRESH_TIME,
+    get_grid_points_str,
+    get_time_steps_str,
+    wait_for_connection,
+)
+from .tidy3d_stub import SimulationDataType, SimulationType, Tidy3dStub, Tidy3dStubData
 
 # time between checking run status
 RUN_REFRESH_TIME = 1.0
@@ -57,6 +58,7 @@ def run(
     solver_version: str = None,
     worker_group: str = None,
     simulation_type: str = "tidy3d",
+    parent_tasks: list[str] = None,
 ) -> SimulationDataType:
     """
     Submits a :class:`.Simulation` to server, starts running, monitors progress, downloads,
@@ -140,6 +142,7 @@ def run(
         verbose=verbose,
         progress_callback=progress_callback_upload,
         simulation_type=simulation_type,
+        parent_tasks=parent_tasks,
     )
     start(
         task_id,
@@ -457,6 +460,8 @@ def monitor(task_id: TaskId, verbose: bool = True) -> None:
 
     else:
         # non-verbose case, just keep checking until status is not running or perc_done >= 100
+        if verbose:
+            console.log("running solver")
         perc_done, _ = get_run_info(task_id)
         while perc_done is not None and perc_done < 100 and get_status(task_id) == "running":
             perc_done, field_decay = get_run_info(task_id)
@@ -624,7 +629,7 @@ def load(
         After the simulation is complete, you can load the results into a :class:`.SimulationData` object by its
         ``task_id`` using:
 
-        .. code-block:: python py
+        .. code-block:: python
 
             sim_data = web.load(task_id, path="outt/sim.hdf5", verbose=verbose)
 

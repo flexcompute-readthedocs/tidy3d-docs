@@ -1,13 +1,16 @@
 """Holds dispersive models for several commonly used optical materials."""
+
 import json
 from typing import Dict, List
+
 import pydantic.v1 as pd
 
-from ..components.medium import PoleResidue, Medium2D, AnisotropicMedium, Sellmeier
 from ..components.base import Tidy3dBaseModel
+from ..components.medium import AnisotropicMedium, Medium2D, PoleResidue, Sellmeier
 from ..components.types import Axis
 from ..exceptions import SetupError
-from .material_reference import material_refs, ReferenceData
+from ..log import log
+from .material_reference import ReferenceData, material_refs
 from .parametric_materials import Graphene
 
 
@@ -99,6 +102,11 @@ class MaterialItem(Tidy3dBaseModel):
     @property
     def medium(self):
         """The default medium."""
+        if self.name == "Silicon Dioxide":
+            log.warning(
+                "Since Tidy3D 2.7, the default variant for silicon dioxide has been switched from "
+                "'Horiba' to 'Palik_Lossless'."
+            )
         return self.variants[self.default].medium
 
 
@@ -1731,6 +1739,22 @@ cSi_Green2008 = VariantItem(
     "main/Si/Green-2008.yml",
 )
 
+cSi_Green2008Lossless = VariantItem(
+    medium=PoleResidue(
+        eps_inf=8.735527704181576,
+        poles=[
+            (
+                (-3618638294867195j),
+                (5372233772327493j),
+            ),
+        ],
+        frequency_range=(206753419710997.8, 249827048333333.34),
+    ),
+    reference=[material_refs["Green2008"]],
+    data_url="https://refractiveindex.info/data_csv.php?datafile=database/data-nk/"
+    "main/Si/Green-2008.yml",
+)
+
 cSi_PalikLossy = VariantItem(
     medium=PoleResidue(
         eps_inf=1.0,
@@ -2121,7 +2145,7 @@ material_library = dict(
             Palik_Lossy=SiO2_Palik_Lossy,
             Horiba=SiO2_Horiba,
         ),
-        default="Horiba",
+        default="Palik_Lossless",
     ),
     SiON=MaterialItem(
         name="Silicon Oxynitride",
@@ -2212,6 +2236,7 @@ material_library = dict(
             SalzbergVilla1957=cSi_SalzbergVilla1957,
             Li1993_293K=cSi_Li1993_293K,
             Green2008=cSi_Green2008,
+            Green2008_Lossless=cSi_Green2008Lossless,
         ),
         default="Green2008",
     ),

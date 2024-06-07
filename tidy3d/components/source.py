@@ -1,32 +1,52 @@
 """Defines electric current sources for injecting light into simulation."""
 
-
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, Optional
+from typing import Optional, Tuple, Union
 
-from typing_extensions import Literal
-import pydantic.v1 as pydantic
 import numpy as np
+import pydantic.v1 as pydantic
+from typing_extensions import Literal
 
-from .base import cached_property, skip_if_fields_missing
-from .base_sim.source import AbstractSource
-from .time import AbstractTimeDependence
-from .types import Coordinate, Direction, Polarization, Ax, FreqBound
-from .types import ArrayFloat1D, Axis, PlotVal, ArrayComplex1D, TYPE_TAG_STR
-from .validators import assert_plane, assert_volumetric
-from .validators import warn_if_dataset_none, assert_single_freq_in_range, _assert_min_freq
-from .data.dataset import FieldDataset, TimeDataset
-from .data.validators import validate_no_nans
-from .data.data_array import TimeDataArray
-from .geometry.base import Box
-from .mode import ModeSpec
-from .viz import add_ax_if_none, PlotParams, plot_params_source
-from .viz import ARROW_COLOR_SOURCE, ARROW_ALPHA, ARROW_COLOR_POLARIZATION
-from ..constants import RADIAN, HERTZ, MICROMETER, GLANCING_CUTOFF
-from ..constants import inf
+from ..constants import GLANCING_CUTOFF, HERTZ, MICROMETER, RADIAN, inf
 from ..exceptions import SetupError, ValidationError
 from ..log import log
+from .base import cached_property, skip_if_fields_missing
+from .base_sim.source import AbstractSource
+from .data.data_array import TimeDataArray
+from .data.dataset import FieldDataset, ScalarFieldDataArray, TimeDataset
+from .data.validators import validate_no_nans
+from .geometry.base import Box
+from .mode import ModeSpec
+from .time import AbstractTimeDependence
+from .types import (
+    TYPE_TAG_STR,
+    ArrayComplex1D,
+    ArrayFloat1D,
+    Ax,
+    Axis,
+    Coordinate,
+    Direction,
+    FreqBound,
+    PlotVal,
+    Polarization,
+)
+from .validators import (
+    _assert_min_freq,
+    assert_plane,
+    assert_single_freq_in_range,
+    assert_volumetric,
+    warn_if_dataset_none,
+)
+from .viz import (
+    ARROW_ALPHA,
+    ARROW_COLOR_POLARIZATION,
+    ARROW_COLOR_SOURCE,
+    PlotParams,
+    add_ax_if_none,
+    plot_params_source,
+)
 
 # when checking if custom data spans the source plane, allow for a small tolerance
 # due to numerical precision
@@ -791,6 +811,15 @@ class CustomFieldSource(FieldSource, PlanarSource):
                 if tangential_field in val.field_components:
                     return val
         raise SetupError("No tangential field found in the suppled 'field_dataset'.")
+
+    @pydantic.validator("field_dataset", always=True)
+    def _check_fields_interpolate(cls, val: FieldDataset) -> FieldDataset:
+        """Checks whether the filds in 'field_dataset' can be interpolated."""
+        if isinstance(val, FieldDataset):
+            for name, data in val.field_components.items():
+                if isinstance(data, ScalarFieldDataArray):
+                    data._interp_validator(name)
+        return val
 
 
 """ Source current profiles defined by (1) angle or (2) desired mode. Sets theta and phi angles."""

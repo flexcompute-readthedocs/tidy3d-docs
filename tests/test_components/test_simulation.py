@@ -1,24 +1,23 @@
 """Tests the simulation and its validators."""
 
-import pytest
-import pydantic.v1 as pydantic
-import matplotlib.pyplot as plt
 import gdstk
-
+import matplotlib.pyplot as plt
 import numpy as np
+import pydantic.v1 as pydantic
+import pytest
 import tidy3d as td
-from tidy3d.exceptions import SetupError, Tidy3dKeyError
 from tidy3d.components import simulation
+from tidy3d.components.scene import MAX_GEOMETRY_COUNT, MAX_NUM_MEDIUMS
 from tidy3d.components.simulation import MAX_NUM_SOURCES
-from tidy3d.components.scene import MAX_NUM_MEDIUMS, MAX_GEOMETRY_COUNT
+from tidy3d.exceptions import SetupError, Tidy3dKeyError
+
 from ..utils import (
-    assert_log_level,
     SIM_FULL,
-    run_emulated,
     AssertLogLevel,
+    assert_log_level,
     cartesian_to_unstructured,
+    run_emulated,
 )
-from ..utils import log_capture  # noqa: F401
 
 SIM = td.Simulation(size=(1, 1, 1), run_time=1e-12, grid_spec=td.GridSpec(wavelength=1.0))
 
@@ -171,7 +170,7 @@ def test_monitors_data_size():
     assert len(datas) == 2
 
 
-def test_deprecation_defaults(log_capture):  # noqa: F811
+def test_deprecation_defaults(log_capture):
     """Make sure deprecation warnings NOT thrown if defaults used."""
     _ = td.Simulation(
         size=(1, 1, 1),
@@ -189,7 +188,7 @@ def test_deprecation_defaults(log_capture):  # noqa: F811
 
 
 @pytest.mark.parametrize("shift_amount, log_level", ((1, None), (2, "WARNING")))
-def test_sim_bounds(shift_amount, log_level, log_capture):  # noqa: F811
+def test_sim_bounds(shift_amount, log_level, log_capture):
     """make sure bounds are working correctly"""
 
     # make sure all things are shifted to this central location
@@ -283,7 +282,7 @@ def _test_monitor_size():
 
 
 @pytest.mark.parametrize("freq, log_level", [(1.5, "WARNING"), (2.5, "INFO"), (3.5, "WARNING")])
-def test_monitor_medium_frequency_range(log_capture, freq, log_level):  # noqa: F811
+def test_monitor_medium_frequency_range(log_capture, freq, log_level):
     # monitor frequency above or below a given medium's range should throw a warning
 
     medium = td.Medium(frequency_range=(2e12, 3e12))
@@ -306,7 +305,7 @@ def test_monitor_medium_frequency_range(log_capture, freq, log_level):  # noqa: 
 
 
 @pytest.mark.parametrize("fwidth, log_level", [(0.1e12, "WARNING"), (2e12, "INFO")])
-def test_monitor_simulation_frequency_range(log_capture, fwidth, log_level):  # noqa: F811
+def test_monitor_simulation_frequency_range(log_capture, fwidth, log_level):
     # monitor frequency outside of the simulation's frequency range should throw a warning
 
     src = td.UniformCurrentSource(
@@ -385,7 +384,7 @@ def test_validate_normalize_index():
         )
 
 
-def test_validate_plane_wave_boundaries(log_capture):  # noqa: F811
+def test_validate_plane_wave_boundaries(log_capture):
     src1 = td.PlaneWave(
         source_time=td.GaussianPulse(freq0=2.5e14, fwidth=1e13),
         center=(0, 0, 0),
@@ -472,7 +471,7 @@ def test_validate_plane_wave_boundaries(log_capture):  # noqa: F811
         )
 
 
-def test_validate_zero_dim_boundaries(log_capture):  # noqa: F811
+def test_validate_zero_dim_boundaries(log_capture):
     # zero-dim simulation with an absorbing boundary in that direction should error
     src = td.PlaneWave(
         source_time=td.GaussianPulse(freq0=2.5e14, fwidth=1e13),
@@ -516,7 +515,7 @@ def test_validate_components_none():
     assert SIM._source_homogeneous_isotropic(val=None, values=SIM.dict()) is None
 
 
-def test_sources_edge_case_validation(log_capture):  # noqa F811
+def test_sources_edge_case_validation(log_capture):
     values = SIM.dict()
     values.pop("sources")
     SIM._warn_monitor_simulation_frequency_range(val="test", values=values)
@@ -537,7 +536,7 @@ def test_validate_size_spatial_and_time(monkeypatch):
         s._validate_size()
 
 
-def test_validate_mnt_size(monkeypatch, log_capture):  # noqa F811
+def test_validate_mnt_size(monkeypatch, log_capture):
     # warning for monitor size
     monkeypatch.setattr(simulation, "WARN_MONITOR_DATA_SIZE_GB", 1 / 2**30)
     s = SIM.copy(update=dict(monitors=(td.FieldMonitor(name="f", freqs=[1e12], size=(1, 1, 1)),)))
@@ -691,6 +690,15 @@ def test_plot_boundaries():
     plt.close()
 
 
+def test_plot_with_lumped_elements():
+    load = td.LumpedResistor(
+        center=(0, 0, 0), size=(1, 2, 0), name="resistor", voltage_axis=0, resistance=50
+    )
+    sim_test = SIM_FULL.updated_copy(lumped_elements=[load])
+    sim_test.plot(z=0)
+    plt.close()
+
+
 def test_wvl_mat_grid():
     td.Simulation.wvl_mat_min.fget(SIM_FULL)
 
@@ -737,12 +745,12 @@ def test_nyquist():
     assert td.Simulation.nyquist_step.fget(m) == 1
 
 
-def test_discretize_non_intersect(log_capture):  # noqa F811
+def test_discretize_non_intersect(log_capture):
     SIM.discretize(box=td.Box(center=(-20, -20, -20), size=(1, 1, 1)))
     assert_log_level(log_capture, "ERROR")
 
 
-def test_warn_sim_background_medium_freq_range(log_capture):  # noqa F811
+def test_warn_sim_background_medium_freq_range(log_capture):
     _ = SIM.copy(
         update=dict(
             sources=(
@@ -758,7 +766,7 @@ def test_warn_sim_background_medium_freq_range(log_capture):  # noqa F811
 
 
 @pytest.mark.parametrize("grid_size,log_level", [(0.001, None), (3, "WARNING")])
-def test_large_grid_size(log_capture, grid_size, log_level):  # noqa F811
+def test_large_grid_size(log_capture, grid_size, log_level):
     # small fwidth should be inside range, large one should throw warning
 
     medium = td.Medium(permittivity=2, frequency_range=(2e14, 3e14))
@@ -780,7 +788,7 @@ def test_large_grid_size(log_capture, grid_size, log_level):  # noqa F811
 
 
 @pytest.mark.parametrize("box_size,log_level", [(0.1, "INFO"), (9.9, "WARNING"), (20, "INFO")])
-def test_sim_structure_gap(log_capture, box_size, log_level):  # noqa F811
+def test_sim_structure_gap(log_capture, box_size, log_level):
     """Make sure the gap between a structure and PML is not too small compared to lambda0."""
     medium = td.Medium(permittivity=2)
     box = td.Structure(geometry=td.Box(size=(box_size, box_size, box_size)), medium=medium)
@@ -967,7 +975,7 @@ def test_sim_monitor_homogeneous():
     )
 
 
-def test_proj_monitor_distance(log_capture):  # noqa F811
+def test_proj_monitor_distance(log_capture):
     """Make sure a warning is issued if the projection distance for exact projections
     is very large compared to the simulation domain size.
     """
@@ -1045,12 +1053,12 @@ def test_proj_monitor_distance(log_capture):  # noqa F811
     )
 
 
-def test_proj_monitor_warnings(log_capture):  # noqa F811
+def test_proj_monitor_warnings(log_capture):
     """Test the validator that warns if projecting backwards."""
 
     src = td.PlaneWave(
         source_time=td.GaussianPulse(freq0=2.5e14, fwidth=1e13),
-        center=(0, 0, -0.5),
+        center=(0, 0, -0.4),
         size=(td.inf, td.inf, 0),
         direction="+",
         pol_angle=-1.0,
@@ -1255,7 +1263,7 @@ def test_diffraction_medium():
         ((0.1, 0.1, 1), "WARNING"),
     ],
 )
-def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa F811
+def test_sim_structure_extent(log_capture, box_size, log_level):
     """Make sure we warn if structure extends exactly to simulation edges."""
 
     src = td.UniformCurrentSource(
@@ -1284,12 +1292,7 @@ def test_sim_structure_extent(log_capture, box_size, log_level):  # noqa F811
         (2.0, "PML", None),
     ],
 )
-def test_sim_validate_structure_bounds_pml(
-    log_capture,  # noqa: F811
-    box_length,
-    absorb_type,
-    log_level,
-):
+def test_sim_validate_structure_bounds_pml(log_capture, box_length, absorb_type, log_level):
     """Make sure we warn if structure bounds are within the PML exactly to simulation edges."""
 
     boundary = td.PML() if absorb_type == "PML" else td.Absorber()
@@ -1555,7 +1558,7 @@ def test_tfsf_symmetry():
         )
 
 
-def test_tfsf_boundaries(log_capture):  # noqa F811
+def test_tfsf_boundaries(log_capture):
     """Test that a TFSF source is allowed to cross boundaries only in particular cases."""
     src_time = td.GaussianPulse(freq0=td.C_0, fwidth=0.1e12)
 
@@ -1644,7 +1647,7 @@ def test_tfsf_boundaries(log_capture):  # noqa F811
         )
 
 
-def test_tfsf_structures_grid(log_capture):  # noqa F811
+def test_tfsf_structures_grid(log_capture):
     """Test that a TFSF source is allowed to intersect structures only in particular cases."""
     src_time = td.GaussianPulse(freq0=td.C_0, fwidth=0.1e12)
 
@@ -1751,7 +1754,7 @@ def test_tfsf_structures_grid(log_capture):  # noqa F811
 @pytest.mark.parametrize(
     "size, num_struct, log_level", [(1, 1, None), (50, 1, "WARNING"), (1, 11000, "WARNING")]
 )
-def test_warn_large_epsilon(log_capture, size, num_struct, log_level):  # noqa F811
+def test_warn_large_epsilon(log_capture, size, num_struct, log_level):
     """Make sure we get a warning if the epsilon grid is too large."""
 
     structures = [
@@ -1782,7 +1785,7 @@ def test_warn_large_epsilon(log_capture, size, num_struct, log_level):  # noqa F
 
 
 @pytest.mark.parametrize("dl, log_level", [(0.1, None), (0.005, "WARNING")])
-def test_warn_large_mode_monitor(log_capture, dl, log_level):  # noqa F811
+def test_warn_large_mode_monitor(log_capture, dl, log_level):
     """Make sure we get a warning if the mode monitor grid is too large."""
 
     sim = td.Simulation(
@@ -1807,7 +1810,7 @@ def test_warn_large_mode_monitor(log_capture, dl, log_level):  # noqa F811
 
 
 @pytest.mark.parametrize("dl, log_level", [(0.1, None), (0.005, "WARNING")])
-def test_warn_large_mode_source(log_capture, dl, log_level):  # noqa F811
+def test_warn_large_mode_source(log_capture, dl, log_level):
     """Make sure we get a warning if the mode source grid is too large."""
 
     sim = td.Simulation(
@@ -1921,7 +1924,7 @@ def test_monitor_num_cells():
 
 
 @pytest.mark.parametrize("start, log_level", [(1e-12, None), (1, "WARNING")])
-def test_warn_time_monitor_outside_run_time(log_capture, start, log_level):  # noqa F811
+def test_warn_time_monitor_outside_run_time(log_capture, start, log_level):
     """Make sure we get a warning if the mode monitor grid is too large."""
 
     sim = td.Simulation(
@@ -1960,34 +1963,36 @@ def test_dt():
 
 
 def test_conformal_dt():
-    """make sure dt is reduced when BenklerConformalMeshSpec is applied."""
+    """make sure dt is reduced when PEC structures are present and PECConformal is used."""
+    box = td.Structure(
+        geometry=td.Box(size=(1, 1, 1)),
+        medium=td.PECMedium(),
+    )
     sim = td.Simulation(
         size=(2.0, 2.0, 2.0),
         run_time=1e-12,
+        structures=[box],
         grid_spec=td.GridSpec.uniform(dl=0.1),
+        subpixel=td.SubpixelSpec(pec=td.Staircasing()),
     )
     dt = sim.dt
 
-    # Benkler
-    sim_conformal = sim.updated_copy(pec_conformal_mesh_spec=td.BenklerConformalMeshSpec())
+    # Conformal
+    sim_conformal = sim.updated_copy(subpixel=td.SubpixelSpec(pec=td.PECConformal()))
     assert sim_conformal.dt < dt
 
-    # Benkler: same courant
+    # Conformal: same courant
     sim_conformal2 = sim.updated_copy(
-        pec_conformal_mesh_spec=td.BenklerConformalMeshSpec(timestep_reduction=0)
+        subpixel=td.SubpixelSpec(pec=td.PECConformal(timestep_reduction=0))
     )
     assert sim_conformal2.dt == dt
 
-    # staircasing
-    sim_staircasing = sim.updated_copy(pec_conformal_mesh_spec=td.StaircasingConformalMeshSpec())
-    assert sim_staircasing.dt == dt
-
     # heuristic
-    sim_heuristic = sim.updated_copy(pec_conformal_mesh_spec=td.StaircasingConformalMeshSpec())
+    sim_heuristic = sim.updated_copy(subpixel=td.SubpixelSpec(pec=td.HeuristicPECStaircasing()))
     assert sim_heuristic.dt == dt
 
 
-def test_sim_volumetric_structures(log_capture, tmp_path):  # noqa F811
+def test_sim_volumetric_structures(log_capture, tmp_path):
     """Test volumetric equivalent of 2D materials."""
     sigma = 0.45
     thickness = 0.01
@@ -2398,7 +2403,6 @@ def test_to_gds(tmp_path):
 def test_sim_subsection(unstructured, nz):
     region = td.Box(size=(0.3, 0.5, 0.7), center=(0.1, 0.05, 0.02))
     region_xy = td.Box(size=(0.3, 0.5, 0), center=(0.1, 0.05, 0.02))
-    _ = td.Box(size=(0, 0.5, 0.7), center=(0.1, 0.05, 0.02))
 
     sim_red = SIM_FULL.subsection(region=region)
     assert sim_red.structures != SIM_FULL.structures
@@ -2809,18 +2813,37 @@ def test_suggested_mesh_overrides():
         lumped_elements=[resistor],
     )
 
-    suggested_mesh_overrides = sim.suggest_mesh_overrides()
-    assert len(suggested_mesh_overrides) == 2
-    grid_spec = sim.grid_spec.copy(
-        update={
-            "override_structures": list(sim.grid_spec.override_structures)
-            + suggested_mesh_overrides,
-        }
+    def update_sim_with_suggested_overrides(sim):
+        suggested_mesh_overrides = sim.suggest_mesh_overrides()
+        assert len(suggested_mesh_overrides) == 2
+        grid_spec = sim.grid_spec.copy(
+            update={
+                "override_structures": list(sim.grid_spec.override_structures)
+                + suggested_mesh_overrides,
+            }
+        )
+
+        return sim.updated_copy(
+            grid_spec=grid_spec,
+        )
+
+    _ = update_sim_with_suggested_overrides(sim)
+
+    coax_resistor = td.CoaxialLumpedResistor(
+        resistance=50.0,
+        center=[0, 0, 0],
+        outer_diameter=2,
+        inner_diameter=0.5,
+        normal_axis=0,
+        name="R",
     )
 
-    _ = sim.updated_copy(
-        grid_spec=grid_spec,
+    sim = sim.updated_copy(
+        lumped_elements=[coax_resistor],
+        grid_spec=td.GridSpec.uniform(dl=0.1),
     )
+
+    _ = update_sim_with_suggested_overrides(sim)
 
 
 def test_run_time_spec():
@@ -2877,3 +2900,37 @@ def test_validate_low_num_cells_in_mode_objects():
     sim = SIM.updated_copy(monitors=[mode_monitor])
     with pytest.raises(SetupError):
         sim._validate_num_cells_in_mode_objects()
+
+
+def test_validate_sources_monitors_in_bounds():
+    pulse = td.GaussianPulse(freq0=200e12, fwidth=20e12)
+    mode_source = td.ModeSource(
+        center=(0, -1, 0),
+        size=(1, 0, 1),
+        source_time=pulse,
+        direction="+",
+    )
+    mode_monitor = td.ModeMonitor(
+        center=(0, 1, 0),
+        size=(1, 0, 1),
+        freqs=[1e12],
+        name="test_in_bounds",
+        mode_spec=td.ModeSpec(),
+    )
+
+    # check that a source at y- simulation domain edge errors
+    with pytest.raises(pydantic.ValidationError):
+        sim = td.Simulation(
+            size=(2, 2, 2),
+            run_time=1e-12,
+            grid_spec=td.GridSpec(wavelength=1.0),
+            sources=[mode_source],
+        )
+    # check that a monitor at y+ simulation domain edge errors
+    with pytest.raises(pydantic.ValidationError):
+        sim = td.Simulation(
+            size=(2, 2, 2),
+            run_time=1e-12,
+            grid_spec=td.GridSpec(wavelength=1.0),
+            monitors=[mode_monitor],
+        )

@@ -1,14 +1,15 @@
 """Tests mediums."""
 
-import numpy as np
-import pytest
-import pydantic.v1 as pydantic
-import matplotlib.pyplot as plt
-import tidy3d as td
-from tidy3d.exceptions import ValidationError, SetupError
-from ..utils import assert_log_level, AssertLogLevel
-from ..utils import log_capture  # noqa: F401
 from typing import Dict
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pydantic.v1 as pydantic
+import pytest
+import tidy3d as td
+from tidy3d.exceptions import SetupError, ValidationError
+
+from ..utils import AssertLogLevel, assert_log_level
 
 MEDIUM = td.Medium()
 ANIS_MEDIUM = td.AnisotropicMedium(xx=MEDIUM, yy=MEDIUM, zz=MEDIUM)
@@ -82,7 +83,7 @@ def test_medium_conversions():
     assert np.isclose(k, k_)
 
 
-def test_lorentz_medium_conversions(log_capture):  # noqa: F811
+def test_lorentz_medium_conversions(log_capture):
     freq = 3.0
 
     # lossless, eps_r > 1
@@ -352,7 +353,7 @@ def test_n_cfl():
     assert material.n_cfl == 2
 
 
-def test_gain_medium(log_capture):  # noqa: F811
+def test_gain_medium(log_capture):
     """Test passive and gain medium validations."""
     # non-dispersive
     with pytest.raises(pydantic.ValidationError):
@@ -396,7 +397,7 @@ def test_gain_medium(log_capture):  # noqa: F811
         _ = td.AnisotropicMedium(xx=td.Medium(), yy=mL, zz=mS, allow_gain=False)
 
 
-def test_medium2d(log_capture):  # noqa: F811
+def test_medium2d(log_capture):
     sigma = 0.45
     thickness = 0.01
     cond_med = td.Medium(conductivity=sigma)
@@ -432,6 +433,9 @@ def test_medium2d(log_capture):  # noqa: F811
     _ = medium.plot(freqs=[2e14, 3e14], ax=AX)
     plt.close()
     assert_log_level(log_capture, "WARNING")
+
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.Medium2D(ss=td.PECMedium(), tt=td.Medium())
 
 
 def test_rotation():
@@ -607,7 +611,7 @@ def test_perturbation_medium():
         )
 
 
-def test_nonlinear_medium(log_capture):  # noqa: F811
+def test_nonlinear_medium(log_capture):
     med = td.Medium(
         nonlinear_spec=td.NonlinearSpec(
             models=[
@@ -751,9 +755,15 @@ def test_lumped_resistor():
         voltage_axis=0,
         name="R",
     )
-    _ = resistor.sheet_conductance
+    _ = resistor._sheet_conductance
     normal_axis = resistor.normal_axis
     assert normal_axis == 1
+
+    # Check conversion to geometry
+    _ = resistor.to_structure
+
+    # Check conversion to mesh overrides
+    _ = resistor.to_mesh_overrides()
 
     # error if voltage axis is not in plane with the resistor
     with pytest.raises(pydantic.ValidationError):
@@ -782,3 +792,81 @@ def test_lumped_resistor():
             voltage_axis=2,
             name="R",
         )
+
+
+def test_coaxial_lumped_resistor():
+    resistor = td.CoaxialLumpedResistor(
+        resistance=50.0,
+        center=[0, 0, 0],
+        outer_diameter=3,
+        inner_diameter=1,
+        normal_axis=1,
+        name="R",
+    )
+
+    _ = resistor._sheet_conductance
+    normal_axis = resistor.normal_axis
+    assert normal_axis == 1
+
+    # Check conversion to geometry
+    _ = resistor.to_structure
+
+    # Check conversion to mesh overrides
+    _ = resistor.to_mesh_overrides()
+
+    # error if inner diameter is larger
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.CoaxialLumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            outer_diameter=3,
+            inner_diameter=4,
+            normal_axis=1,
+            name="R",
+        )
+
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.CoaxialLumpedResistor(
+            resistance=50.0,
+            center=[0, 0, np.inf],
+            outer_diameter=3,
+            inner_diameter=1,
+            normal_axis=1,
+            name="R",
+        )
+
+
+def test_custom_medium(log_capture):
+    Nx, Ny, Nz, Nf = 4, 3, 1, 1
+    X = np.linspace(-1, 1, Nx)
+    Y = np.linspace(-1, 1, Ny)
+    Z = [0]
+    freqs = [2e14]
+    n_data = np.ones((Nx, Ny, Nz, Nf))
+    n_dataset = td.ScalarFieldDataArray(n_data, coords=dict(x=X, y=Y, z=Z, f=freqs))
+
+    def create_mediums(n_dataset):
+        ## Three equivalent ways of defining custom medium for the lens
+
+        # define custom medium with n/k data
+        _ = td.CustomMedium.from_nk(n_dataset, interp_method="nearest")
+
+        # define custom medium with permittivity data
+        eps_dataset = td.ScalarFieldDataArray(n_dataset**2, coords=dict(x=X, y=Y, z=Z, f=freqs))
+        _ = td.CustomMedium.from_eps_raw(eps_dataset, interp_method="nearest")
+
+        # define each component of permittivity via "PermittivityDataset"
+        eps_xyz_dataset = td.PermittivityDataset(
+            eps_xx=eps_dataset, eps_yy=eps_dataset, eps_zz=eps_dataset
+        )
+        _ = td.CustomMedium(eps_dataset=eps_xyz_dataset, interp_method="nearest")
+
+    create_mediums(n_dataset=n_dataset)
+    assert_log_level(log_capture, None)
+
+    with pytest.raises(pydantic.ValidationError):
+        # repeat some entries so data cannot be interpolated
+        X2 = [X[0]] + list(X)
+        n_data2 = np.vstack((n_data[0, :, :, :].reshape(1, Ny, Nz, Nf), n_data))
+        n_dataset2 = td.ScalarFieldDataArray(n_data2, coords=dict(x=X2, y=Y, z=Z, f=freqs))
+        create_mediums(n_dataset=n_dataset2)

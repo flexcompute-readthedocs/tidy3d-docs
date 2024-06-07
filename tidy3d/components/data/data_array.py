@@ -1,12 +1,16 @@
 """Storing tidy3d data at it's most fundamental level as xr.DataArray objects"""
-from __future__ import annotations
-from typing import Dict, List, Union
-from abc import ABC
 
-import xarray as xr
-import numpy as np
+from __future__ import annotations
+
+from abc import ABC
+from typing import Dict, List, Union
+
 import dask
 import h5py
+import numpy as np
+import pandas
+import xarray as xr
+from autograd.tracer import getval, isbox
 
 from ...constants import (
     HERTZ,
@@ -17,7 +21,7 @@ from ...constants import (
     WATT,
 )
 from ...exceptions import DataError, FileError
-from ..types import Bound, Axis
+from ..types import Axis, Bound
 
 # maps the dimension names to their attributes
 DIM_ATTRS = {
@@ -48,6 +52,9 @@ DIM_ATTRS = {
 # name of the DataArray.values in the hdf5 file (xarray's default name too)
 DATA_ARRAY_VALUE_NAME = "__xarray_dataarray_variable__"
 
+# name for the autograd-traced part of the DataArray
+AUTOGRAD_KEY = "AUTOGRAD"
+
 
 class DataArray(xr.DataArray):
     """Subclass of ``xr.DataArray`` that requires _dims to match the keys of the coords."""
@@ -58,6 +65,19 @@ class DataArray(xr.DataArray):
     _dims = ()
     # stores a dictionary of attributes corresponding to the data values
     _data_attrs: Dict[str, str] = {}
+
+    def __init__(self, data, *args, **kwargs):
+        """Initialize ``DataArray``."""
+
+        # initialize with untraced data
+        data_untraced = getval(data)
+        super().__init__(data_untraced, *args, **kwargs)
+
+        # if the passed data has tracers, store them in attrs dict
+        if isbox(data):
+            self.attrs[AUTOGRAD_KEY] = data
+            # NOTE: this is done because if we pass the traced array directly, it will create a
+            # numpy array of `ArrayBox`, which is extremely slow
 
     @classmethod
     def __get_validators__(cls):
@@ -92,6 +112,56 @@ class DataArray(xr.DataArray):
         for attr_name, attr in cls._data_attrs.items():
             val.attrs[attr_name] = attr
         return val
+
+    def _interp_validator(self, field_name: str = None) -> None:
+        """Make sure we can interp()/sel() the data.
+
+        NOTE
+        ----
+        This does not check every 'DataArray' by default. Instead, when required, this check can be
+        called from a validator, as is the case with 'CustomMedium' and 'CustomFieldSource'.
+        """
+        # skip this validator if currently tracing for autograd because
+        # self.values will be dtype('object') and not interpolatable
+        if isbox(self.values.flat[0]):
+            return
+
+        if field_name is None:
+            field_name = "DataArray"
+
+        dims = self.coords.dims
+
+        for dim in dims:
+            # in case we encounter some /0 or /NaN we'll ignore the warnings here
+            with np.errstate(divide="ignore", invalid="ignore"):
+                # check that we can interpolate
+                try:
+                    x0 = np.array(self.coords[dim][0])
+                    self.interp({dim: x0}, method="linear")
+                    self.interp({dim: x0}, method="nearest")
+                    # self.interp_like(self.isel({self.dim: 0}))
+                except pandas.errors.InvalidIndexError as e:
+                    raise DataError(
+                        f"'{field_name}.interp()' fails to interpolate along {dim} which is used by the solver. "
+                        "This may be caused, for instance, by duplicated data "
+                        f"in this dimension (you can verify this by running "
+                        f"'{field_name}={field_name}.drop_duplicates(dim=\"{dim}\")' "
+                        f"and interpolate with the new '{field_name}'). "
+                        "Plase make sure data can be interpolated."
+                    ) from e
+                # in case it can interpolate, try also to sel
+                try:
+                    x0 = np.array(self.coords[dim][0])
+                    self.sel({dim: x0}, method="nearest")
+                except pandas.errors.InvalidIndexError as e:
+                    raise DataError(
+                        f"'{field_name}.sel()' fails to select along {dim} which is used by the solver. "
+                        "This may be caused, for instance, by duplicated data "
+                        f"in this dimension (you can verify this by running "
+                        f"'{field_name}={field_name}.drop_duplicates(dim=\"{dim}\")' "
+                        f"and run 'sel()' with the new '{field_name}'). "
+                        "Plase make sure 'sel()' can be used on the 'DataArray'."
+                    ) from e
 
     @classmethod
     def assign_coord_attrs(cls, val):
@@ -718,7 +788,7 @@ class EMEScalarModeFieldDataArray(AbstractSpatialDataArray):
     """
 
     __slots__ = ()
-    _dims = ("x", "y", "z", "f", "mode_index", "eme_cell_index")
+    _dims = ("x", "y", "z", "f", "sweep_index", "eme_cell_index", "mode_index")
 
 
 class EMEFreqModeDataArray(DataArray):
@@ -734,7 +804,7 @@ class EMEFreqModeDataArray(DataArray):
     """
 
     __slots__ = ()
-    _dims = ("f", "mode_index", "eme_cell_index")
+    _dims = ("f", "sweep_index", "eme_cell_index", "mode_index")
 
 
 class EMEScalarFieldDataArray(AbstractSpatialDataArray):
@@ -754,7 +824,7 @@ class EMEScalarFieldDataArray(AbstractSpatialDataArray):
     """
 
     __slots__ = ()
-    _dims = ("x", "y", "z", "f", "mode_index", "eme_port_index")
+    _dims = ("x", "y", "z", "f", "sweep_index", "eme_port_index", "mode_index")
 
 
 class EMECoefficientDataArray(DataArray):
@@ -775,11 +845,18 @@ class EMECoefficientDataArray(DataArray):
     ...     eme_cell_index=eme_cell_index,
     ...     eme_port_index=eme_port_index
     ... )
-    >>> fd = EMESMatrixDataArray((1 + 1j) * np.random.random((1, 2, 2, 5, 2)), coords=coords)
+    >>> fd = EMECoefficientDataArray((1 + 1j) * np.random.random((1, 2, 2, 5, 2)), coords=coords)
     """
 
     __slots__ = ()
-    _dims = ("f", "mode_index_out", "mode_index_in", "eme_cell_index", "eme_port_index")
+    _dims = (
+        "f",
+        "sweep_index",
+        "eme_port_index",
+        "eme_cell_index",
+        "mode_index_out",
+        "mode_index_in",
+    )
     _data_attrs = {"long_name": "mode expansion coefficient"}
 
 
@@ -803,7 +880,7 @@ class EMESMatrixDataArray(DataArray):
     """
 
     __slots__ = ()
-    _dims = ("f", "mode_index_out", "mode_index_in", "sweep_index")
+    _dims = ("f", "sweep_index", "mode_index_out", "mode_index_in")
     _data_attrs = {"long_name": "scattering matrix element"}
 
 
@@ -821,7 +898,7 @@ class EMEModeIndexDataArray(DataArray):
     """
 
     __slots__ = ()
-    _dims = ("f", "mode_index", "eme_cell_index")
+    _dims = ("f", "sweep_index", "eme_cell_index", "mode_index")
     _data_attrs = {"long_name": "Propagation index"}
 
 

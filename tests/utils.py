@@ -1,16 +1,17 @@
 from pathlib import Path
-from typing import Dict, Tuple, List, Any, Union
-import pydantic.v1 as pd
-import trimesh
+from typing import Any, Dict, List, Tuple, Union
 
-import pytest
 import numpy as np
+import pydantic.v1 as pd
 import tidy3d as td
+import trimesh
 import xarray as xr
+from autograd.core import VJPNode
+from autograd.tracer import new_box
+from tidy3d import ModeIndexDataArray
+from tidy3d.components.base import Tidy3dBaseModel
 from tidy3d.log import _get_level_int
 from tidy3d.web import BatchData
-from tidy3d.components.base import Tidy3dBaseModel
-from tidy3d import ModeIndexDataArray
 
 """ utilities shared between all tests """
 np.random.seed(4)
@@ -389,10 +390,31 @@ custom_sellmeier_u = td.CustomSellmeier(
     ),
 )
 
+# Make a few autograd ArrayBoxes for testing
+start_node = VJPNode.new_root()
+tracer = new_box(1.0, 0, start_node)
+tracer_arr = new_box([[[1.0]]], 0, start_node)
+
 SIM_FULL = td.Simulation(
     size=(8.0, 8.0, 8.0),
     run_time=1e-12,
     structures=[
+        td.Structure(
+            geometry=td.Box(size=(1, tracer, tracer), center=(-1 * tracer, 0, 0)),
+            medium=td.Medium(permittivity=1 + tracer, name="dieletric"),
+            name="traced_dieletric_box",
+        ),
+        td.Structure(
+            geometry=td.PolySlab(
+                vertices=[[-1 + tracer * 0.1, 0], [-1 + tracer * 0.1, 0.1], [-1, 0.1]],
+                axis=1,
+                slab_bounds=(-0.1, 0.1),
+            ),
+            medium=td.CustomMedium(
+                permittivity=td.SpatialDataArray(tracer_arr, coords=dict(x=[-1], y=[0], z=[0]))
+            ),
+            name="traced custom polyslab",
+        ),
         td.Structure(
             geometry=td.Box(size=(1, 1, 1), center=(-1, 0, 0)),
             medium=td.Medium(permittivity=2.0, name="dieletric"),
@@ -842,8 +864,7 @@ def run_emulated(simulation: td.Simulation, path=None, **kwargs) -> td.Simulatio
         np.random.seed(1)
         data = np.random.random(data_shape)
 
-        # data = np.ones(data_shape)
-        data = (1 + 1j) * data if is_complex else data
+        data = (1 + 0.5j) * data if is_complex else data
         data = gaussian_filter(data, sigma=1.0)  # smooth out the data a little so it isnt random
         data_array = data_array_type(data, coords=coords)
         return data_array
@@ -1041,25 +1062,6 @@ def run_async_emulated(simulations: Dict[str, td.Simulation], **kwargs) -> Batch
     sim_data = {task_name: run_emulated(sim) for task_name, sim in simulations.items()}
 
     return BatchDataTest(task_paths=task_paths, task_ids=task_ids, sim_data=sim_data)
-
-
-# Log handler used to store log records during tests
-class CaptureHandler:
-    def __init__(self):
-        self.level = 0
-        self.records = []
-
-    def handle(self, level, level_name, message):
-        self.records.append((level, message))
-
-
-# Fixture that captures log records and mek them available as a list of tuples with
-# the log level and message
-@pytest.fixture
-def log_capture(monkeypatch):
-    log_capture = CaptureHandler()
-    monkeypatch.setitem(td.log.handlers, "pytest_capture", log_capture)
-    return log_capture.records
 
 
 def assert_log_level(

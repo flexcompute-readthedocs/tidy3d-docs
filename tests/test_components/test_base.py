@@ -1,19 +1,15 @@
 """Tests the base model."""
-# ruff: noqa: B015
 
-import pytest
 import numpy as np
-
+import pytest
 import tidy3d as td
 from tidy3d.components.base import Tidy3dBaseModel
-
 
 M = td.Medium()
 
 
 def test_shallow_copy():
-    with pytest.raises(ValueError):
-        _ = M.copy(deep=False)
+    _ = M.copy(deep=False)
 
 
 def test_help():

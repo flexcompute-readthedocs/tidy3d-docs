@@ -1,37 +1,72 @@
 """Defines properties of the medium / materials"""
+
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Tuple, Union, Callable, Optional, Dict, List
 import functools
+from abc import ABC, abstractmethod
 from math import isclose
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import autograd.numpy as np
+
+# TODO: it's hard to figure out which functions need this, for now all get it
+import numpy as npo
 import pydantic.v1 as pd
-import numpy as np
+import xarray as xr
 
-from .base import Tidy3dBaseModel, cached_property
-from .base import skip_if_fields_missing
-from .grid.grid import Coords, Grid
-from .types import PoleAndResidue, Ax, FreqBound, TYPE_TAG_STR
-from .types import InterpMethod, Bound, ArrayComplex3D, ArrayFloat1D
-from .types import Axis, TensorReal, Complex
-from .data.dataset import PermittivityDataset, CustomSpatialDataType, CustomSpatialDataTypeAnnotated
-from .data.dataset import _get_numpy_array, _zeros_like, _check_same_coordinates, _ones_like
-from .data.dataset import UnstructuredGridDataset
-from .data.validators import validate_no_nans
-from .data.data_array import SpatialDataArray, ScalarFieldDataArray, DATA_ARRAY_MAP
-from .viz import add_ax_if_none
-from .geometry.base import Geometry
-from .validators import validate_name_str, validate_parameter_perturbation
-from ..constants import C_0, pec_val, EPSILON_0, fp_eps, HBAR
-from ..constants import HERTZ, CONDUCTIVITY, PERMITTIVITY, RADPERSEC, MICROMETER, SECOND
-from ..constants import WATT, VOLT
-from ..exceptions import ValidationError, SetupError
+from ..constants import (
+    C_0,
+    CONDUCTIVITY,
+    EPSILON_0,
+    HBAR,
+    HERTZ,
+    MICROMETER,
+    PERMITTIVITY,
+    RADPERSEC,
+    SECOND,
+    VOLT,
+    WATT,
+    fp_eps,
+    pec_val,
+)
+from ..exceptions import SetupError, ValidationError
 from ..log import log
-from .transformation import RotationType
-from .parameter_perturbation import ParameterPerturbation
+from .autograd import TracedFloat, integrate_within_bounds
+from .base import Tidy3dBaseModel, cached_property, skip_if_fields_missing
+from .data.data_array import DATA_ARRAY_MAP, ScalarFieldDataArray, SpatialDataArray
+from .data.dataset import (
+    CustomSpatialDataType,
+    CustomSpatialDataTypeAnnotated,
+    ElectromagneticFieldDataset,
+    PermittivityDataset,
+    UnstructuredGridDataset,
+    _check_same_coordinates,
+    _get_numpy_array,
+    _ones_like,
+    _zeros_like,
+)
+from .data.validators import validate_no_nans
+from .geometry.base import Geometry
+from .grid.grid import Coords, Grid
 from .heat_spec import HeatSpecType
+from .parameter_perturbation import ParameterPerturbation
 from .time_modulation import ModulationSpec
+from .transformation import RotationType
+from .types import (
+    TYPE_TAG_STR,
+    ArrayComplex3D,
+    ArrayFloat1D,
+    Ax,
+    Axis,
+    Bound,
+    Complex,
+    FreqBound,
+    InterpMethod,
+    PoleAndResidue,
+    TensorReal,
+)
+from .validators import validate_name_str, validate_parameter_perturbation
+from .viz import add_ax_if_none
 
 # evaluate frequency as this number (Hz) if inf
 FREQ_EVAL_INF = 1e50
@@ -911,8 +946,9 @@ class AbstractMedium(ABC, Tidy3dBaseModel):
         Tuple[float, float]
             Real and imaginary parts of refractive index (n & k).
         """
+        eps_c = np.array(eps_c)
         ref_index = np.sqrt(eps_c)
-        return ref_index.real, ref_index.imag
+        return np.real(ref_index), np.imag(ref_index)
 
     @staticmethod
     def nk_to_eps_sigma(n: float, k: float, freq: float) -> Tuple[float, float]:
@@ -1067,6 +1103,21 @@ class AbstractMedium(ABC, Tidy3dBaseModel):
 
         return self
 
+    """ Autograd code """
+
+    def compute_derivatives(
+        self,
+        field_paths: list[tuple[str, ...]],
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> dict[str, Any]:
+        """Compute the adjoint derivative for this geometry."""
+        raise NotImplementedError(f"Can't compute derivative for 'Medium': '{type(self)}'.")
+
 
 class AbstractCustomMedium(AbstractMedium, ABC):
     """A spatially varying medium."""
@@ -1084,9 +1135,9 @@ class AbstractCustomMedium(AbstractMedium, ABC):
     subpixel: bool = pd.Field(
         False,
         title="Subpixel averaging",
-        description="If ``True`` and simulation's ``subpixel`` is also ``True``, "
-        "applies subpixel averaging of the permittivity "
-        "on the interface of the structure, including exterior boundary and "
+        description="If ``True``, apply the subpixel averaging method specified by "
+        "``Simulation``'s field ``subpixel`` for this type of material on the "
+        "interface of the structure, including exterior boundary and "
         "intersection interfaces with other structures.",
     )
 
@@ -1226,7 +1277,7 @@ class AbstractCustomMedium(AbstractMedium, ABC):
 
     @staticmethod
     def _validate_isreal_dataarray_tuple(
-        dataarray_tuple: Tuple[CustomSpatialDataType, ...]
+        dataarray_tuple: Tuple[CustomSpatialDataType, ...],
     ) -> bool:
         """Validate that the dataarray is real"""
         return np.all([AbstractCustomMedium._validate_isreal_dataarray(f) for f in dataarray_tuple])
@@ -1357,11 +1408,11 @@ class Medium(AbstractMedium):
 
     """
 
-    permittivity: float = pd.Field(
+    permittivity: TracedFloat = pd.Field(
         1.0, ge=1.0, title="Permittivity", description="Relative permittivity.", units=PERMITTIVITY
     )
 
-    conductivity: float = pd.Field(
+    conductivity: TracedFloat = pd.Field(
         0.0,
         title="Conductivity",
         description="Electric conductivity. Defined such that the imaginary part of the complex "
@@ -1463,6 +1514,66 @@ class Medium(AbstractMedium):
                 "function 'td.medium_from_nk()' to automatically return the proper medium type."
             )
         return cls(permittivity=eps, conductivity=sigma, **kwargs)
+
+    def compute_derivatives(
+        self,
+        field_paths: list[tuple[str, ...]],
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> dict[str, Any]:
+        """Compute adjoint derivatives for each of the ``fields`` given the multiplied E and D."""
+
+        # get vjps w.r.t. permittivity and conductivity of the bulk
+        vjps_volume = self.derivative_eps_sigma_volume(E_der_map=E_der_map, bounds=bounds)
+
+        # store the fields asked for by ``field_paths``
+        derivative_map = {}
+        for field_path in field_paths:
+            field_name, *_ = field_path
+            if field_name in vjps_volume:
+                derivative_map[field_path] = vjps_volume[field_name]
+
+        return derivative_map
+
+    def derivative_eps_sigma_volume(
+        self,
+        E_der_map: ElectromagneticFieldDataset,
+        bounds: Bound,
+    ) -> dict[str, xr.DataArray]:
+        """Get the derivative w.r.t permittivity and conductivity in the volume."""
+
+        vjp_eps_complex = self.derivative_eps_complex_volume(E_der_map=E_der_map, bounds=bounds)
+
+        freqs = vjp_eps_complex.coords["f"].values
+        values = vjp_eps_complex.values
+
+        eps_vjp, sigma_vjp = self.eps_complex_to_eps_sigma(eps_complex=values, freq=freqs)
+
+        eps_vjp = np.sum(eps_vjp)
+        sigma_vjp = np.sum(sigma_vjp)
+
+        return dict(permittivity=eps_vjp, conductivity=sigma_vjp)
+
+    def derivative_eps_complex_volume(
+        self, E_der_map: ElectromagneticFieldDataset, bounds: Bound
+    ) -> xr.DataArray:
+        """Get the derivative w.r.t complex-valued permittivity in the volume."""
+
+        vjp_value = 0.0
+        for field_name in ("Ex", "Ey", "Ez"):
+            fld = E_der_map.field_components[field_name]
+            vjp_value_fld = integrate_within_bounds(
+                arr=fld,
+                dims=("x", "y", "z"),
+                bounds=bounds,
+            )
+            vjp_value += vjp_value_fld
+
+        return vjp_value
 
 
 class CustomIsotropicMedium(AbstractCustomMedium, Medium):
@@ -1896,6 +2007,15 @@ class CustomMedium(AbstractCustomMedium):
             )
         return val
 
+    @pd.validator("permittivity", "conductivity", always=True)
+    def _check_permittivity_conductivity_interpolate(cls, val, values, field):
+        """Check that the custom medium 'SpatialDataArrays' can be interpolated."""
+
+        if isinstance(val, SpatialDataArray):
+            val._interp_validator(field.name)
+
+        return val
+
     @cached_property
     def is_isotropic(self) -> bool:
         """Check if the medium is isotropic or anisotropic."""
@@ -2310,6 +2430,77 @@ class CustomMedium(AbstractCustomMedium):
             eps_dataset=eps_reduced,
         )
 
+    def compute_derivatives(
+        self,
+        field_paths: list[tuple[str, ...]],
+        E_der_map: ElectromagneticFieldDataset,
+        D_der_map: ElectromagneticFieldDataset,
+        eps_data: PermittivityDataset,
+        eps_in: complex,
+        eps_out: complex,
+        bounds: Bound,
+    ) -> dict[str, Any]:
+        """Compute the adjoint derivative for this geometry."""
+
+        if len(field_paths) != 1 and field_paths[0] != ("permittivity",):
+            raise NotImplementedError(
+                f"Differentiation with respect to {type(self)} {field_paths} " "not supported."
+            )
+
+        eps_data = self.permittivity
+
+        coords_interp = {key: val for key, val in eps_data.coords.items() if len(val) > 1}
+        dims_sum = {dim for dim in eps_data.coords.keys() if dim not in coords_interp}
+
+        # compute sizes along each of the interpolation dimensions
+        sizes_list = []
+        for _, coords in coords_interp.items():
+            num_coords = len(coords)
+            coords = np.array(coords)
+
+            # compute distances between midpoints for all internal coords
+            mid_points = (coords[1:] + coords[:-1]) / 2.0
+            dists = np.diff(mid_points)
+            sizes = np.zeros(num_coords)
+            sizes[1:-1] = dists
+
+            # estimate the sizes on the edges using 2 x the midpoint distance
+            sizes[0] = 2 * abs(mid_points[0] - coords[0])
+            sizes[-1] = 2 * abs(coords[-1] - mid_points[-1])
+
+            sizes_list.append(sizes)
+
+        # turn this into a volume element, should be re-sizeable to the gradient shape
+        if sizes_list:
+            d_vol = functools.reduce(np.outer, sizes_list)
+        else:
+            # if sizes_list is empty, then reduce() fails
+            d_vol = np.array(1.0)
+
+        # TODO: probably this could be more robust. eg if the DataArray has weird edge cases
+        vjp_array = 0.0
+        for dim in "xyz":
+            E_der_dim = E_der_map.field_components[f"E{dim}"]
+            E_der_dim_interp = E_der_dim.interp(**coords_interp).fillna(0.0).sum(dims_sum).real
+            vjp_array += np.array(E_der_dim_interp.values).astype(float)
+
+        vjp_array = vjp_array.reshape(eps_data.shape)
+
+        # multiply by volume elements (if possible, being defensive here..)
+        try:
+            vjp_array *= d_vol.reshape(vjp_array.shape)
+        except ValueError:
+            log.warning(
+                "Skipping volume element normalization of 'CustomMedium' gradients. "
+                f"Could not reshape the volume elements of shape {d_vol.shape} "
+                f"to the shape of the gradient {vjp_array.shape}. "
+                "If you encounter this warning, gradient direction will be accurate but the norm "
+                "will be inaccurate. Please raise an issue on the tidy3d front end with this "
+                "message and some information about your simulation setup and we will investigate. "
+            )
+
+        return {("permittivity",): vjp_array}
+
 
 """ Dispersive Media """
 
@@ -2698,7 +2889,7 @@ class PoleResidue(DispersiveMedium):
         omegas_lo, gammas_lo, omegas_to, gammas_to = map(np.array, zip(*poles))
 
         # discriminants of quadratic factors of denominator
-        discs = 2 * np.emath.sqrt((gammas_to / 2) ** 2 - omegas_to**2)
+        discs = 2 * npo.emath.sqrt((gammas_to / 2) ** 2 - omegas_to**2)
 
         # require nondegenerate TO poles
         if len({(omega_to, gamma_to) for (_, _, omega_to, gamma_to) in poles}) != len(poles) or any(
@@ -2953,13 +3144,13 @@ class CustomPoleResidue(CustomDispersiveMedium, PoleResidue):
         units=PERMITTIVITY,
     )
 
-    poles: Tuple[
-        Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...
-    ] = pd.Field(
-        (),
-        title="Poles",
-        description="Tuple of complex-valued (:math:`a_i, c_i`) poles for the model.",
-        units=(RADPERSEC, RADPERSEC),
+    poles: Tuple[Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...] = (
+        pd.Field(
+            (),
+            title="Poles",
+            description="Tuple of complex-valued (:math:`a_i, c_i`) poles for the model.",
+            units=(RADPERSEC, RADPERSEC),
+        )
     )
 
     _no_nans_eps_inf = validate_no_nans("eps_inf")
@@ -3309,13 +3500,13 @@ class CustomSellmeier(CustomDispersiveMedium, Sellmeier):
         * `Modeling dispersive material in FDTD <https://www.flexcompute.com/fdtd101/Lecture-5-Modeling-dispersive-material-in-FDTD/>`_
     """
 
-    coeffs: Tuple[
-        Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...
-    ] = pd.Field(
-        ...,
-        title="Coefficients",
-        description="List of Sellmeier (:math:`B_i, C_i`) coefficients.",
-        units=(None, MICROMETER + "^2"),
+    coeffs: Tuple[Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...] = (
+        pd.Field(
+            ...,
+            title="Coefficients",
+            description="List of Sellmeier (:math:`B_i, C_i`) coefficients.",
+            units=(None, MICROMETER + "^2"),
+        )
     )
 
     _no_nans = validate_no_nans("coeffs")
@@ -4006,13 +4197,13 @@ class CustomDrude(CustomDispersiveMedium, Drude):
         units=PERMITTIVITY,
     )
 
-    coeffs: Tuple[
-        Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...
-    ] = pd.Field(
-        ...,
-        title="Coefficients",
-        description="List of (:math:`f_i, \\delta_i`) values for model.",
-        units=(HERTZ, HERTZ),
+    coeffs: Tuple[Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...] = (
+        pd.Field(
+            ...,
+            title="Coefficients",
+            description="List of (:math:`f_i, \\delta_i`) values for model.",
+            units=(HERTZ, HERTZ),
+        )
     )
 
     _no_nans_eps_inf = validate_no_nans("eps_inf")
@@ -4263,13 +4454,13 @@ class CustomDebye(CustomDispersiveMedium, Debye):
         units=PERMITTIVITY,
     )
 
-    coeffs: Tuple[
-        Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...
-    ] = pd.Field(
-        ...,
-        title="Coefficients",
-        description="List of (:math:`\\Delta\\epsilon_i, \\tau_i`) values for model.",
-        units=(PERMITTIVITY, SECOND),
+    coeffs: Tuple[Tuple[CustomSpatialDataTypeAnnotated, CustomSpatialDataTypeAnnotated], ...] = (
+        pd.Field(
+            ...,
+            title="Coefficients",
+            description="List of (:math:`\\Delta\\epsilon_i, \\tau_i`) values for model.",
+            units=(PERMITTIVITY, SECOND),
+        )
     )
 
     _no_nans_eps_inf = validate_no_nans("eps_inf")
@@ -5095,8 +5286,8 @@ class AbstractPerturbationMedium(ABC, Tidy3dBaseModel):
         True,
         title="Subpixel averaging",
         description="This value will be transferred to the resulting custom medium. That is, "
-        "if ``True``, the subpixel averaging will be applied to the custom medium provided "
-        "the corresponding ``Simulation``'s field ``subpixel`` is set to ``True`` as well. "
+        "if ``True``, the subpixel averaging will be applied to the custom medium. The type "
+        "of subpixel averaging method applied is specified in ``Simulation``'s field ``subpixel``. "
         "If the resulting medium is not a custom medium (no perturbations), this field does not "
         "have an effect.",
     )
@@ -5470,6 +5661,17 @@ class Medium2D(AbstractMedium):
             raise ValidationError(
                 f"A 'modulation_spec' of class {type(val)} is not "
                 f"currently supported for medium class {cls}."
+            )
+        return val
+
+    @skip_if_fields_missing(["ss"])
+    @pd.validator("tt", always=True)
+    def _validate_inplane_pec(cls, val, values):
+        """ss/tt components must be both PEC or non-PEC."""
+        if isinstance(val, PECMedium) != isinstance(values["ss"], PECMedium):
+            raise ValidationError(
+                "Materials describing ss- and tt-components must be "
+                "either both 'PECMedium', or non-'PECMedium'."
             )
         return val
 

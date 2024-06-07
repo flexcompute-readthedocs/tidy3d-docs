@@ -2,38 +2,40 @@
 
 from __future__ import annotations
 
-from typing import Tuple, Union, List, Dict, Literal
+from typing import Dict, List, Literal, Tuple, Union
+
+import numpy as np
+import pydantic.v1 as pd
+import xarray as xr
+from jax.tree_util import register_pytree_node_class
 from joblib import Parallel, delayed
 
-
-import pydantic.v1 as pd
-import numpy as np
-import xarray as xr
-
-from jax.tree_util import register_pytree_node_class
-
-from ....log import log
-from ....components.base import cached_property, Tidy3dBaseModel, skip_if_fields_missing
-from ....components.monitor import FieldMonitor, PermittivityMonitor
-from ....components.monitor import ModeMonitor, DiffractionMonitor, Monitor
-from ....components.simulation import Simulation
+from ....components.base import Tidy3dBaseModel, cached_property, skip_if_fields_missing
 from ....components.data.monitor_data import FieldData, PermittivityData
-from ....components.structure import Structure
-from ....components.medium import AbstractMedium
-from ....components.types import Ax, annotate_type
 from ....components.geometry.base import Box
+from ....components.medium import AbstractMedium
+from ....components.monitor import (
+    DiffractionMonitor,
+    FieldMonitor,
+    ModeMonitor,
+    Monitor,
+    PermittivityMonitor,
+)
+from ....components.simulation import Simulation
+from ....components.structure import Structure
+from ....components.subpixel_spec import Staircasing, SubpixelSpec
+from ....components.types import Ax, annotate_type
 from ....constants import HERTZ, SECOND
 from ....exceptions import AdjointError
-
-from .base import JaxObject, WEB_ADJOINT_MESSAGE
+from ....log import log
+from .base import WEB_ADJOINT_MESSAGE, JaxObject
+from .geometry import JaxGeometryGroup, JaxPolySlab
 from .structure import (
     JaxStructure,
-    JaxStructureType,
-    JaxStructureStaticMedium,
     JaxStructureStaticGeometry,
+    JaxStructureStaticMedium,
+    JaxStructureType,
 )
-from .geometry import JaxPolySlab, JaxGeometryGroup
-
 
 # bandwidth of adjoint source in units of freq0 if no `fwidth_adjoint`, and one output freq
 FWIDTH_FACTOR = 1.0 / 10
@@ -177,9 +179,12 @@ class JaxSimulation(Simulation, JaxObject):
 
     @pd.validator("subpixel", always=True)
     def _subpixel_is_on(cls, val):
-        """Assert subpixel is on."""
-        if not val:
-            raise AdjointError("'JaxSimulation.subpixel' must be 'True' to use adjoint plugin.")
+        """Assert dielectric subpixel is on."""
+        if (isinstance(val, SubpixelSpec) and isinstance(val.dielectric, Staircasing)) or not val:
+            raise AdjointError(
+                "'JaxSimulation.subpixel' must be 'True' or a specific 'SubpixelSpec' "
+                "with no dielectric staircasing to use adjoint plugin."
+            )
         return val
 
     @pd.validator("input_structures", always=True)
