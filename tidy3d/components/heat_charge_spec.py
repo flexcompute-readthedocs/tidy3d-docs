@@ -49,32 +49,41 @@ class SolidSpec(AbstractHeatChargeSpec):
     )
 
 
-class InsulatorSpec(AbstractHeatChargeSpec):
+class ChargeSpec(AbstractHeatChargeSpec):
+    """Abstract class for Charge specifications"""
+
+    permittivity: float = pd.Field(
+        1.0, ge=1.0, title="Permittivity", description="Relative permittivity.", units=PERMITTIVITY
+    )
+
+
+class InsulatorSpec(ChargeSpec):
     """Insulating medium. Conduction simulations will not solve for electric
     potential in a structure that has a medium with this 'electric_spec'.
 
     Example
     -------
     >>> solid = InsulatingSpec()
+    >>> solid2 = InsulatingSpec(permittivity=1.1)
+
+    Note: relative permittivity will be assumed 1 if no value is specified.
     """
 
 
-class ConductorSpec(AbstractHeatChargeSpec):
+class ConductorSpec(ChargeSpec):
     """Conductor medium for conduction simulations.
 
     Example
     -------
     >>> solid = ConductorSpec(conductivity=3)
+
+    Note: relative permittivity will be assumed 1 if no value is specified.
     """
 
     conductivity: pd.PositiveFloat = pd.Field(
         title="Electric conductivity",
         description=f"Electric conductivity of material in units of {CONDUCTIVITY}.",
         units=CONDUCTIVITY,
-    )
-
-    permittivity: float = pd.Field(
-        1.0, ge=1.0, title="Permittivity", description="Relative permittivity.", units=PERMITTIVITY
     )
 
 
