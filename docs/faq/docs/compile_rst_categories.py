@@ -127,7 +127,7 @@ def create_rst_categories_from_json(json_file, output_dir):
         for faq in faqs:
             # Assuming the path in the JSON is the relative path to the RST files
             # Remove the '_faqs/' prefix and '.md' suffix, replace with correct format if needed
-            faq_relative_path = faq.replace('_faqs/', 'faq/').replace('.md', '')
+            faq_relative_path = faq.replace('_faqs/', 'faq/')
             rst_content += f"   {faq_relative_path}\n"
 
         rst_file_path = os.path.join(output_dir, f"{category_id}.rst")
