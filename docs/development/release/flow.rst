@@ -148,4 +148,3 @@ rebasing allows you to clean everything up.
 feature, i.e. all PR comments have been addressed, etc. This is not
 critical, but is nicer to only rebase in the end so as not to muddle up
 the PR discussion when you force push the new branch (see below).
-
