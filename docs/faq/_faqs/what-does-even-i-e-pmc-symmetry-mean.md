@@ -24,6 +24,6 @@ _inputs:
         text:
           - key: category_name
 ---
-PMC symmetry (even) corresponds to zero tangential electric fields and zero normal magnetic fields at the symmetry plane.
+PMC symmetry (even) corresponds to zero normal electric field and zero tangential magnetic field at the symmetry plane.
 
 ![](./img/pmc-1.png){: width="229" height="482"}

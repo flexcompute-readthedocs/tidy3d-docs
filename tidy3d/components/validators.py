@@ -1,14 +1,14 @@
-""" Defines various validation functions that get used to ensure inputs are legit """
+"""Defines various validation functions that get used to ensure inputs are legit"""
 
-import pydantic.v1 as pydantic
 import numpy as np
+import pydantic.v1 as pydantic
 
-from .geometry.base import Box
-from ..exceptions import ValidationError, SetupError
-from .data.dataset import Dataset, FieldDataset
-from .base import DATA_ARRAY_MAP, skip_if_fields_missing
-from .types import Tuple
+from ..exceptions import SetupError, ValidationError
 from ..log import log
+from .base import DATA_ARRAY_MAP, skip_if_fields_missing
+from .data.dataset import Dataset, FieldDataset
+from .geometry.base import Box
+from .types import Tuple
 
 """ Explanation of pydantic validators:
 
@@ -44,6 +44,19 @@ from ..log import log
 
 # Lowest frequency supported (Hz)
 MIN_FREQUENCY = 1e5
+
+
+def assert_line():
+    """makes sure a field's ``size`` attribute has exactly 2 zeros"""
+
+    @pydantic.validator("size", allow_reuse=True, always=True)
+    def is_line(cls, val):
+        """Raise validation error if not 1 dimensional."""
+        if val.count(0.0) != 2:
+            raise ValidationError(f"'{cls.__name__}' object must be a line, given size={val}")
+        return val
+
+    return is_line
 
 
 def assert_plane():
@@ -149,7 +162,9 @@ def assert_unique_names(field_name: str):
     return field_has_unique_names
 
 
-def assert_objects_in_sim_bounds(field_name: str, error: bool = True):
+def assert_objects_in_sim_bounds(
+    field_name: str, error: bool = True, strict_inequality: bool = False
+):
     """Makes sure all objects in field are at least partially inside of simulation bounds."""
 
     @pydantic.validator(field_name, allow_reuse=True, always=True)
@@ -160,11 +175,14 @@ def assert_objects_in_sim_bounds(field_name: str, error: bool = True):
         sim_size = values.get("size")
         sim_box = Box(size=sim_size, center=sim_center)
 
+        # Do a strict check, unless simulation is 0D along a dimension
+        strict_ineq = [size != 0 and strict_inequality for size in sim_size]
+
         for position_index, geometric_object in enumerate(val):
-            if not sim_box.intersects(geometric_object.geometry):
+            if not sim_box.intersects(geometric_object.geometry, strict_inequality=strict_ineq):
                 message = (
-                    f"'simulation.{field_name}[{position_index}]'"
-                    "is completely outside of simulation domain."
+                    f"'simulation.{field_name}[{position_index}]' "
+                    "is outside of the simulation domain."
                 )
                 custom_loc = [field_name, position_index]
 
@@ -250,6 +268,41 @@ def assert_single_freq_in_range(field_name: str):
     return _single_frequency_in_range
 
 
+def _warn_potential_error(
+    field_name: str,
+    base_value: float,
+    val_change_range: Tuple[float, float],
+    allowed_real_range: Tuple[float, float],
+    allowed_imag_range: Tuple[float, float],
+):
+    """Basic validation that perturbations do not drive a parameter out of physical bounds."""
+
+    min_val = val_change_range[0] + base_value
+    max_val = val_change_range[1] + base_value
+
+    for part_range, part_func, part_name in zip(
+        [allowed_real_range, allowed_imag_range], [np.real, np.imag], ["Re", "Im"]
+    ):
+        if part_range is not None:
+            min_allowed, max_allowed = part_range
+
+            if min_allowed is not None and part_func(min_val) < min_allowed:
+                log.warning(
+                    f"'{part_name}({field_name})' could "
+                    f"become less than '{min_allowed}' for a perturbation "
+                    "medium.",
+                    custom_loc=[field_name],
+                )
+
+            if max_allowed is not None and part_func(max_val) > max_allowed:
+                log.warning(
+                    f"'{part_name}({field_name})' could "
+                    f"become greater than '{max_allowed}' for a perturbation "
+                    "medium.",
+                    custom_loc=[field_name],
+                )
+
+
 def validate_parameter_perturbation(
     field_name: str,
     base_field_name: str,
@@ -293,35 +346,19 @@ def validate_parameter_perturbation(
                                 f"Perturbation of '{base_field_name}' cannot be complex."
                             )
 
-                        min_val, max_val = perturb.perturbation_range
-                        min_val = min_val + base_value
-                        max_val = max_val + base_value
-
                         ind_pointer = tuple_ind_str + (
                             "" if np.shape(base_tuple) == () else f"[{paramer_ind}]"
                         )
 
-                        for part_range, part_func, part_name in zip(
-                            [real_range, imag_range], [np.real, np.imag], ["Re", "Im"]
-                        ):
-                            if part_range is not None:
-                                min_allowed, max_allowed = part_range
+                        sub_field_name = base_field_name + ind_pointer
 
-                                if min_allowed is not None and part_func(min_val) < min_allowed:
-                                    log.warning(
-                                        f"'{part_name}({base_field_name}{ind_pointer})' could "
-                                        f"become less than '{min_allowed}' for a perturbation "
-                                        "medium.",
-                                        custom_loc=[field_name],
-                                    )
-
-                                if max_allowed is not None and part_func(max_val) > max_allowed:
-                                    log.warning(
-                                        f"'{part_name}({base_field_name}{ind_pointer})' could "
-                                        f"become greater than '{max_allowed}' for a perturbation "
-                                        "medium.",
-                                        custom_loc=[field_name],
-                                    )
+                        _warn_potential_error(
+                            field_name=sub_field_name,
+                            base_value=base_value,
+                            val_change_range=perturb.perturbation_range,
+                            allowed_real_range=real_range,
+                            allowed_imag_range=imag_range,
+                        )
         return val
 
     return _warn_perturbed_val_range

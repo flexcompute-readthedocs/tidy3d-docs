@@ -1,26 +1,26 @@
-""" Defines classes specifying meshing in 1D and a collective class for 3D """
+"""Defines classes specifying meshing in 1D and a collective class for 3D"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pydantic.v1 as pd
 
-from .grid import Coords1D, Coords, Grid
-from .mesher import GradedMesher, MesherType
+from ...constants import C_0, MICROMETER, fp_eps
+from ...exceptions import SetupError
+from ...log import log
 from ..base import Tidy3dBaseModel
-from ..types import Axis, Symmetry, annotate_type, TYPE_TAG_STR
+from ..geometry.base import Box
 from ..source import SourceType
 from ..structure import Structure, StructureType
-from ..geometry.base import Box
-from ...log import log
-from ...exceptions import SetupError
-from ...constants import MICROMETER, C_0, fp_eps
+from ..types import TYPE_TAG_STR, Axis, Coordinate, Symmetry, annotate_type
+from .grid import Coords, Coords1D, Grid
+from .mesher import GradedMesher, MesherType
 
 
 class GridSpec1d(Tidy3dBaseModel, ABC):
-
     """Abstract base class, defines 1D grid generation specifications."""
 
     def make_coords(
@@ -31,6 +31,7 @@ class GridSpec1d(Tidy3dBaseModel, ABC):
         periodic: bool,
         wavelength: pd.PositiveFloat,
         num_pml_layers: Tuple[pd.NonNegativeInt, pd.NonNegativeInt],
+        snapping_points: Tuple[Coordinate, ...],
     ) -> Coords1D:
         """Generate 1D coords to be used as grid boundaries, based on simulation parameters.
         Symmetry, and PML layers will be treated here.
@@ -48,6 +49,8 @@ class GridSpec1d(Tidy3dBaseModel, ABC):
             Free-space wavelength.
         num_pml_layers : Tuple[int, int]
             number of layers in the absorber + and - direction along one dimension.
+        snapping_points : Tuple[Coordinate, ...]
+            A set of points that enforce grid boundaries to pass through them.
 
         Returns
         -------
@@ -66,6 +69,7 @@ class GridSpec1d(Tidy3dBaseModel, ABC):
             wavelength=wavelength,
             symmetry=symmetry,
             is_periodic=is_periodic,
+            snapping_points=snapping_points,
         )
 
         # incorporate symmetries
@@ -134,7 +138,6 @@ class GridSpec1d(Tidy3dBaseModel, ABC):
 
 
 class UniformGrid(GridSpec1d):
-
     """Uniform 1D grid. The most standard way to define a simulation is to use a constant grid size in each of the three directions.
 
     Example
@@ -197,7 +200,6 @@ class UniformGrid(GridSpec1d):
 
 
 class CustomGrid(GridSpec1d):
-
     """Custom 1D grid supplied as a list of grid cell sizes centered on the simulation center.
 
     Example
@@ -352,6 +354,7 @@ class AutoGrid(GridSpec1d):
         "structures present in the simulation, including override structures "
         "with ``enforced=True``. It is a soft bound, meaning that the actual minimal "
         "grid size might be slightly smaller.",
+        units=MICROMETER,
     )
 
     mesher: MesherType = pd.Field(
@@ -367,6 +370,7 @@ class AutoGrid(GridSpec1d):
         wavelength: float,
         symmetry: Symmetry,
         is_periodic: bool,
+        snapping_points: Tuple[Coordinate, ...],
     ) -> Coords1D:
         """Customized 1D coords to be used as grid boundaries.
 
@@ -383,6 +387,8 @@ class AutoGrid(GridSpec1d):
             normal to each of the three axes.
         is_periodic : bool
             Apply periodic boundary condition or not.
+        snapping_points : Tuple[Coordinate, ...]
+            A set of points that enforce grid boundaries to pass through them.
 
         Returns
         -------
@@ -412,6 +418,11 @@ class AutoGrid(GridSpec1d):
             self.min_steps_per_wvl,
             self.dl_min,
         )
+        # insert snapping_points
+        interval_coords, max_dl_list = self.mesher.insert_snapping_points(
+            axis, interval_coords, max_dl_list, snapping_points
+        )
+
         # Put just a single pixel if 2D-like simulation
         if interval_coords.size == 1:
             dl = wavelength / self.min_steps_per_wvl
@@ -447,7 +458,6 @@ GridType = Union[UniformGrid, CustomGrid, AutoGrid]
 
 
 class GridSpec(Tidy3dBaseModel):
-
     """Collective grid specification for all three dimensions.
 
     Example
@@ -512,6 +522,15 @@ class GridSpec(Tidy3dBaseModel):
         description="A set of structures that is added on top of the simulation structures in "
         "the process of generating the grid. This can be used to refine the grid or make it "
         "coarser depending than the expected need for higher/lower resolution regions. "
+        "Note: it only takes effect when at least one of the three dimensions "
+        "uses :class:`.AutoGrid`.",
+    )
+
+    snapping_points: Tuple[Coordinate, ...] = pd.Field(
+        (),
+        title="Grid specification snapping_points",
+        description="A set of points that enforce grid boundaries to pass through them. "
+        "However, some points might be skipped if they are too close. "
         "Note: it only takes effect when at least one of the three dimensions "
         "uses :class:`.AutoGrid`.",
     )
@@ -632,6 +651,7 @@ class GridSpec(Tidy3dBaseModel):
                 periodic=periodic[idim],
                 wavelength=wavelength,
                 num_pml_layers=num_pml_layers[idim],
+                snapping_points=self.snapping_points,
             )
 
         coords = Coords(**coords_dict)
@@ -644,6 +664,7 @@ class GridSpec(Tidy3dBaseModel):
         min_steps_per_wvl: pd.PositiveFloat = 10.0,
         max_scale: pd.PositiveFloat = 1.4,
         override_structures: List[StructureType] = (),
+        snapping_points: Tuple[Coordinate, ...] = (),
         dl_min: pd.NonNegativeFloat = 0.0,
         mesher: MesherType = GradedMesher(),
     ) -> GridSpec:
@@ -663,6 +684,8 @@ class GridSpec(Tidy3dBaseModel):
             A list of structures that is added on top of the simulation structures in
             the process of generating the grid. This can be used to refine the grid or make it
             coarser depending than the expected need for higher/lower resolution regions.
+        snapping_points : Tuple[Coordinate, ...]
+            A set of points that enforce grid boundaries to pass through them.
         dl_min: pd.NonNegativeFloat
             Lower bound of grid size.
         mesher : MesherType = GradedMesher()
@@ -686,6 +709,7 @@ class GridSpec(Tidy3dBaseModel):
             grid_y=grid_1d,
             grid_z=grid_1d,
             override_structures=override_structures,
+            snapping_points=snapping_points,
         )
 
     @classmethod

@@ -1,25 +1,25 @@
-"""Collection of functions for automatically generating a nonuniform grid. """
+"""Collection of functions for automatically generating a nonuniform grid."""
 
-from abc import ABC, abstractmethod
-from typing import Tuple, List, Union, Dict
-from math import isclose
-from itertools import compress
 import warnings
+from abc import ABC, abstractmethod
+from itertools import compress
+from math import isclose
+from typing import Dict, List, Tuple, Union
 
-import pydantic.v1 as pd
 import numpy as np
+import pydantic.v1 as pd
 from pyroots import Brentq
-from shapely.strtree import STRtree
-from shapely.geometry import box as shapely_box
 from shapely.errors import ShapelyDeprecationWarning
+from shapely.geometry import box as shapely_box
+from shapely.strtree import STRtree
 
-from ..base import Tidy3dBaseModel
-from ..types import Axis, ArrayFloat1D
-from ..structure import Structure, MeshOverrideStructure, StructureType
-from ..medium import AnisotropicMedium, Medium2D, PECMedium
-from ...exceptions import SetupError, ValidationError
 from ...constants import C_0, fp_eps
+from ...exceptions import SetupError, ValidationError
 from ...log import log
+from ..base import Tidy3dBaseModel
+from ..medium import AnisotropicMedium, Medium2D, PECMedium
+from ..structure import MeshOverrideStructure, Structure, StructureType
+from ..types import ArrayFloat1D, Axis, Bound, Coordinate
 
 _ROOTS_TOL = 1e-10
 
@@ -44,6 +44,16 @@ class Mesher(Tidy3dBaseModel, ABC):
         """Calculate the positions of all bounding box interfaces along a given axis."""
 
     @abstractmethod
+    def insert_snapping_points(
+        self,
+        axis: Axis,
+        interval_coords: ArrayFloat1D,
+        max_dl_list: ArrayFloat1D,
+        snapping_points: List[Coordinate],
+    ) -> Tuple[ArrayFloat1D, ArrayFloat1D]:
+        """Insert snapping_points to the intervals."""
+
+    @abstractmethod
     def make_grid_multiple_intervals(
         self,
         max_dl_list: ArrayFloat1D,
@@ -53,10 +63,72 @@ class Mesher(Tidy3dBaseModel, ABC):
     ) -> List[ArrayFloat1D]:
         """Create grid steps in multiple connecting intervals."""
 
+    @staticmethod
+    def make_shapely_box(bbox: Bound) -> shapely_box:
+        """Make a shapely box out of bounds."""
+        return shapely_box(bbox[0, 0], bbox[0, 1], bbox[1, 0], bbox[1, 1])
+
 
 class GradedMesher(Mesher):
     """Implements automatic nonuniform meshing with a set minimum steps per wavelength and
     a graded mesh expanding from higher- to lower-resolution regions."""
+
+    def insert_snapping_points(
+        self,
+        axis: Axis,
+        interval_coords: ArrayFloat1D,
+        max_dl_list: ArrayFloat1D,
+        snapping_points: List[Coordinate],
+    ) -> Tuple[ArrayFloat1D, ArrayFloat1D]:
+        """Insert snapping_points to the intervals.
+
+        Parameters
+        ----------
+        axis : Axis
+            Axis index along which to operate.
+        interval_coords : ArrayFloat1D
+            Coordinate of interval boundaries.
+        max_dl_list : ArrayFloat1D
+            Maximal allowed step size of each interval generated from `parse_structures`.
+        snapping_points : List[Coordinate]
+            A set of points that enforce grid boundaries to pass through them.
+
+        Returns
+        -------
+        interval_coords : Array
+            An array of coordinates, where the first element is the simulation min boundary, the
+            last element is the simulation max boundary, and the intermediate coordinates are all
+            locations with a fixpoint or a structure has a bounding box edge along the specified axis.
+            The boundaries are filtered such that no interval is smaller than the smallest
+            of the ``max_steps``.
+        max_steps : array_like
+            An array of size ``interval_coords.size - 1`` giving the maximum grid step required in
+            each ``interval_coords[i]:interval_coords[i+1]`` interval, depending on the materials
+            in that interval, the supplied wavelength, and the minimum required step per wavelength.
+
+        """
+        # Don't do anything for a 2D-like simulation, or no fix points
+        if interval_coords.size == 1 or len(snapping_points) < 1:
+            return interval_coords, max_dl_list
+
+        min_step = np.amin(max_dl_list) * 0.5
+        for point in snapping_points:
+            new_coord = point[axis]
+            # Skip if the point is outside the domain
+            if new_coord >= interval_coords[-1] or new_coord <= interval_coords[0]:
+                continue
+            # search insertion location
+            ind = np.searchsorted(interval_coords, new_coord, side="left")
+            # Skip snapping_points if the distance to the existing interval boundarires are
+            # smaller than `min_step` defined above.
+            if abs(new_coord - interval_coords[ind]) < min_step:
+                continue
+            if abs(new_coord - interval_coords[ind - 1]) < min_step:
+                continue
+            # insertion
+            interval_coords = np.insert(interval_coords, ind, new_coord)
+            max_dl_list = np.insert(max_dl_list, ind - 1, max_dl_list[ind - 1])
+        return interval_coords, max_dl_list
 
     def parse_structures(
         self,
@@ -170,7 +242,7 @@ class GradedMesher(Mesher):
                 if bbox is None:
                     # Structure has been removed because it is completely contained
                     continue
-                bbox_2d = shapely_box(bbox[0, 0], bbox[0, 1], bbox[1, 0], bbox[1, 1])
+                bbox_2d = self.make_shapely_box(bbox)
 
                 # List of structure indexes that may intersect the current structure in 2D
                 try:
@@ -223,12 +295,12 @@ class GradedMesher(Mesher):
             # if there are any enforced structure in the interval, use the last structure
             if max(intervals["structs"][coord_ind]) >= num_unenforced:
                 max_step = structure_steps[max(intervals["structs"][coord_ind])]
-                max_steps.append(float(max_step))
+                max_steps.append(max_step)
             # otherwise, define the max step as the minimum over all medium steps
             # of media in this interval
             else:
                 max_step = np.amin(structure_steps[intervals["structs"][coord_ind]])
-                max_steps.append(float(max_step))
+                max_steps.append(max_step)
 
         # Re-evaluate the absolute smallest min_step and remove intervals that are smaller than that
         intervals["coords"], max_steps = self.filter_min_step(intervals["coords"], max_steps)
@@ -434,11 +506,14 @@ class GradedMesher(Mesher):
                     # in simulation.py
                     index = 1.0
                 else:
-                    n, k = structure.medium.eps_complex_to_nk(
-                        structure.medium.eps_diagonal(C_0 / wavelength)
-                    )
+                    eps_diagonal = structure.medium.eps_diagonal(C_0 / wavelength)
+                    n, k = structure.medium.eps_complex_to_nk(eps_diagonal)
+
                     # take max among all directions because perpendicular eps defines wavelength
-                    index = max(max(abs(n)), max(abs(k)))
+                    max_n_abs = np.max(np.abs(n))
+                    max_k_abs = np.max(np.abs(k))
+                    index = np.max([max_n_abs, max_k_abs])
+
                 min_steps.append(max(dl_min, wavelength / index / min_steps_per_wvl))
             elif isinstance(structure, MeshOverrideStructure):
                 min_steps.append(max(dl_min, structure.dl[axis]))
@@ -478,7 +553,7 @@ class GradedMesher(Mesher):
 
         boxes_2d = []
         for bbox in struct_bbox:
-            box = shapely_box(bbox[0, 0], bbox[0, 1], bbox[1, 0], bbox[1, 1])
+            box = Mesher.make_shapely_box(bbox)
             boxes_2d.append(box)
 
         with warnings.catch_warnings():
@@ -1121,9 +1196,7 @@ class GradedMesher(Mesher):
                 if isclose(new_scale, 1.0):
                     return len_interval - small_dl * (1 + num_step)
                 return (
-                    len_interval
-                    - small_dl * (1 - new_scale**num_step) / (1 - new_scale)
-                    - small_dl
+                    len_interval - small_dl * (1 - new_scale**num_step) / (1 - new_scale) - small_dl
                 )
 
             # solve for new scaling factor

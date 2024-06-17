@@ -1,44 +1,94 @@
-""" Monitor Level Data, store the DataArrays associated with a single monitor."""
+"""Monitor Level Data, store the DataArrays associated with a single monitor."""
+
 from __future__ import annotations
 
-from abc import ABC
-from typing import Union, Tuple, Callable, Dict, List, Any
 import warnings
+from abc import ABC
+from typing import Any, Callable, Dict, List, Tuple, Union
 
-import xarray as xr
-import numpy as np
+import autograd.numpy as np
 import pydantic.v1 as pd
+import xarray as xr
 from pandas import DataFrame
 
-from .data_array import FluxTimeDataArray, FluxDataArray
-from .data_array import MixedModeDataArray, ModeAmpsDataArray
-from .data_array import GroupIndexDataArray, ModeDispersionDataArray
-from .data_array import FieldProjectionAngleDataArray, FieldProjectionCartesianDataArray
-from .data_array import FieldProjectionKSpaceDataArray
-from .data_array import DataArray, DiffractionDataArray
-from .data_array import ScalarFieldDataArray, ScalarFieldTimeDataArray
-from .data_array import FreqDataArray, TimeDataArray, FreqModeDataArray
-from .dataset import Dataset, AbstractFieldDataset, ElectromagneticFieldDataset
-from .dataset import FieldDataset, FieldTimeDataset, ModeSolverDataset, PermittivityDataset
-from ..base import TYPE_TAG_STR, cached_property, skip_if_fields_missing
-from ..types import Coordinate, Symmetry, ArrayFloat1D, ArrayFloat2D, Size, Numpy, TrackFreq
-from ..types import EpsSpecType, Literal
-from ..grid.grid import Grid, Coords
-from ..validators import enforce_monitor_fields_present, required_if_symmetry_present
-from ..monitor import MonitorType, FieldMonitor, FieldTimeMonitor, ModeSolverMonitor
-from ..monitor import ModeMonitor, FluxMonitor, FluxTimeMonitor, PermittivityMonitor
-from ..monitor import FieldProjectionAngleMonitor, FieldProjectionCartesianMonitor
-from ..monitor import FieldProjectionKSpaceMonitor, FieldProjectionSurface
-from ..monitor import DiffractionMonitor
-from ..source import SourceTimeType, CustomFieldSource
-from ..medium import Medium, MediumType
-from ...exceptions import SetupError, DataError, Tidy3dNotImplementedError, ValidationError
-from ...constants import ETA_0, C_0, MICROMETER
+from ...constants import C_0, ETA_0, MICROMETER, MU_0
+from ...exceptions import DataError, SetupError, Tidy3dNotImplementedError, ValidationError
 from ...log import log
-
+from ..base import TYPE_TAG_STR, cached_property, skip_if_fields_missing
 from ..base_sim.data.monitor_data import AbstractMonitorData
+from ..geometry.base import Box
+from ..grid.grid import Coords, Grid
+from ..medium import Medium, MediumType
+from ..monitor import (
+    DiffractionMonitor,
+    FieldMonitor,
+    FieldProjectionAngleMonitor,
+    FieldProjectionCartesianMonitor,
+    FieldProjectionKSpaceMonitor,
+    FieldProjectionSurface,
+    FieldTimeMonitor,
+    FluxMonitor,
+    FluxTimeMonitor,
+    ModeMonitor,
+    ModeSolverMonitor,
+    MonitorType,
+    PermittivityMonitor,
+)
+from ..source import (
+    CustomCurrentSource,
+    CustomFieldSource,
+    GaussianPulse,
+    ModeSource,
+    PlaneWave,
+    PointDipole,
+    Source,
+    SourceTimeType,
+)
+from ..types import (
+    ArrayFloat1D,
+    ArrayFloat2D,
+    Coordinate,
+    EpsSpecType,
+    Literal,
+    Numpy,
+    Size,
+    Symmetry,
+    TrackFreq,
+)
+from ..validators import enforce_monitor_fields_present, required_if_symmetry_present
+from .data_array import (
+    DataArray,
+    DiffractionDataArray,
+    EMEFreqModeDataArray,
+    FieldProjectionAngleDataArray,
+    FieldProjectionCartesianDataArray,
+    FieldProjectionKSpaceDataArray,
+    FluxDataArray,
+    FluxTimeDataArray,
+    FreqDataArray,
+    FreqModeDataArray,
+    GroupIndexDataArray,
+    MixedModeDataArray,
+    ModeAmpsDataArray,
+    ModeDispersionDataArray,
+    ScalarFieldDataArray,
+    ScalarFieldTimeDataArray,
+    TimeDataArray,
+)
+from .dataset import (
+    AbstractFieldDataset,
+    Dataset,
+    ElectromagneticFieldDataset,
+    FieldDataset,
+    FieldTimeDataset,
+    ModeSolverDataset,
+    PermittivityDataset,
+)
 
 Coords1D = ArrayFloat1D
+
+# how much to shift the adjoint field source for 0-D axes dimensions
+SHIFT_VALUE_ADJ_FLD_SRC = 1e-5
 
 
 class MonitorData(AbstractMonitorData, ABC):
@@ -76,6 +126,36 @@ class MonitorData(AbstractMonitorData, ABC):
         data_dict.update(update)
         return type(self).parse_obj(data_dict)
 
+    def make_adjoint_sources(self, dataset_names: list[str]) -> list[Source]:
+        """Generate adjoint sources for this ``MonitorData`` instance."""
+
+        # TODO: if there's data in the MonitorData, but no adjoint source, then
+        # user is trying to differentiate something that is un-supported by us
+        # warn?
+
+        return []
+
+    @staticmethod
+    def flip_direction(direction: Union[str, DataArray]) -> str:
+        """Flip the direction of a string ``('+', '-') -> ('-', '+')``."""
+
+        if isinstance(direction, DataArray):
+            direction = str(direction.values)
+
+        if direction not in ("+", "-"):
+            raise ValueError(f"Direction must be in {('+', '-')}, got '{direction}'.")
+
+        return "-" if direction == "+" else "+"
+
+    @staticmethod
+    def get_amplitude(x) -> complex:
+        """Get the complex amplitude out of some data."""
+
+        if isinstance(x, DataArray):
+            x = complex(x.values)
+
+        return 1j * complex(x)
+
 
 class AbstractFieldData(MonitorData, AbstractFieldDataset, ABC):
     """Collection of scalar fields with some symmetry properties."""
@@ -107,7 +187,7 @@ class AbstractFieldData(MonitorData, AbstractFieldDataset, ABC):
         """If ``grid_expanded`` not provided and fields data is present, warn that some methods
         will break."""
         field_comps = ["Ex", "Ey", "Ez", "Hx", "Hy", "Hz"]
-        if val is None and any(values[comp] is not None for comp in field_comps):
+        if val is None and any(values.get(comp) is not None for comp in field_comps):
             log.warning(
                 "Monitor data requires 'grid_expanded' to be defined to compute values like "
                 "flux, Poynting and dot product with other data."
@@ -236,7 +316,11 @@ class ElectromagneticFieldData(AbstractFieldData, ElectromagneticFieldDataset, A
     """Collection of electromagnetic fields."""
 
     grid_primal_correction: Union[
-        float, FreqDataArray, TimeDataArray, FreqModeDataArray
+        float,
+        FreqDataArray,
+        TimeDataArray,
+        FreqModeDataArray,
+        EMEFreqModeDataArray,
     ] = pd.Field(
         1.0,
         title="Field correction factor",
@@ -245,7 +329,13 @@ class ElectromagneticFieldData(AbstractFieldData, ElectromagneticFieldDataset, A
         "which the data was computed. The factor is applied to fields defined on the primal grid "
         "locations along the normal direction.",
     )
-    grid_dual_correction: Union[float, FreqDataArray, TimeDataArray, FreqModeDataArray] = pd.Field(
+    grid_dual_correction: Union[
+        float,
+        FreqDataArray,
+        TimeDataArray,
+        FreqModeDataArray,
+        EMEFreqModeDataArray,
+    ] = pd.Field(
         1.0,
         title="Field correction factor",
         description="Correction factor that needs to be applied for data corresponding to a 2D "
@@ -497,9 +587,12 @@ class ElectromagneticFieldData(AbstractFieldData, ElectromagneticFieldDataset, A
         tan_fields = self._colocated_tangential_fields
         dim1, dim2 = self._tangential_dims
 
-        e_x_h_star = tan_fields["E" + dim1] * tan_fields["H" + dim2].conj()
-        e_x_h_star -= tan_fields["E" + dim2] * tan_fields["H" + dim1].conj()
+        e1_h2 = tan_fields["E" + dim1] * tan_fields["H" + dim2].conj()
+        e2_h1 = tan_fields["E" + dim2] * tan_fields["H" + dim1].conj()
+
+        e_x_h_star = e1_h2 - e2_h1
         poynting = 0.5 * np.real(e_x_h_star)
+
         return poynting
 
     def package_flux_results(self, flux_values: xr.DataArray) -> Any:
@@ -690,9 +783,7 @@ class ElectromagneticFieldData(AbstractFieldData, ElectromagneticFieldDataset, A
 
         # Mode indices, if available
         modes_in_self = "mode_index" in coords[0]
-        coords[0]["mode_index"].values if modes_in_self else np.zeros(1, dtype=int)
         modes_in_other = "mode_index" in coords[1]
-        coords[1]["mode_index"].values if modes_in_other else np.zeros(1, dtype=int)
 
         keys = (e_1, e_2, h_1, h_2)
         for key in keys:
@@ -920,6 +1011,110 @@ class FieldData(FieldDataset, ElectromagneticFieldData):
         return CustomFieldSource(
             field_dataset=dataset, source_time=source_time, center=center, size=size, **kwargs
         )
+
+    def make_adjoint_sources(
+        self, dataset_names: list[str]
+    ) -> List[Union[CustomCurrentSource, PointDipole]]:
+        """Converts a :class:`.FieldData` to a list of adjoint current or point sources."""
+
+        if np.allclose(self.monitor.size, 0):
+            return self.to_adjoint_point_sources()
+
+        return self.to_adjoint_field_sources()
+
+    def to_adjoint_point_sources(self) -> List[PointDipole]:
+        """Create adjoint point dipole source if this field data contains one item."""
+
+        sources = []
+
+        for polarization, field_component in self.field_components.items():
+            if field_component is None:
+                continue
+
+            for freq0 in field_component.coords["f"]:
+                omega0 = 2 * np.pi * freq0
+                scaling_factor = 1 / (MU_0 * omega0)
+
+                forward_amp = self.get_amplitude(field_component.sel(f=freq0))
+
+                adj_phase = np.pi + np.angle(forward_amp)
+                adj_amp = scaling_factor * forward_amp
+
+                src_adj = PointDipole(
+                    center=self.monitor.center,
+                    polarization=polarization,
+                    source_time=GaussianPulse(
+                        freq0=freq0,
+                        fwidth=freq0 / 10,  # TODO: how to set this properly?
+                        amplitude=abs(adj_amp),
+                        phase=adj_phase,
+                    ),
+                    interpolate=True,
+                )
+
+                sources.append(src_adj)
+
+        return sources
+
+    def to_adjoint_field_sources(self) -> List[CustomCurrentSource]:
+        """Create adjoint custom field sources if this field data has some dimensionality."""
+
+        sources = []
+
+        # Define source geometry based on coordinates in the data
+        data_mins = []
+        data_maxs = []
+
+        def shift_value(coords) -> float:
+            """How much to shift the geometry by along a dimension (only if > 1D)."""
+            return SHIFT_VALUE_ADJ_FLD_SRC if len(coords) > 1 else 0
+
+        for _, field_component in self.field_components.items():
+            coords = field_component.coords
+            data_mins.append({key: min(val) + shift_value(val) for key, val in coords.items()})
+            data_maxs.append({key: max(val) + shift_value(val) for key, val in coords.items()})
+
+        rmin = []
+        rmax = []
+        for dim in "xyz":
+            rmin.append(max(val[dim] for val in data_mins))
+            rmax.append(min(val[dim] for val in data_maxs))
+
+        source_geo = Box.from_bounds(rmin=rmin, rmax=rmax)
+
+        # Define source dataset
+        # Offset coordinates by source center since local coords are assumed in CustomCurrentSource
+
+        for freq0 in tuple(self.field_components.values())[0].coords["f"]:
+            src_field_components = {}
+            for name, field_component in self.field_components.items():
+                field_component = field_component.sel(f=freq0)
+                forward_amps = field_component.values
+                values = -1j * forward_amps
+                coords = dict(field_component.coords.copy())
+                for dim, key in enumerate("xyz"):
+                    coords[key] = np.array(coords[key]) - source_geo.center[dim]
+                coords["f"] = np.array([freq0])
+                values = np.expand_dims(values, axis=-1)
+                if not np.all(values == 0):
+                    src_field_components[name] = ScalarFieldDataArray(values, coords=coords)
+
+            dataset = FieldDataset(**src_field_components)
+
+            custom_source = CustomCurrentSource(
+                center=source_geo.center,
+                size=source_geo.size,
+                source_time=GaussianPulse(
+                    freq0=freq0,
+                    fwidth=freq0 / 10,  # TODO: how to set this properly?
+                ),
+                current_dataset=dataset,
+                interpolate=True,
+            )
+
+            sources.append(custom_source)
+
+        return sources
 
 
 class FieldTimeData(FieldTimeDataset, ElectromagneticFieldData):
@@ -1551,6 +1746,79 @@ class ModeData(ModeSolverDataset, ElectromagneticFieldData):
             drop.append("loss (dB/cm)")
 
         return dataset.drop_vars(drop).to_dataframe()
+
+    def make_adjoint_sources(self, dataset_names: list[str]) -> list[ModeSource]:
+        """Get all adjoint sources for the ``ModeMonitorData``."""
+
+        adjoint_sources = []
+
+        for name in dataset_names:
+            if name == "amps":
+                adjoint_sources += self.make_adjoint_sources_amps()
+            else:
+                log.warning(
+                    f"Can't create adjoint source for 'ModeData.{type(self)}.{name}'. "
+                    f"for monitor '{self.monitor.name}'. "
+                    "It's likely your objective function depends on sim data that is un-traced. "
+                    "Double check your post-processing function to confirm. "
+                )
+
+        return adjoint_sources
+
+    def make_adjoint_sources_amps(self) -> list[ModeSource]:
+        """Generate adjoint sources for ``ModeMonitorData.amps``."""
+
+        coords = self.amps.coords
+
+        adjoint_sources = []
+
+        # TODO: speed up with ufunc?
+        for freq in coords["f"]:
+            for direction in coords["direction"]:
+                for mode_index in coords["mode_index"]:
+                    amp_single = self.amps.sel(f=freq, direction=direction, mode_index=mode_index)
+
+                    if self.get_amplitude(amp_single) == 0.0:
+                        continue
+
+                    adjoint_source = self.adjoint_source_amp(amp=amp_single)
+                    adjoint_sources.append(adjoint_source)
+
+        return adjoint_sources
+
+    def adjoint_source_amp(self, amp: DataArray) -> ModeSource:
+        """Generate an adjoint ``ModeSource`` for a single amplitude."""
+
+        monitor = self.monitor
+
+        # grab coordinates
+        coords = amp.coords
+        freq0 = coords["f"]
+        direction = coords["direction"]
+        mode_index = coords["mode_index"]
+
+        # determine the complex amplitude
+        amp_complex = self.get_amplitude(amp)
+        k0 = 2 * np.pi * freq0 / C_0
+        grad_const = k0 / 4 / ETA_0
+        src_amp = grad_const * amp_complex
+
+        # construct source
+        src_adj = ModeSource(
+            source_time=GaussianPulse(
+                amplitude=abs(src_amp),
+                phase=np.angle(src_amp),
+                freq0=freq0,
+                fwidth=freq0 / 10,  # TODO: how to set this properly?
+            ),
+            mode_spec=monitor.mode_spec,
+            size=monitor.size,
+            center=monitor.center,
+            direction=self.flip_direction(direction),
+            mode_index=mode_index,
+        )
+
+        return src_adj
 
 
 class ModeSolverData(ModeData):
@@ -2335,6 +2603,15 @@ class FieldProjectionKSpaceData(AbstractFieldProjectionData):
 class DiffractionData(AbstractFieldProjectionData):
     """Data for a :class:`.DiffractionMonitor`: complex components of diffracted far fields.
 
+    Note
+    ----
+
+        The diffraction data are separated into S and P polarizations. At normal incidence when
+        S and P are undefined, P(S) corresponds to ``Ey``(``Ez``) polarization for monitor normal
+        to x, P(S) corresponds to ``Ex``(``Ez``) polarization for monitor normal to y, and P(S)
+        corresponds to ``Ex``(``Ey``) polarization for monitor normal to z.
+
+
     Example
     -------
     >>> from tidy3d import DiffractionDataArray
@@ -2571,6 +2848,101 @@ class DiffractionData(AbstractFieldProjectionData):
         for field in fields:
             data_arrays.append(xr.DataArray(data=field, coords=self.coords, dims=self.dims))
         return xr.Dataset(dict(zip(keys, data_arrays)))
+
+    """ Autograd code """
+
+    def make_adjoint_sources(self, dataset_names: list[str]) -> list[PlaneWave]:
+        """Get all adjoint sources for the ``DiffractionMonitor.amps``."""
+
+        # NOTE: everything just goes through `.amps`, any post-processing is encoded in E-fields
+        return self.make_adjoint_sources_amps()
+
+    def make_adjoint_sources_amps(self) -> list[PlaneWave]:
+        """Make adjoint sources for outputs that depend on DiffractionData.`amps`."""
+
+        amps = self.amps
+        coords = amps.coords
+
+        adjoint_sources = []
+
+        # TODO: speed up with ufunc?
+        # loop over all coordinates in the diffraction amplitudes
+        for freq in coords["f"]:
+            for pol in coords["polarization"]:
+                for order_x in coords["orders_x"]:
+                    for order_y in coords["orders_y"]:
+                        amp_single = amps.sel(
+                            f=freq,
+                            polarization=pol,
+                            orders_x=order_x,
+                            orders_y=order_y,
+                        )
+
+                        # ignore any amplitudes of 0.0 or nan
+                        amp_complex = self.get_amplitude(amp_single)
+                        if (amp_complex == 0.0) or np.isnan(amp_complex):
+                            continue
+
+                        # compute a plane wave for this amplitude (if propagating / not None)
+                        adjoint_source = self.adjoint_source_amp(amp=amp_single)
+                        if adjoint_source is not None:
+                            adjoint_sources.append(adjoint_source)
+
+        return adjoint_sources
+
+    def adjoint_source_amp(self, amp: DataArray) -> PlaneWave:
+        """Generate an adjoint ``PlaneWave`` for a single amplitude."""
+
+        monitor = self.monitor
+
+        # grab the coordinates
+        coords = amp.coords
+        freq0 = coords["f"]
+        pol = coords["polarization"]
+        order_x = coords["orders_x"]
+        order_y = coords["orders_y"]
+
+        # compute the angle corresponding to this amplitude
+        theta_data, phi_data = self.angles
+        angle_sel_kwargs = dict(orders_x=int(order_x), orders_y=int(order_y), f=float(freq0))
+        angle_theta = float(theta_data.sel(**angle_sel_kwargs))
+        angle_phi = float(phi_data.sel(**angle_sel_kwargs))
+
+        # if the angle is nan, this amplitude is set to 0 in the fwd pass, so should skip adj
+        if np.isnan(angle_theta):
+            return None
+
+        # get the polarization angle from the data
+        pol_str = str(pol.values)
+        if pol_str not in ("p", "s"):
+            raise ValueError(f"Something went wrong, given pol='{pol_str}' in adjoint source.")
+
+        pol_angle = 0.0 if pol_str == "p" else np.pi / 2
+
+        # compute the source amplitude
+        amp_complex = self.get_amplitude(amp)
+        k0 = 2 * np.pi * freq0 / C_0
+        bck_eps = self.medium.eps_model(freq0)
+        grad_const = 0.5 * k0 / np.sqrt(bck_eps) * np.cos(angle_theta)
+        src_amp = grad_const * amp_complex
+
+        # construct plane wave source
+        adj_src = PlaneWave(
+            size=self.monitor.size,
+            center=self.monitor.center,
+            source_time=GaussianPulse(
+                amplitude=abs(src_amp),
+                phase=np.angle(src_amp),
+                freq0=freq0,
+                fwidth=freq0 / 10,  # TODO: how to set this properly?
+            ),
+            direction=self.flip_direction(monitor.normal_dir),
+            angle_theta=angle_theta,
+            angle_phi=angle_phi,
+            pol_angle=pol_angle,
+        )
+
+        return adj_src
 
 
 MonitorDataTypes = (
