@@ -77,6 +77,23 @@ def make_kernel(kernel_type: KernelType, size: Iterable[int], normalize: bool = 
     return kernel
 
 
+def get_kernel_size_px(radius=None, dl=None):
+    if radius is None or dl is None:
+        raise ValueError("Either 'size_px' or both 'radius' and 'dl' must be provided.")
+
+    if np.isscalar(radius):
+        radius = [radius] * len(dl) if isinstance(dl, Iterable) else [radius]
+    if np.isscalar(dl):
+        dl = [dl] * len(radius)
+
+    radius_px = [np.ceil(r / g) for r, g in zip(radius, dl)]
+    return (
+        [int(2 * r_px + 1) for r_px in radius_px]
+        if len(radius_px) > 1
+        else int(2 * radius_px[0] + 1)
+    )
+
+
 def chain(*funcs: Union[Callable, Iterable[Callable]]):
     """Chain multiple functions together to apply them sequentially to an array.
 
