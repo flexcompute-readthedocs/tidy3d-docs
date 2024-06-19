@@ -1,19 +1,20 @@
 """Defines heat simulation data class"""
+
 from __future__ import annotations
+
 from typing import Tuple
 
 import numpy as np
 import pydantic.v1 as pd
 
-from .monitor_data import HeatMonitorDataType, TemperatureData
-from ..simulation import HeatSimulation
-
-from ...data.dataset import UnstructuredGridDataset, TetrahedralGridDataset, TriangularGridDataset
-from ...data.data_array import SpatialDataArray
-from ...base_sim.data.sim_data import AbstractSimulationData
-from ...types import Ax, RealFieldVal, Literal
-from ...viz import equal_aspect, add_ax_if_none
 from ....exceptions import DataError
+from ...base_sim.data.sim_data import AbstractSimulationData
+from ...data.data_array import SpatialDataArray
+from ...data.dataset import TetrahedralGridDataset, TriangularGridDataset, UnstructuredGridDataset
+from ...types import Ax, Literal, RealFieldVal
+from ...viz import add_ax_if_none, equal_aspect
+from ..simulation import HeatSimulation
+from .monitor_data import HeatMonitorDataType, TemperatureData
 
 
 class HeatSimulationData(AbstractSimulationData):
@@ -107,19 +108,19 @@ class HeatSimulationData(AbstractSimulationData):
             to compute the color limits. This helps in visualizing the field patterns especially
             in the presence of a source.
         vmin : float = None
-            The lower bound of data range that the colormap covers. If `None`, they are
+            The lower bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         vmax : float = None
-            The upper bound of data range that the colormap covers. If `None`, they are
+            The upper bound of data range that the colormap covers. If ``None``, they are
             inferred from the data and other keyword arguments.
         ax : matplotlib.axes._subplots.Axes = None
             matplotlib axes to plot on, if not specified, one is created.
-        sel_kwargs : keyword arguments used to perform `.sel()` selection in the monitor data.
-            These kwargs can select over the spatial dimensions (`x`, `y`, `z`),
-            or time dimension (`t`) if applicable.
+        sel_kwargs : keyword arguments used to perform ``.sel()`` selection in the monitor data.
+            These kwargs can select over the spatial dimensions (``x``, ``y``, ``z``),
+            or time dimension (``t``) if applicable.
             For the plotting to work appropriately, the resulting data after selection must contain
             only two coordinates with len > 1.
-            Furthermore, these should be spatial coordinates (`x`, `y`, or `z`).
+            Furthermore, these should be spatial coordinates (``x``, ``y``, or ``z``).
 
         Returns
         -------
@@ -214,7 +215,7 @@ class HeatSimulationData(AbstractSimulationData):
                     f"Data after selection has {len(non_scalar_coords)} coordinates "
                     f"({list(non_scalar_coords.keys())}), "
                     "must be 2 spatial coordinates for plotting on plane. "
-                    "Please add keyword arguments to `plot_monitor_data()` to select out the other coords."
+                    "Please add keyword arguments to 'plot_monitor_data()' to select out the other coords."
                 )
 
             spatial_coords_in_data = {

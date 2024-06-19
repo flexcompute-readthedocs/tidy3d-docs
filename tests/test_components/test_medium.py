@@ -1,12 +1,15 @@
 """Tests mediums."""
-import numpy as np
-import pytest
-import pydantic.v1 as pydantic
-import matplotlib.pyplot as plt
-import tidy3d as td
-from tidy3d.exceptions import ValidationError, SetupError
-from ..utils import assert_log_level, log_capture, AssertLogLevel
+
 from typing import Dict
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pydantic.v1 as pydantic
+import pytest
+import tidy3d as td
+from tidy3d.exceptions import SetupError, ValidationError
+
+from ..utils import AssertLogLevel, assert_log_level
 
 MEDIUM = td.Medium()
 ANIS_MEDIUM = td.AnisotropicMedium(xx=MEDIUM, yy=MEDIUM, zz=MEDIUM)
@@ -431,6 +434,9 @@ def test_medium2d(log_capture):
     plt.close()
     assert_log_level(log_capture, "WARNING")
 
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.Medium2D(ss=td.PECMedium(), tt=td.Medium())
+
 
 def test_rotation():
     # check that transpose is inverse
@@ -500,7 +506,7 @@ def test_fully_anisotropic_media():
     )
 
     # check eps_model can be called with an array of frequencies
-    eps = m.eps_model(np.linspace(1e12, 2e12, 10))
+    m.eps_model(np.linspace(1e12, 2e12, 10))
 
     assert np.allclose(m.permittivity, perm)
     assert np.allclose(m.conductivity, cond)
@@ -511,106 +517,12 @@ def test_fully_anisotropic_media():
     assert all(np.isin(np.round(cond_d), np.round(np.diag(cond_diag))))
 
 
-def test_perturbation_medium():
-    # Non-dispersive
-    pp_real = td.ParameterPerturbation(
-        heat=td.LinearHeatPerturbation(
-            coeff=-0.01,
-            temperature_ref=300,
-            temperature_range=(200, 500),
-        ),
-    )
-
-    pp_complex = td.ParameterPerturbation(
-        heat=td.LinearHeatPerturbation(
-            coeff=0.01j,
-            temperature_ref=300,
-            temperature_range=(200, 500),
-        ),
-        charge=td.LinearChargePerturbation(
-            electron_coeff=-1e-21,
-            electron_ref=0,
-            electron_range=(0, 1e20),
-            hole_coeff=-2e-21,
-            hole_ref=0,
-            hole_range=(0, 0.5e20),
-        ),
-    )
-
-    coords = dict(x=[1, 2], y=[3, 4], z=[5, 6])
-    temperature = td.SpatialDataArray(300 * np.ones((2, 2, 2)), coords=coords)
-    electron_density = td.SpatialDataArray(1e18 * np.ones((2, 2, 2)), coords=coords)
-    hole_density = td.SpatialDataArray(2e18 * np.ones((2, 2, 2)), coords=coords)
-
-    pmed = td.PerturbationMedium(permittivity=3, permittivity_perturbation=pp_real)
-
-    cmed = pmed.perturbed_copy()
-    # regular medium if no perturbations
-    assert isinstance(cmed, td.Medium)
-
-    cmed = pmed.perturbed_copy(temperature, electron_density)
-    cmed = pmed.perturbed_copy(temperature, electron_density, hole_density)
-
-    # correct propagation of parameters
-    assert cmed.name == pmed.name
-    assert cmed.frequency_range == pmed.frequency_range
-    assert cmed.subpixel == pmed.subpixel
-    assert cmed.allow_gain == pmed.allow_gain
-
-    # permittivity < 1
-    with pytest.raises(pydantic.ValidationError):
-        _ = pmed.perturbed_copy(2 * temperature)
-
-    # conductivity validators
-    pmed = td.PerturbationMedium(conductivity_perturbation=pp_real, subpixel=False)
-    cmed = pmed.perturbed_copy(0.9 * temperature)  # positive conductivity
-    assert not cmed.subpixel
-    with pytest.raises(pydantic.ValidationError):
-        _ = pmed.perturbed_copy(1.1 * temperature)  # negative conductivity
-
-    # negative conductivity but allow gain
-    pmed = td.PerturbationMedium(conductivity_perturbation=pp_real, allow_gain=True)
-    _ = pmed.perturbed_copy(1.1 * temperature)
-
-    # complex perturbation
-    with pytest.raises(pydantic.ValidationError):
-        pmed = td.PerturbationMedium(permittivity=3, permittivity_perturbation=pp_complex)
-
-    # Dispersive
-    pmed = td.PerturbationPoleResidue(
-        poles=[(1j, 3), (2j, 4)],
-        poles_perturbation=[(None, pp_real), (pp_complex, None)],
-        subpixel=False,
-        allow_gain=True,
-    )
-
-    cmed = pmed.perturbed_copy()
-    # regular medium if no perturbations
-    assert isinstance(cmed, td.PoleResidue)
-
-    cmed = pmed.perturbed_copy(temperature, None, hole_density)
-    cmed = pmed.perturbed_copy(temperature, electron_density, hole_density)
-
-    # correct propagation of parameters
-    assert cmed.name == pmed.name
-    assert cmed.frequency_range == pmed.frequency_range
-    assert cmed.subpixel == pmed.subpixel
-    assert cmed.allow_gain == pmed.allow_gain
-
-    # mismatch between base parameter and perturbations
-    with pytest.raises(pydantic.ValidationError):
-        pmed = td.PerturbationPoleResidue(
-            poles=[(1j, 3), (2j, 4)],
-            poles_perturbation=[(None, pp_real)],
-        )
-
-
 def test_nonlinear_medium(log_capture):
     med = td.Medium(
         nonlinear_spec=td.NonlinearSpec(
             models=[
                 td.NonlinearSusceptibility(chi3=1.5),
-                td.TwoPhotonAbsorption(beta=1),
+                td.TwoPhotonAbsorption(beta=1, sigma=1, tau=1, e_e=1, e_h=0.8, c_e=1, c_h=1),
                 td.KerrNonlinearity(n2=1),
             ],
             num_iters=20,
@@ -622,7 +534,6 @@ def test_nonlinear_medium(log_capture):
         nonlinear_spec=td.NonlinearSpec(
             models=[
                 td.KerrNonlinearity(n2=-1 + 1j, n0=1),
-                td.TwoPhotonAbsorption(beta=1 + 1j, n0=1),
             ],
             num_iters=20,
         )
@@ -672,7 +583,7 @@ def test_nonlinear_medium(log_capture):
     # active materials
     with pytest.raises(ValidationError):
         med = td.Medium(
-            nonlinear_spec=td.NonlinearSpec(models=[td.TwoPhotonAbsorption(beta=-1 + 1j, n0=1)])
+            nonlinear_spec=td.NonlinearSpec(models=[td.TwoPhotonAbsorption(beta=-1, n0=1)])
         )
 
     with pytest.raises(ValidationError):
@@ -683,7 +594,7 @@ def test_nonlinear_medium(log_capture):
         allow_gain=True,
     )
 
-    # automatic detection of n0
+    # automatic detection of n0 and freq0
     n0 = 2
     freq0 = td.C_0 / 1
     nonlinear_spec = td.NonlinearSpec(models=[td.KerrNonlinearity(n2=1)])
@@ -703,6 +614,7 @@ def test_nonlinear_medium(log_capture):
         structures=[structure],
     )
     assert n0 == nonlinear_spec.models[0]._get_n0(n0=None, medium=medium, freqs=[freq0])
+    assert freq0 == nonlinear_spec.models[0]._get_freq0(freq0=None, freqs=[freq0])
 
     # can't detect n0 with different source freqs
     source_time2 = source_time.updated_copy(freq0=2 * freq0)
@@ -722,3 +634,145 @@ def test_nonlinear_medium(log_capture):
     with pytest.raises(ValidationError):
         structure = structure.updated_copy(medium=medium_active)
         sim.updated_copy(structures=[structure])
+
+    # nonlinear or time-modulation on medium2d
+    # time-modulated
+    FREQ_MODULATE = 1e12
+    AMP_TIME = 1.1
+    PHASE_TIME = 0
+    CW = td.ContinuousWaveTimeModulation(freq0=FREQ_MODULATE, amplitude=AMP_TIME, phase=PHASE_TIME)
+    ST = td.SpaceTimeModulation(
+        time_modulation=CW,
+    )
+    MODULATION_SPEC = td.ModulationSpec()
+    modulation_spec = MODULATION_SPEC.updated_copy(permittivity=ST)
+    modulated = td.Medium(permittivity=2, modulation_spec=modulation_spec)
+    with pytest.raises(ValidationError):
+        td.Medium2D(ss=medium, tt=medium)
+    with pytest.raises(ValidationError):
+        td.Medium2D(ss=modulated, tt=modulated)
+
+
+def test_lumped_resistor():
+    resistor = td.LumpedResistor(
+        resistance=50.0,
+        center=[0, 0, 0],
+        size=[2, 0, 3],
+        voltage_axis=0,
+        name="R",
+    )
+    _ = resistor._sheet_conductance
+    normal_axis = resistor.normal_axis
+    assert normal_axis == 1
+
+    # Check conversion to geometry
+    _ = resistor.to_structure
+
+    # Check conversion to mesh overrides
+    _ = resistor.to_mesh_overrides()
+
+    # error if voltage axis is not in plane with the resistor
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[2, 0, 3],
+            voltage_axis=1,
+            name="R",
+        )
+
+    # error if not planar
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[0, 0, 3],
+            voltage_axis=2,
+            name="R",
+        )
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.LumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            size=[2, 1, 3],
+            voltage_axis=2,
+            name="R",
+        )
+
+
+def test_coaxial_lumped_resistor():
+    resistor = td.CoaxialLumpedResistor(
+        resistance=50.0,
+        center=[0, 0, 0],
+        outer_diameter=3,
+        inner_diameter=1,
+        normal_axis=1,
+        name="R",
+    )
+
+    _ = resistor._sheet_conductance
+    normal_axis = resistor.normal_axis
+    assert normal_axis == 1
+
+    # Check conversion to geometry
+    _ = resistor.to_structure
+
+    # Check conversion to mesh overrides
+    _ = resistor.to_mesh_overrides()
+
+    # error if inner diameter is larger
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.CoaxialLumpedResistor(
+            resistance=50.0,
+            center=[0, 0, 0],
+            outer_diameter=3,
+            inner_diameter=4,
+            normal_axis=1,
+            name="R",
+        )
+
+    with pytest.raises(pydantic.ValidationError):
+        _ = td.CoaxialLumpedResistor(
+            resistance=50.0,
+            center=[0, 0, np.inf],
+            outer_diameter=3,
+            inner_diameter=1,
+            normal_axis=1,
+            name="R",
+        )
+
+
+def test_custom_medium(log_capture):
+    Nx, Ny, Nz, Nf = 4, 3, 1, 1
+    X = np.linspace(-1, 1, Nx)
+    Y = np.linspace(-1, 1, Ny)
+    Z = [0]
+    freqs = [2e14]
+    n_data = np.ones((Nx, Ny, Nz, Nf))
+    n_dataset = td.ScalarFieldDataArray(n_data, coords=dict(x=X, y=Y, z=Z, f=freqs))
+
+    def create_mediums(n_dataset):
+        ## Three equivalent ways of defining custom medium for the lens
+
+        # define custom medium with n/k data
+        _ = td.CustomMedium.from_nk(n_dataset, interp_method="nearest")
+
+        # define custom medium with permittivity data
+        eps_dataset = td.ScalarFieldDataArray(n_dataset**2, coords=dict(x=X, y=Y, z=Z, f=freqs))
+        _ = td.CustomMedium.from_eps_raw(eps_dataset, interp_method="nearest")
+
+        # define each component of permittivity via "PermittivityDataset"
+        eps_xyz_dataset = td.PermittivityDataset(
+            eps_xx=eps_dataset, eps_yy=eps_dataset, eps_zz=eps_dataset
+        )
+        _ = td.CustomMedium(eps_dataset=eps_xyz_dataset, interp_method="nearest")
+
+    create_mediums(n_dataset=n_dataset)
+    assert_log_level(log_capture, None)
+
+    with pytest.raises(pydantic.ValidationError):
+        # repeat some entries so data cannot be interpolated
+        X2 = [X[0]] + list(X)
+        n_data2 = np.vstack((n_data[0, :, :, :].reshape(1, Ny, Nz, Nf), n_data))
+        n_dataset2 = td.ScalarFieldDataArray(n_data2, coords=dict(x=X2, y=Y, z=Z, f=freqs))
+        create_mediums(n_dataset=n_dataset2)

@@ -1,23 +1,23 @@
 """Tests file export and loading."""
-import os
+
 import json
-
-import pytest
-import numpy as np
+import os
 from time import time
+
 import dill as pickle
-
-
-from tidy3d import __version__
+import h5py
+import numpy as np
+import pytest
 import tidy3d as td
+from tidy3d import __version__
 from tidy3d.components.base import DATA_ARRAY_MAP
-from ..utils import SIM_FULL as SIM
-from ..utils import SIM_MONITORS as SIM2
+from tidy3d.components.data.sim_data import DATA_TYPE_MAP
+
 from ..test_data.test_monitor_data import make_flux_data
 from ..test_data.test_sim_data import make_sim_data
+from ..utils import SIM_FULL as SIM
+from ..utils import SIM_MONITORS as SIM2
 from ..utils import run_emulated
-
-from tidy3d.components.data.sim_data import DATA_TYPE_MAP
 
 # Store an example of every minor release simulation to test updater in the future
 SIM_DIR = "tests/sims"
@@ -48,6 +48,11 @@ def set_datasets_to_none(sim):
                 if geometry["type"] == "TriangleMesh":
                     geometry["mesh_dataset"] = None
         if "Custom" in structure["medium"]["type"]:
+            # all UnstructuredGridDataset will be converted into SpatialDataArray (vacuum)
+            for field_name in ["permittivity", "conductivity", "eps_inf"]:
+                if field_name in structure["medium"]:
+                    if isinstance(structure["medium"][field_name], dict):
+                        structure["medium"][field_name] = "SpatialDataArray"
             if structure["medium"]["type"] == "CustomMedium":
                 structure["medium"]["eps_dataset"] = None
             elif structure["medium"]["type"] == "CustomPoleResidue":
@@ -57,11 +62,10 @@ def set_datasets_to_none(sim):
     return td.Simulation.parse_obj(sim_dict)
 
 
-def test_simulation_load_export(split_string):
+def test_simulation_load_export(split_string, tmp_path):
     major, minor, patch = __version__.split(".")
-    path = os.path.join(SIM_DIR, f"simulation_{major}_{minor}_{patch}.json")
-    # saving as .h5 since *.hdf5 is git ignored
-    path_hdf5 = os.path.join(SIM_DIR, f"simulation_{major}_{minor}_{patch}.h5")
+    path = os.path.join(tmp_path, f"simulation_{major}_{minor}_{patch}.json")
+    path_hdf5 = os.path.join(tmp_path, f"simulation_{major}_{minor}_{patch}.h5")
     SIM.to_file(path)
     SIM.to_hdf5(path_hdf5)
     SIM2 = td.Simulation.from_file(path)
@@ -316,3 +320,18 @@ def test_monitor_data_from_file():
     mode_data = td.SimulationData.mnt_data_from_file(fname, mnt_name="mode")
     assert isinstance(mode_data, td.ModeData)
     assert mode_data.monitor == sim.monitors[1]
+
+
+def test_data_array_to_hdf5(tmp_path):
+    values = np.linspace(0, 1, 10)
+    coords = dict(f=values)
+    flux = td.FluxDataArray(values, coords=coords)
+
+    path = str(tmp_path / "flux.hdf5")
+
+    # pass a file handle
+    with h5py.File(path, "w") as f_handle:
+        flux.to_hdf5(fname=f_handle, group_path="test")
+
+    # pass a file name
+    flux.to_hdf5(fname=path, group_path="test")

@@ -1,13 +1,15 @@
 """Parametric material models."""
+
+import warnings
 from abc import ABC, abstractmethod
 from typing import List, Tuple
-import warnings
-import pydantic.v1 as pd
-import numpy as np
 
-from ..components.medium import PoleResidue, Medium2D, Drude
+import numpy as np
+import pydantic.v1 as pd
+
 from ..components.base import Tidy3dBaseModel
-from ..constants import EPSILON_0, Q_e, HBAR, K_B, ELECTRON_VOLT, KELVIN
+from ..components.medium import Drude, Medium2D, PoleResidue
+from ..constants import ELECTRON_VOLT, EPSILON_0, HBAR, K_B, KELVIN, Q_e
 from ..log import log
 
 try:
@@ -249,7 +251,7 @@ class Graphene(ParametricVariantItem2D):
             raise ImportError(
                 "The package 'scipy' was not found. Please install the 'core' "
                 "dependencies to calculate the interband term of graphene. For example: "
-                "pip install -r requirements/core.txt"
+                "pip install tidy3d"
             )
 
         omegas = 2 * np.pi * np.array(freqs)

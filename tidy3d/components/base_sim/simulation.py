@@ -1,29 +1,25 @@
 """Abstract base for defining simulation classes of different solvers"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Tuple
-from math import isclose
 
+import autograd.numpy as anp
 import pydantic.v1 as pd
 
-from .monitor import AbstractMonitor
-
-from ..base import cached_property, skip_if_fields_missing
-from ..validators import assert_unique_names, assert_objects_in_sim_bounds
-from ..geometry.base import Box
-from ..types import Ax, Bound, Axis, Symmetry, TYPE_TAG_STR
-from ..structure import Structure
-from ..viz import add_ax_if_none, equal_aspect
-from ..scene import Scene
-
-from ..medium import Medium, MediumType3D
-
-from ..viz import PlotParams, plot_params_symmetry
-
-from ...version import __version__
 from ...exceptions import Tidy3dKeyError
 from ...log import log
+from ...version import __version__
+from ..base import cached_property, skip_if_fields_missing
+from ..geometry.base import Box
+from ..medium import Medium, MediumType3D
+from ..scene import Scene
+from ..structure import Structure
+from ..types import TYPE_TAG_STR, Ax, Axis, Bound, Symmetry
+from ..validators import assert_objects_in_sim_bounds, assert_unique_names
+from ..viz import PlotParams, add_ax_if_none, equal_aspect, plot_params_symmetry
+from .monitor import AbstractMonitor
 
 
 class AbstractSimulation(Box, ABC):
@@ -37,28 +33,6 @@ class AbstractSimulation(Box, ABC):
     )
     """
     Background medium of simulation, defaults to vacuum if not specified.
-
-    See Also
-    --------
-
-    `Material Library <../material_library.html>`_:
-        The material library is a dictionary containing various dispersive models from real world materials.
-
-    `Index <../mediums.html>`_:
-        Dispersive and dispersionless Mediums models.
-
-    **Notebooks:**
-
-    * `Fitting dispersive material models <../../notebooks/Fitting.html>`_
-
-    **Lectures:**
-
-    * `Modeling dispersive material in FDTD <https://www.flexcompute.com/fdtd101/Lecture-5-Modeling-dispersive-material-in-FDTD/>`_
-
-    **GUI:**
-
-    * `Mediums <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-2-Mediums/>`_
-
     """
 
     structures: Tuple[Structure, ...] = pd.Field(
@@ -88,42 +62,6 @@ class AbstractSimulation(Box, ABC):
             ],
             ...
         )
-
-    **Usage Caveats**
-
-    It is very important to understand the way the dielectric permittivity of the :class:`Structure` list is resolved
-    by the simulation grid. Without :attr:`subpixel` averaging, the structure geometry in relation to the
-    grid points can lead to its features permittivity not being fully resolved by the
-    simulation.
-
-    For example, in the image below, two silicon slabs with thicknesses 150nm and 175nm centered in a grid with
-    spatial discretization :math:`\\Delta z = 25\\text{nm}` will compute equivalently because that grid does
-    not resolve the feature permittivity in between grid points without :attr:`subpixel` averaging.
-
-    .. image:: ../../_static/img/permittivity_on_yee_grid.png
-
-    See Also
-    --------
-
-    :class:`Structure`:
-        Defines a physical object that interacts with the electromagnetic fields.
-
-    :attr:`subpixel`
-        Subpixel averaging of the permittivity based on structure definition, resulting in much higher
-        accuracy for a given grid size.
-
-    **Notebooks:**
-
-    * `Visualizing geometries in Tidy3D <../../notebooks/VizSimulation.html>`_
-
-    **Lectures:**
-
-    * `Using FDTD to Compute a Transmission Spectrum <https://www.flexcompute.com/fdtd101/Lecture-2-Using-FDTD-to-Compute-a-Transmission-Spectrum/>`_
-    *  `Dielectric constant assignment on Yee grids <https://www.flexcompute.com/fdtd101/Lecture-9-Dielectric-constant-assignment-on-Yee-grids/>`_
-
-    **GUI:**
-
-    * `Structures <https://www.flexcompute.com/tidy3d/learning-center/tidy3d-gui/Lecture-3-Structures/#presentation-slides>`_
     """
 
     symmetry: Tuple[Symmetry, Symmetry, Symmetry] = pd.Field(
@@ -131,29 +69,8 @@ class AbstractSimulation(Box, ABC):
         title="Symmetries",
         description="Tuple of integers defining reflection symmetry across a plane "
         "bisecting the simulation domain normal to the x-, y-, and z-axis "
-        "at the simulation center of each axis, respectively. "
-        "Each element can be ``0`` (no symmetry), ``1`` (even, i.e. 'PMC' symmetry) or "
-        "``-1`` (odd, i.e. 'PEC' symmetry). "
-        "Note that the vectorial nature of the fields must be taken into account to correctly "
-        "determine the symmetry value.",
+        "at the simulation center of each axis, respectively. ",
     )
-    """
-    You should set the ``symmetry`` parameter in your :class:`Simulation` object using a tuple of integers
-    defining reflection symmetry across a plane bisecting the simulation domain normal to the x-, y-, and z-axis.
-    Each element can be 0 (no symmetry), 1 (even, i.e. :class:`PMC` symmetry) or -1 (odd, i.e. :class:`PEC`
-    symmetry). Note that the vectorial nature of the fields must be considered to determine the symmetry value
-    correctly.
-
-    The figure below illustrates how the electric and magnetic field components transform under :class:`PEC`- and
-    :class:`PMC`-like symmetry planes. You can refer to this figure when considering whether a source field conforms
-    to a :class:`PEC`- or :class:`PMC`-like symmetry axis. This would be helpful, especially when dealing with
-    optical waveguide modes.
-
-    .. image:: ../../notebooks/img/pec_pmc.png
-
-
-    .. TODO maybe resize?
-    """
 
     sources: Tuple[None, ...] = pd.Field(
         (),
@@ -192,7 +109,7 @@ class AbstractSimulation(Box, ABC):
     _unique_structure_names = assert_unique_names("structures")
     _unique_source_names = assert_unique_names("sources")
 
-    _monitors_in_bounds = assert_objects_in_sim_bounds("monitors")
+    _monitors_in_bounds = assert_objects_in_sim_bounds("monitors", strict_inequality=True)
     _structures_in_bounds = assert_objects_in_sim_bounds("structures", error=False)
 
     @pd.validator("structures", always=True)
@@ -213,7 +130,7 @@ class AbstractSimulation(Box, ABC):
                 struct_bounds = list(struct_bound_min) + list(struct_bound_max)
 
                 for sim_val, struct_val in zip(sim_bounds, struct_bounds):
-                    if isclose(sim_val, struct_val):
+                    if anp.isclose(sim_val, struct_val):
                         consolidated_logger.warning(
                             f"Structure at 'structures[{istruct}]' has bounds that extend exactly "
                             "to simulation edges. This can cause unexpected behavior. "
@@ -229,6 +146,10 @@ class AbstractSimulation(Box, ABC):
     def _post_init_validators(self) -> None:
         """Call validators taking z`self` that get run after init."""
         _ = self.scene
+
+    def validate_pre_upload(self) -> None:
+        """Validate the fully initialized simulation is ok for upload to our servers."""
+        pass
 
     """ Accounting """
 

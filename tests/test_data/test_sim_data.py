@@ -1,23 +1,29 @@
 """Tests SimulationData"""
-import pytest
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pydantic.v1 as pydantic
-
+import pytest
 import tidy3d as td
-from tidy3d.exceptions import DataError, Tidy3dKeyError
-
-from tidy3d.components.data.sim_data import SimulationData
 from tidy3d.components.data.data_array import ScalarFieldTimeDataArray
 from tidy3d.components.data.monitor_data import FieldTimeData
-from tidy3d.components.monitor import FieldMonitor, FieldTimeMonitor, ModeSolverMonitor
+from tidy3d.components.data.sim_data import SimulationData
+from tidy3d.components.file_util import replace_values
+from tidy3d.components.monitor import FieldMonitor, FieldTimeMonitor, ModeMonitor
+from tidy3d.exceptions import DataError, Tidy3dKeyError
 
-from .test_monitor_data import make_field_data, make_field_time_data, make_permittivity_data
-from .test_monitor_data import make_mode_data, make_mode_solver_data
-from .test_monitor_data import make_flux_data, make_flux_time_data
-from .test_monitor_data import make_diffraction_data
+from ..utils import get_nested_shape
 from .test_data_arrays import FIELD_MONITOR, SIM, SIM_SYM
-
+from .test_monitor_data import (
+    make_diffraction_data,
+    make_field_data,
+    make_field_time_data,
+    make_flux_data,
+    make_flux_time_data,
+    make_mode_data,
+    make_mode_solver_data,
+    make_permittivity_data,
+)
 
 # monitor data instances
 
@@ -115,7 +121,9 @@ def test_getitem():
 def test_centers():
     sim_data = make_sim_data()
     for mon in sim_data.simulation.monitors:
-        if isinstance(mon, (FieldMonitor, FieldTimeMonitor, ModeSolverMonitor)):
+        if isinstance(mon, (FieldMonitor, FieldTimeMonitor)) or (
+            isinstance(mon, ModeMonitor) and mon.store_fields_direction
+        ):
             _ = sim_data.at_centers(mon.name)
 
 
@@ -161,6 +169,18 @@ def test_plot(phase):
     plt.close()
 
 
+def test_plot_field_missing_derived_data():
+    sim_data = make_sim_data()
+    with pytest.raises(Tidy3dKeyError):
+        sim_data.plot_field(field_monitor_name="field_time", field_name="E", val="int")
+
+
+def test_plot_field_missing_field_value():
+    sim_data = make_sim_data()
+    with pytest.raises(Tidy3dKeyError):
+        sim_data.plot_field(field_monitor_name="field", field_name="Ex", val="test")
+
+
 @pytest.mark.parametrize("monitor_name", ["field", "field_time", "mode_solver"])
 def test_intensity(monitor_name):
     sim_data = make_sim_data()
@@ -203,7 +223,7 @@ def test_to_json(tmp_path):
 
 @pytest.mark.filterwarnings("ignore:log10")
 @pytest.mark.parametrize("field_name", ["Ex", "Ey", "Ez", "E", "Hx", "Hz", "Sy"])
-@pytest.mark.parametrize("val", ["real", "imag", "abs", "phase"])
+@pytest.mark.parametrize("val", ["real", "re", "imag", "im", "abs", "phase"])
 def test_derived_components(field_name, val):
     sim_data = make_sim_data()
     if len(field_name) == 1 and val == "phase":
@@ -396,3 +416,57 @@ def test_loading_non_field_data():
     sim_data = make_sim_data()
     with pytest.raises(DataError):
         sim_data.load_field_monitor("flux")
+
+
+def test_replace_values_dict():
+    """
+    Test that replacing values in initial dict hasn't changed the shape and that values have been correctly replaced.
+    Used in simData.to_mat() method.
+    """
+    # Create data for test
+    test_data = make_sim_data()
+    test_data_dict = test_data.dict()
+    test_data_dict["none_test"] = None  # Check that replace works at top level of nested dict
+
+    # Get the original shape of nested dict
+    original_shape = get_nested_shape(test_data_dict)
+
+    # Modify dict and get shape of dict
+    new_data = replace_values(test_data_dict, None, [])
+    new_shape = get_nested_shape(new_data)
+
+    assert (
+        original_shape == new_shape
+        and new_data["simulation"]["medium"]["name"] == []
+        and new_data["none_test"] == []
+    )
+
+
+def test_replace_values_list():
+    """
+    Test that replacing values in initial list hasn't changed the shape and that values have been correctly replaced.
+    """
+    # Create data for test
+    test_list = [
+        {"nest1": {"nest2": {"nest3": None}}},
+        None,
+        [5, "asdf", 12.34, None, False, [3.14, None]],
+        3.14,
+        (None, None, "notNone"),
+    ]
+    original_shape = get_nested_shape(test_list)
+
+    # Modify list and get shape
+    new_list = replace_values(test_list, 3.14, [])
+    new_shape = get_nested_shape(new_list)
+
+    assert original_shape == new_shape and new_list[3] == [] and new_list[2][5][0] == []
+
+
+def test_to_mat_file(tmp_path):
+    """
+    Test output of ``.mat`` file completes without error.
+    """
+    sim_data = make_sim_data()
+    path = str(tmp_path / "test.mat")
+    sim_data.to_mat_file(path)

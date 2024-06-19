@@ -1,7 +1,7 @@
 """Tests GridSpec."""
-import pytest
-import numpy as np
 
+import numpy as np
+import pytest
 import tidy3d as td
 from tidy3d.exceptions import SetupError
 
@@ -29,7 +29,71 @@ def test_make_coords():
         periodic=(True, False, False),
         wavelength=1.0,
         num_pml_layers=(10, 4),
+        snapping_points=(),
     )
+
+
+def test_make_coords_with_snapping_points():
+    """Test the behavior of snapping points"""
+    gs = make_grid_spec()
+    make_coords_args = dict(
+        structures=[
+            td.Structure(geometry=td.Box(size=(2, 2, 1)), medium=td.Medium()),
+            td.Structure(geometry=td.Box(size=(1, 1, 1)), medium=td.Medium(permittivity=4)),
+        ],
+        symmetry=(0, 0, 0),
+        periodic=(False, False, False),
+        wavelength=1.0,
+        num_pml_layers=(0, 0),
+        axis=0,
+    )
+
+    # 1) no snapping points, 0.85 is not on any grid boundary
+    coord_original = gs.grid_x.make_coords(
+        snapping_points=(),
+        **make_coords_args,
+    )
+    assert not np.any(np.isclose(coord_original, 0.85))
+
+    # 2) with snapping points at 0.85, grid should pass through 0.85
+    coord = gs.grid_x.make_coords(
+        snapping_points=((0.85, 0, 0),),
+        **make_coords_args,
+    )
+    assert np.any(np.isclose(coord, 0.85))
+
+    #  snapping still takes effect if the point is completely outside along other axes
+    coord = gs.grid_x.make_coords(
+        snapping_points=((0.85, 10, 0),),
+        **make_coords_args,
+    )
+    assert np.any(np.isclose(coord, 0.85))
+
+    coord = gs.grid_x.make_coords(
+        snapping_points=((0.85, 0, -10),),
+        **make_coords_args,
+    )
+    assert np.any(np.isclose(coord, 0.85))
+
+    # 3) snapping takes no effect if it's too close to interval boundaries
+    coord = gs.grid_x.make_coords(
+        snapping_points=((0.98, 0, 0),),
+        **make_coords_args,
+    )
+    assert np.allclose(coord_original, coord)
+
+    # and no snapping if it's compeletely outside the simulation domain
+    coord = gs.grid_x.make_coords(
+        snapping_points=((10, 0, 0),),
+        **make_coords_args,
+    )
+    assert np.allclose(coord_original, coord)
+
+    coord = gs.grid_x.make_coords(
+        snapping_points=((-10, 0, 0),),
+        **make_coords_args,
+    )
+    assert np.allclose(coord_original, coord)
 
 
 def test_make_coords_2d():
@@ -44,6 +108,7 @@ def test_make_coords_2d():
         periodic=(True, True, False),
         wavelength=1.0,
         num_pml_layers=(10, 4),
+        snapping_points=(),
     )
 
 
@@ -95,7 +160,6 @@ def test_autogrid_2dmaterials():
     sigma = 0.45
     thickness = 0.01
     medium = td.Medium2D.from_medium(td.Medium(conductivity=sigma), thickness=thickness)
-    grid_dl = 0.03
     box = td.Structure(geometry=td.Box(size=(td.inf, td.inf, 0), center=(0, 0, 1)), medium=medium)
     src = td.UniformCurrentSource(
         source_time=td.GaussianPulse(freq0=1.5e14, fwidth=0.5e14),
@@ -114,9 +178,9 @@ def test_autogrid_2dmaterials():
         grid_spec=td.GridSpec.auto(),
         run_time=1e-12,
     )
-    assert np.isclose(sim.volumetric_structures[0].geometry.center[2], 1, rtol=RTOL)
-    grid_dl = sim.discretize(box.geometry).sizes.z[0]
-    assert np.isclose(sim.volumetric_structures[0].geometry.size[2], grid_dl, rtol=RTOL)
+    assert np.isclose(sim.volumetric_structures[0].geometry.bounding_box.center[2], 1, rtol=RTOL)
+    sim.discretize(box.geometry).sizes.z[0]
+    assert np.isclose(sim.volumetric_structures[0].geometry.bounding_box.size[2], 0, rtol=RTOL)
 
     # now if we increase conductivity, the in-plane grid size should decrease
     sigma2 = 4.5
@@ -158,3 +222,86 @@ def test_autogrid_2dmaterials():
     # Commented until inplane AutoGrid for 2D materials is enabled
     # with pytest.raises(ValidationError):
     #    _ = sim.grid
+
+
+def test_zerosize_dimensions():
+    wvl = 1.55
+    res = 20
+    dl = wvl / res
+
+    # auto grid
+    sim = td.Simulation(
+        size=(0, 10, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec.auto(wavelength=wvl, min_steps_per_wvl=res),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.x, [-dl / 2, dl / 2])
+
+    # uniform grid
+    sim = td.Simulation(
+        size=(5, 0, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec.uniform(dl=dl),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.y, [0, dl])
+
+    # custom grid
+    custom_grid = td.CustomGrid(dl=tuple([0.25] * 40))
+    sim = td.Simulation(
+        size=(5, 0, 10),
+        boundary_spec=td.BoundarySpec.pec(
+            x=True,
+            y=True,
+            z=True,
+        ),
+        grid_spec=td.GridSpec(
+            grid_x=custom_grid, grid_y=td.CustomGrid(dl=(dl,)), grid_z=custom_grid
+        ),
+        run_time=1e-12,
+    )
+
+    assert np.allclose(sim.grid.boundaries.y, [-dl / 2, dl / 2])
+
+    with pytest.raises(SetupError):
+        sim = td.Simulation(
+            size=(5, 0, 10),
+            boundary_spec=td.BoundarySpec.pec(
+                x=True,
+                y=True,
+                z=True,
+            ),
+            grid_spec=td.GridSpec(
+                grid_x=custom_grid,
+                grid_y=td.CustomGrid(dl=(dl,), custom_offset=10),
+                grid_z=custom_grid,
+            ),
+            run_time=1e-12,
+        )
+
+    with pytest.raises(SetupError):
+        sim = td.Simulation(
+            size=(5, 3, 10),
+            boundary_spec=td.BoundarySpec.pec(
+                x=True,
+                y=True,
+                z=True,
+            ),
+            grid_spec=td.GridSpec(
+                grid_x=custom_grid.updated_copy(custom_offset=20),
+                grid_y=custom_grid,
+                grid_z=custom_grid,
+            ),
+            run_time=1e-12,
+        )

@@ -1,8 +1,9 @@
 """Tests tidy3d/components/data/data_array.py"""
-import pytest
-import numpy as np
-from typing import Tuple, List
 
+from typing import List, Tuple
+
+import numpy as np
+import pytest
 import tidy3d as td
 from tidy3d.exceptions import DataError
 
@@ -50,11 +51,11 @@ FIELD_MONITOR_2D = td.FieldMonitor(size=SIZE_2D, fields=FIELDS, name="field_2d",
 FIELD_TIME_MONITOR_2D = td.FieldTimeMonitor(
     size=SIZE_2D, fields=FIELDS, name="field_time_2d", interval=INTERVAL
 )
-MODE_SOLVE_MONITOR = td.ModeSolverMonitor(
-    size=SIZE_2D, name="mode_solver", mode_spec=MODE_SPEC, freqs=FS
-)
 PERMITTIVITY_MONITOR = td.PermittivityMonitor(size=SIZE_3D, name="permittivity", freqs=FREQS)
 MODE_MONITOR = td.ModeMonitor(size=SIZE_2D, name="mode", mode_spec=MODE_SPEC, freqs=FREQS)
+MODE_MONITOR_WITH_FIELDS = td.ModeMonitor(
+    size=SIZE_2D, name="mode_solver", mode_spec=MODE_SPEC, freqs=FS, store_fields_direction="+"
+)
 FLUX_MONITOR = td.FluxMonitor(size=SIZE_2D, freqs=FREQS, name="flux")
 FLUX_TIME_MONITOR = td.FluxTimeMonitor(size=SIZE_2D, interval=INTERVAL, name="flux_time")
 DIFFRACTION_MONITOR = td.DiffractionMonitor(
@@ -67,7 +68,7 @@ DIFFRACTION_MONITOR = td.DiffractionMonitor(
 MONITORS = [
     FIELD_MONITOR,
     FIELD_TIME_MONITOR,
-    MODE_SOLVE_MONITOR,
+    MODE_MONITOR_WITH_FIELDS,
     PERMITTIVITY_MONITOR,
     MODE_MONITOR,
     FLUX_MONITOR,
@@ -131,7 +132,7 @@ def make_scalar_field_time_data_array(grid_key: str, symmetry=True):
 
 
 def make_scalar_mode_field_data_array(grid_key: str, symmetry=True):
-    XS, YS, ZS = get_xyz(MODE_SOLVE_MONITOR, grid_key, symmetry)
+    XS, YS, ZS = get_xyz(MODE_MONITOR_WITH_FIELDS, grid_key, symmetry)
     values = (1 + 0.1j) * np.random.random((len(XS), 1, len(ZS), len(FS), len(MODE_INDICES)))
 
     return td.ScalarModeFieldDataArray(
@@ -140,7 +141,7 @@ def make_scalar_mode_field_data_array(grid_key: str, symmetry=True):
 
 
 def make_scalar_mode_field_data_array_smooth(grid_key: str, symmetry=True, rot: float = 0):
-    XS, YS, ZS = get_xyz(MODE_SOLVE_MONITOR, grid_key, symmetry)
+    XS, YS, ZS = get_xyz(MODE_MONITOR_WITH_FIELDS, grid_key, symmetry)
 
     values = np.array([1 + 0.1j])[None, :, None, None, None] * np.sin(
         0.5
@@ -308,6 +309,10 @@ def test_spatial_data_array():
         coords=dict(x=[0, 1], y=[1, 2], z=[2, 3]),
     )
 
+    # make it non sorted
+    arr = arr.isel(x=[1, 0], z=[1, 0])
+
+    # reflection with a gap
     reflected = arr.reflect(axis=0, center=-0.5)
 
     reflected_expected = td.SpatialDataArray(
@@ -317,6 +322,17 @@ def test_spatial_data_array():
 
     assert reflected == reflected_expected
 
+    # reflection with a gap, only reflection
+    reflected = arr.reflect(axis=0, center=-0.5, reflection_only=True)
+
+    reflected_expected = td.SpatialDataArray(
+        [[[4, 5], [6, 7]], [[0, 1], [2, 3]]],
+        coords=dict(x=[-2, -1], y=[1, 2], z=[2, 3]),
+    )
+
+    assert reflected == reflected_expected
+
+    # reflection with no gap
     reflected = arr.reflect(axis=1, center=1)
 
     reflected_expected = td.SpatialDataArray(
@@ -326,5 +342,65 @@ def test_spatial_data_array():
 
     assert reflected == reflected_expected
 
+    # reflection with no gap, only reflection
+    reflected = arr.reflect(axis=1, center=1, reflection_only=True)
+
+    reflected_expected = td.SpatialDataArray(
+        [[[2, 3], [0, 1]], [[6, 7], [4, 5]]],
+        coords=dict(x=[0, 1], y=[0, 1], z=[2, 3]),
+    )
+
+    assert reflected == reflected_expected
+
     with pytest.raises(DataError):
         reflected = arr.reflect(axis=2, center=2.5)
+
+
+@pytest.mark.parametrize("nx", [10, 1])
+def test_sel_inside(nx):
+    ny = 11
+    nz = 12
+    arr = td.SpatialDataArray(
+        np.random.random((nx, ny, nz)),
+        coords=dict(
+            x=np.linspace(0, 1, nx),
+            y=np.linspace(2, 3, ny),
+            z=np.linspace(0, 2, nz),
+        ),
+    )
+
+    bounds_small = [[0.1, 2, 2], [1, 2.5, 2]]
+    bounds_large = [[0.1, 2, 2], [1, 4, 2]]
+    assert arr.does_cover(bounds_small)
+    assert not arr.does_cover(bounds_large)
+
+    arr_selected = arr.sel_inside(bounds_small)
+    assert arr_selected.does_cover(bounds_small)
+
+    arr_selected = arr.sel_inside(bounds_large)
+    assert not arr_selected.does_cover(bounds_large)
+
+    with pytest.raises(DataError):
+        _ = arr.does_cover([[0.1, 3, 2], [1, 2.5, 2]])
+
+
+def test_uniform_check():
+    """check if each element in the array is of equal value."""
+    arr = td.SpatialDataArray(
+        np.ones((2, 2, 2), dtype=np.complex128),
+        coords=dict(x=[0, 1], y=[1, 2], z=[2, 3]),
+    )
+    assert arr.is_uniform
+
+    # small variation is still considered as uniform
+    arr = td.SpatialDataArray(
+        np.ones((2, 2, 2)) + np.random.random((2, 2, 2)) * 1e-6,
+        coords=dict(x=[0, 1], y=[1, 2], z=[2, 3]),
+    )
+    assert arr.is_uniform
+
+    arr = td.SpatialDataArray(
+        np.ones((2, 2, 2)) + np.random.random((2, 2, 2)) * 1e-4,
+        coords=dict(x=[0, 1], y=[1, 2], z=[2, 3]),
+    )
+    assert not arr.is_uniform

@@ -6,22 +6,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Users can now export `SimulationData` to MATLAB `.mat` files with the `to_mat_file` method.
+
+### Fixed
+- Bug where boundary layers would be plotted too small in 2D simulations.
+
+## [2.7.0] - 2024-06-17
+
+### Added
+- EME solver through `EMESimulation` class.
+- 2D heat simulations are now fully supported. 
+- `tidy3d.plugins.adjoint.web.run_local` used in place of `run` will skip validators that restrict the size or number of `input_structures`.
+- Introduces the `microwave` plugin which includes `ImpedanceCalculator` for computing the characteristic impedance of transmission lines.
+- `Simulation` now accepts `LumpedElementType`, which currently only supports the `LumpedResistor` type. `LumpedPort` together with `LumpedResistor` make up the new `TerminalComponentModeler` in the `smatrix` plugin.
+- Uniaxial medium Lithium Niobate to material library.
+- Properties `num_time_steps_adjoint` and `tmesh_adjoint` to `JaxSimulation` to estimate adjoint run time.
+- Ability to add `path` to `updated_copy()` method to recursively update sub-components of a tidy3d model. For example `sim2 = sim.updated_copy(size=new_size, path="structures/0/geometry")` creates a recursively updated copy of `sim` where `sim.structures[0].geometry` is updated with `size=new_size`.
+- Python 3.12 support. Python 3.8 deprecation. Updated dependencies.
+- Tidy3D objects may store arbitrary metadata in an `.attrs` dictionary.
+- `JaxSimulation` now supports the following GDS export methods: `to_gds()`, `to_gds_file()`, `to_gdspy()`, and `to_gdstk()`.
+- `RunTimeSpec` accepted by `Simulation.run_time` to adaptively set the run time based on Q-factor, propagation length, and other factors.
+- `JaxDataArray` now supports selection by nearest value via `JaxDataArray.sel(..., method="nearest")`.
+- Convenience method `constant_loss_tangent_model` in `FastDispersionFitter` to fit constant loss tangent material model.
+- Classmethods in `DispersionFitter` to load complex-valued permittivity or loss tangent data.
+- Pre-upload validator to check that mode sources overlap with more than 2 grid cells.
+- Support `2DMedium` for `Transformed`/`GeometryGroup`/`ClipOperation` geometries.
+- `num_proc` argument to `tidy3d.plugins.adjoint.web.run_local` to control the number of processes used on the local machine for gradient processing.
+- Support for complex and self-intersecting polyslabs in adjoint module via `JaxComplexPolySlab`.
+- Support for `.gz` files in `Simulation` version updater.
+- Warning if a nonuniform custom medium is intersecting `PlaneWave`, `GaussianBeam`, `AstigmaticGaussianBeam`, `FieldProjectionCartesianMonitor`, `FieldProjectionAngleMonitor`, `FieldProjectionKSpaceMonitor`, and `DiffractionMonitor`.
+- Added a `CoaxialLumpedPort` and `CoaxialLumpedResistor` for coaxial type transmission lines and excitations.
+- Automatic differentiation supported natively in Tidy3D components, and through the `web.run()` and `web.run_async()` functions through `autograd`.
+- A batch of `ModeSolver` objects can be run concurrently using `tidy3d.plugins.mode.web.run_batch()`
+- `RectangularWaveguide.plot_field` optionally draws geometry edges over fields. 
+- `RectangularWaveguide` supports layered cladding above and below core.
+- `SubpixelSpec` accepted by `Simulation.subpixel` to select subpixel averaging methods separately for dielectric, metal, and PEC materials. Specifically, added support for conformal mesh methods near PEC structures that can be specified through the field `pec` in the `SubpixelSpec` class. Note: previously, `subpixel=False` was implementing staircasing for every material except PEC. Now, `subpixel=False` implements direct staircasing for all materials. For PEC, the behavior of `subpixel=False` in Tidy3D < 2.7 is now achieved through `subpixel=SubpixelSpec(pec=HeuristicPECStaircasing())`, while `subpixel=True` in Tidy3D < 2.7 is now achieved through `subpixel=SubpixelSpec(pec=Staircasing())`. The default is `subpixel=SubpixelSpec(pec=PECConformal())` for more accurate PEC modelling.
+- Lossless `Green2008` variant for crystalline silicon added to material library.
+- `GridSpec` supports `snapping_points` that enforce grid boundaries to pass through them.
+- Support for unstructured datasets (`TriangularGridDataset` and `TetrahedralGridDataset`) in custom medium classes.
+- Support for `Transformed`/`GeometryGroup`/`ClipOperation` geometries in heat solver.
+- Parameter `relative_min_dl` in `UniformUnstructuredGrid` and `DistanceUnstructuredGrid` to control minimal mesh size.
+- Improved validation for `HeatSimulation`.
+- Functions to clean unstructured datasets from degenerate cells and unused points.
+
+### Changed
+- IMPORTANT NOTE: differentiable fields in the `adjoint` plugin (`JaxBox.size`, `JaxBox.center`, `JaxPolySlab.vertices`) no longer store the derivative information after the object is initialized. For example, if using JaxPolySlab.vertices directly in an objective function, the vertices will have no effect on the gradient. Instead, this information is now stored in a field of the same name with `_jax` suffix, eg. `JaxPolySlab.vertices_jax`. For some applications, such as evaluating penalty values, please change to `radius_penalty.evaluate(polyslab.vertices_jax)` or use the vertices as generated by your parameterization functions (`make_vertices(params)`).
+- `run_time` of the adjoint simulation is set more robustly based on the adjoint sources and the forward simulation `run_time` as `sim_fwd.run_time + c / fwdith_adj` where `c=10`.
+- `FieldTimeMonitor` restriction to record at a maximum of 5000 time steps if the monitor is not zero-dimensional, to avoid creating unnecessarily large amounts of data.
+- Bumped `trimesh` version to `>=4,<4.2`.
+- Make directories in path passed to `.to_gds_file()` methods, if they don't exist.
+- Changed sign of mode solver PML conductivity to match the `exp(-1j * omega * t)` convention used everywhere else. Previously, loss due to PML was coming out as negative `k_eff` of the mode, while now it comes out as positive `k_eff`, in line with material loss.
+- Augmented the PML mode solver profile to the form `s(x) = kappa(x) + 1j * sigma(x) / (omega * EPSILON_0)`. Previously, `kappa` was not used. The parameters are currently set to `kappa_min = 1`, `kappa_max = 3`, `sigma_max = 2`. These are not yet exposed to the user.
+- Also scaling `sigma_max` by the average relative impedance in the mode solver PML region.
+- `tidy3d convert` from `.lsf` files to tidy3d scripts has moved to another repository at `https://github.com/hirako22/Lumerical-to-Tidy3D-Converter`.
+- Relax validation of smallest triangle area in `TriangleMesh`.
+- Default variant for silicon dioxide in material library switched from `Horiba` to `Palik_Lossless`.
+- Sources and monitors which are exactly at the simulation domain boundaries will now error. They can still be placed very close to the boundaries, but need to be on the inside of the region.
+- Relaxed `dt` stability criterion for 1D and 2D simulations.
+- Switched order of angle and bend transformations in mode solver when both are present.
+
+### Fixed
+- Bug in PolySlab intersection if slab bounds are `inf` on one side.
+- Better error message when trying to transform a geometry with infinite bounds.
+- `JaxSimulation.epsilon` properly handles `input_structures`.
+- `FieldData.flux` in adjoint plugin properly returns `JaxDataArray` containing frequency coordinate `f` instead of summing over values.
+- Proper error message when trying to compute Poynting vector for adjoint field data.
+- Bug in plotting and computing tilted plane intersections of transformed 0 thickness geometries.
+- `Simulation.to_gdspy()` and `Simulation.to_gdstk()` now place polygons in GDS layer `(0, 0)` when no `gds_layer_dtype_map` is provided, instead of erroring.
+- `task_id` now properly stored in `JaxSimulationData`.
+- Bug in `FastDispersionFitter` when poles move close to input frequencies.
+- Bug in plotting polarization vector of angled sources.
+- Bug in `SpatialDataArray.reflect()` that was causing errors for older versions of `xarray`.
+- `ModeSolver.plot_field` correctly returning the plot axes.
+- Avoid error if non-positive refractive index used for integration resolution in adjoint.
+- Make `Batch.monitor` robust if the run status is not found.
+- Bugs in slicing unstructured datasets along edges.
+- Correct behavior of temperature monitors in the presence os symmetry.
+
+## [2.6.4] - 2024-04-23
+
+### Fixed
+- Set `importlib-metadata`, `boto3`, `requests`, and `click` version requirements to how they were in Tidy3D v2.5.
+- Bug in `td.FullyAnisotropicMedium` when added to `adjoint.JaxStructureStaticMedium`.
+- Bug when extra `**kwargs` passed to `Design.run_batch()`.
+
+## [2.6.3] - 2024-04-02
+
+### Added
+- Added new validators in `HeatSimulation`: no structures with dimensions of zero size, no all-Neumann boundary conditions, non-empty simulation domain.
+- `web.Batch` uses multi-threading for upload and download operations. The total time for many tasks is reduced by an order of magnitude.
+
+### Changed
+- Revert forbidden `"` in component names.
+
+## [2.6.2] - 2024-03-21
+
+### Changed
+- Characters `"` and `/` not allowed in component names.
+- Change error when `JaxPolySlab.sidewall_angle != 0.0` to a warning, enabling optimization with slanted sidewalls if a lower accuracy gradient is acceptable.
+- Simplified output and logging in `web.Batch` with `verbose=True`.
+
+### Fixed
+- Compute time stepping speed shown `tidy3d.log` using only the number of time steps that was run in the case of early shutoff. Previously, it was using the total number of time steps.
+- Bug in PolySlab intersection if slab bounds are `inf` on one side.
+- Divergence in the simultaneous presence of PML, absorber, and symmetry.
+- Fixed validator for `ModeSpec.bend_radius == 0`, which was not raising an error.
+
+## [2.6.1] - 2024-03-07
+
+### Added
+- `tidy3d.plugins.design.Results` store the `BatchData` for batch runs in the `.batch_data` field.
+- Prompting user to check solver log when loading solver data if warnings were found in the log, or if the simulation diverged or errored.
+
+### Changed
+- Slightly reorganized `web.run` logging when `verbose=True` to make it clearer.
+
+### Fixed
+- Fix to 3D surface integration monitors with some surfaces completely outside of the simulation domain which would sometimes still record fields.
+- Better error handling if remote `ModeSolver` creation gives response of `None`.
+- Validates that certain incompatible material types do not have intersecting bounds.
+- Fixed handling of the `frequency` argument in PEC medium.
+- Corrected plotting cmap if `val='re'` passed to `SimulationData.plot_field`.
+- Bug when converting point `FieldMonitor` data to scalar amplitude for adjoint source in later jax versions.
+- Handle special case when vertices overlap in `JaxPolySlab` to give 0 grad contribution from edge.
+- Corrected some mistakes in the estimation of the solver data size for each monitor type, which affects the restrictions on the maximum monitor size that can be submitted.
+- Bug in visualizing a slanted cylinder along certain axes in 2D.
+- Bug in `ModeSolver.reduced_simulation_copy` that was causing mode profiles to be all `NaN`.
+- Bug in `Simulation.subsection()` that was causing zero-size dimensions not to be preserved.
+- Bug in `CustomGrid` that was causing an error when using for zero-size dimensions.
+- When downloading gzip-ed solver data, automatically create the parent folder of the `to_file` path if it does not exist.
+
+## [2.6.0] - 2024-02-21
+
+### Added
+- Automatic subdivision of 2D materials with inhomogeneous substrate/superstrate.
+- Mode field profiles can be stored directly from a `ModeMonitor` by setting `store_fields_direction`.
+- Users can toggle https ssl version through `from tidy3d.web.core.environment import Env` and `Env.set_ssl_version(ssl_version: ssl.TLSVersion)`
+- Free-carrier absorption (FCA) and free-carrier plasma dispersion (FCPD) nonlinearities inside `TwoPhotonAbsorption` class.
+- `log_path` argument in `set_logging_file`, set to `False` by default.
+- `ErosionDilationPenalty` to `tidy3d.plugins.adjoint.utils.penalty` to penalize parameter arrays that change under erosion and dilation. This is a simple and effective way to penalize features that violate minimum feature size or radius of curvature fabrication constraints in topology optimization.
 - `tidy3d.plugins.design` tool to explore user-defined design spaces.
 - `ModeData.dispersion` and `ModeSolverData.dispersion` are calculated together with the group index.
-- A utility function `td.medium_from_nk()` that automatically constructs a dispersivless medium when permittivity>=1, and a single-pole Lorentz medium when permittivity<1.
+- A utility function `td.medium_from_nk()` that automatically constructs a non-dispersive medium when permittivity>=1, and a single-pole Lorentz medium when permittivity<1.
 - Integration of the `documentation` alongside the main codebase repository.
 - Integration of the `tidy3d-notebooks` repository.
 - `tidy3d develop` CLI and development guide on the main documentation.
 - Added a convenience method `Simulation.subsection()` to a create a new simulation based on a subregion of another one.
+- Users can toggle task caching through `from tidy3d.web.core.environment import Env` and `Env.enable_caching(True)` to enable, `Env.enable_caching(False)` to disable, or `Env.enable_caching(None)` to use global setting from web client account page. 
 
 ### Changed
+- `DataArray.to_hdf5()` accepts both file handles and file paths.
+- `ModeSolverMonitor` is deprecated. Mode field profiles can be retrieved directly from `ModeMonitor` with `store_fields_direction` set.
+- The log file for a simulation run has been modified to include more information including warnings collected during execution.
 - `poetry` based installation. Removal of `setup.py` and `requirements.txt`.
 - Upgrade to sphinx 6 for the documentation build, and change of theme.
 - Remote mode solver web api automatically reduces the associated `Simulation` object to the mode solver plane before uploading it to server.
 - All solver output is now compressed. However, it is automatically unpacked to the same `simulation_data.hdf5` by default when loading simulation data from the server.
 - Internal refactor of `adjoint` plugin to separate `jax`-traced fields from regular `tidy3d` fields.
+- Added an optional argument `field` in class method `.from_vtu()` of `TriangularGridDataset` and `TetrahedralGridDataset` for specifying the name of data field to load.
 
 ### Fixed
+- Add dispersion information to dataframe output when available from mode solver under the column "dispersion (ps/(nm km))".
+- Skip adjoint source for diffraction amplitudes of NaN.
+- Helpful error message if `val` supplied to `SimulationData.plot_field` not supported.
+- Fixed validator that warns if angled plane wave does not match simulation boundaries, which was not warning for periodic boundaries.
+- Validates that no nans are present in `DataArray` values in custom components.
+- Removed nans from Cartesian temperature monitors in thermal simulations by using nearest neighbor interpolation for values outside of heat simulation domain.
+- Removed spurious warnings realted to reloading simulation containing `PerturbationMedium` with `CustomChargePerturbation`/`CustomHeatPerturbation`.
+
+## [2.5.2] - 2024-01-11
+
+### Fixed
+- Internal storage estimation for 3D surface integration monitors now correctly includes only fields on the surfaces, and not the whole volume.
 
 ## [2.5.1] - 2024-01-08
 
@@ -1074,7 +1230,14 @@ which fields are to be projected is now determined automatically based on the me
 - Job and Batch classes for better simulation handling (eventually to fully replace webapi functions).
 - A large number of small improvements and bug fixes.
 
-[Unreleased]: https://github.com/flexcompute/tidy3d/compare/v2.5.1...develop
+[Unreleased]: https://github.com/flexcompute/tidy3d/compare/v2.7.0...develop
+[2.7.0]: https://github.com/flexcompute/tidy3d/compare/v2.6.4...v2.7.0
+[2.6.4]: https://github.com/flexcompute/tidy3d/compare/v2.6.3...v2.6.4
+[2.6.3]: https://github.com/flexcompute/tidy3d/compare/v2.6.2...v2.6.3
+[2.6.2]: https://github.com/flexcompute/tidy3d/compare/v2.6.1...v2.6.2
+[2.6.1]: https://github.com/flexcompute/tidy3d/compare/v2.6.0...v2.6.1
+[2.6.0]: https://github.com/flexcompute/tidy3d/compare/v2.5.2...v2.6.0
+[2.5.2]: https://github.com/flexcompute/tidy3d/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/flexcompute/tidy3d/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/flexcompute/tidy3d/compare/v2.4.3...v2.5.0
 [2.4.3]: https://github.com/flexcompute/tidy3d/compare/v2.4.2...v2.4.3

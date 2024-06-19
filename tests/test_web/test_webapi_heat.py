@@ -2,19 +2,26 @@
 
 import pytest
 import responses
-from _pytest import monkeypatch
-from botocore.exceptions import ClientError
 import tidy3d as td
+from botocore.exceptions import ClientError
 from responses import matchers
 from tidy3d import HeatSimulation
-from tidy3d.web.core.environment import Env
-from tidy3d.web.api.webapi import download, download_json, run, abort
-from tidy3d.web.api.webapi import estimate_cost, get_info, get_run_info
-from tidy3d.web.api.webapi import load_simulation, upload
-from tidy3d.web.api.container import Job, Batch
 from tidy3d.web.api.asynchronous import run_async
-
+from tidy3d.web.api.container import Batch, Job
+from tidy3d.web.api.webapi import (
+    abort,
+    download,
+    download_json,
+    estimate_cost,
+    get_info,
+    get_run_info,
+    load_simulation,
+    run,
+    upload,
+)
+from tidy3d.web.core.environment import Env
 from tidy3d.web.core.types import TaskType
+
 from ..test_components.test_heat import make_heat_sim
 
 TASK_NAME = "task_name_test"
@@ -118,6 +125,7 @@ def mock_start(monkeypatch, set_api_key, mock_get_info):
                     "solverVersion": None,
                     "workerGroup": None,
                     "protocolVersion": td.version.__version__,
+                    "enableCaching": Env.current.enable_caching,
                 }
             )
         ],
