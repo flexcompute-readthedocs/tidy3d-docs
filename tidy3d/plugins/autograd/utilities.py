@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Callable, Iterable, Union
+from typing import Callable, Iterable, List, Union
 
 import numpy as np
 
@@ -77,7 +77,28 @@ def make_kernel(kernel_type: KernelType, size: Iterable[int], normalize: bool = 
     return kernel
 
 
-def get_kernel_size_px(radius=None, dl=None):
+def get_kernel_size_px(
+    radius: Union[float, Iterable[float]] = None, dl: Union[float, Iterable[float]] = None
+) -> Union[int, List[int]]:
+    """Calculate the kernel size in pixels based on the provided radius and grid spacing.
+
+    Parameters
+    ----------
+    radius : Union[float, Iterable[float]], optional
+        The radius of the kernel. Can be a scalar or an iterable of floats. Default is None.
+    dl : Union[float, Iterable[float]], optional
+        The grid spacing. Can be a scalar or an iterable of floats. Default is None.
+
+    Returns
+    -------
+    Union[int, List[int]]
+        The size of the kernel in pixels for each dimension. Returns an integer if the radius is scalar, otherwise a list of integers.
+
+    Raises
+    ------
+    ValueError
+        If either 'radius' or 'dl' is not provided.
+    """
     if radius is None or dl is None:
         raise ValueError("Either 'size_px' or both 'radius' and 'dl' must be provided.")
 
