@@ -11,6 +11,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import pytest
 import tidy3d as td
+from tidy3d.plugins.polyslab import ComplexPolySlab
 from tidy3d.web import run_async
 from tidy3d.web.api.autograd.autograd import run
 
@@ -243,6 +244,43 @@ def make_structures(params: anp.ndarray) -> dict[str, td.Structure]:
         medium=med,
     )
 
+    # geometry group
+    geo_group = td.Structure(
+        geometry=td.GeometryGroup(
+            geometries=[
+                medium.geometry,
+                center_list.geometry,
+                size_element.geometry,
+            ],
+        ),
+        medium=td.Medium(permittivity=eps, conductivity=conductivity),
+    )
+
+    # complex polyslab
+    polyslab_combined = ComplexPolySlab(
+        vertices=(
+            (-eps, 0),
+            (-eps, eps),
+            (0, eps / 10),
+            (eps, eps),
+            (eps, 0),
+        ),
+        slab_bounds=(-0.5, 0.5),
+        axis=1,
+        sidewall_angle=np.pi / 100,
+    )
+
+    polyslab_geometries = []
+    for sub_polyslab in polyslab_combined.sub_polyslabs:
+        polyslab_geometries.append(sub_polyslab)
+
+    assert len(polyslab_geometries) >= 2, "need more polyslabs for a proper test of ComplexPolySlab"
+
+    complex_polyslab_geo_group = td.Structure(
+        geometry=td.GeometryGroup(geometries=polyslab_geometries),
+        medium=td.Medium(permittivity=eps, conductivity=conductivity),
+    )
+
     return dict(
         medium=medium,
         center_list=center_list,
@@ -250,6 +288,8 @@ def make_structures(params: anp.ndarray) -> dict[str, td.Structure]:
         custom_med=custom_med,
         custom_med_vec=custom_med_vec,
         polyslab=polyslab,
+        geo_group=geo_group,
+        complex_polyslab=complex_polyslab_geo_group,
     )
 
 
@@ -336,6 +376,8 @@ structure_keys_ = (
     "custom_med",
     "custom_med_vec",
     "polyslab",
+    "geo_group",
+    "complex_polyslab",
 )
 monitor_keys_ = ("mode", "diff", "field_vol", "field_point")
 
@@ -356,7 +398,7 @@ if TEST_POLYSLAB_SPEED:
     args = [("polyslab", "mode")]
 
 
-# args = [("custom_med_vec", "mode")]
+# args = [("complex_polyslab", "mode")]
 
 
 def get_functions(structure_key: str, monitor_key: str) -> typing.Callable:
@@ -716,42 +758,62 @@ def test_autograd_deepcopy():
 
 
 # @pytest.mark.timeout(18.0)
-# def test_many_structures_timeout():
-#     """Test that a metalens-like simulation with many structures can be initialized fast enough."""
+def _test_many_structures():
+    """Test that a metalens-like simulation with many structures can be initialized fast enough."""
 
-#     with cProfile.Profile() as pr:
-#         import time
+    with cProfile.Profile() as pr:
+        import time
 
-#         t = time.time()
+        t = time.time()
 
-#         Nx, Ny = 200, 200
-#         sim_size = [Nx, Ny, 5]
+        N_length = 200
+        Nx, Ny = N_length, N_length
+        sim_size = [Nx, Ny, 5]
 
-#         geoms = []
-#         for ix in range(Nx):
-#             for iy in range(Ny):
-#                 verts = ((ix, iy), (ix + 0.5, iy), (ix + 0.5, iy + 0.5), (ix, iy + 0.5))
-#                 geom = td.PolySlab(slab_bounds=(0, 1), vertices=verts)
-#                 geoms.append(geom)
+        def f(x):
+            monitor, postprocess = make_monitors()["field_point"]
+            monitor = monitor.updated_copy(center=(0, 0, 0))
 
-#         metalens = td.Structure(
-#             geometry=td.GeometryGroup(geometries=geoms),
-#             medium=td.material_library["Si3N4"]["Horiba"],
-#         )
+            geoms = []
+            for ix in range(Nx):
+                for iy in range(Ny):
+                    ix = ix + x
+                    iy = iy + x
+                    verts = ((ix, iy), (ix + 0.5, iy), (ix + 0.5, iy + 0.5), (ix, iy + 0.5))
+                    geom = td.PolySlab(slab_bounds=(0, 1), vertices=verts)
+                    geoms.append(geom)
 
-#         src = td.PlaneWave(
-#             source_time=td.GaussianPulse(freq0=2.5e14, fwidth=1e13),
-#             center=(0, 0, -1),
-#             size=(td.inf, td.inf, 0),
-#             direction="+",
-#         )
+            metalens = td.Structure(
+                geometry=td.GeometryGroup(geometries=geoms),
+                medium=td.material_library["Si3N4"]["Horiba"],
+            )
 
-#         sim = td.Simulation(size=sim_size, structures=[metalens], sources=[src], run_time=1e-12)
+            src = td.PlaneWave(
+                source_time=td.GaussianPulse(freq0=2.5e14, fwidth=1e13),
+                center=(0, 0, -1),
+                size=(td.inf, td.inf, 0),
+                direction="+",
+            )
 
-#         t2 = time.time() - t
-#         pr.print_stats(sort="cumtime")
-#         pr.dump_stats("sim_test.prof")
-#         print(f"structures took {t2} seconds")
+            sim = td.Simulation(
+                size=sim_size,
+                structures=[metalens],
+                sources=[src],
+                monitors=[monitor],
+                run_time=1e-12,
+            )
+
+            data = run_emulated(sim, task_name="test")
+            return postprocess(data, data[monitor.name])
+
+        x0 = 0.0
+        ag.grad(f)(x0)
+
+        t2 = time.time() - t
+        pr.print_stats(sort="cumtime")
+        pr.dump_stats("sim_test.prof")
+        print(f"structures took {t2} seconds")
+
 
 """ times (tyler's system)
 * original : 35 sec
