@@ -21,7 +21,7 @@ Common Updates
 --------------
 
 Adding a new notebook
-''''''''''''''''''''''
+^^^^^^^^^^^^^^^^^^^^^^
 
 This process is self-contained in ``tidy3d-notebooks``.
 
@@ -34,7 +34,7 @@ This submodule commit process can be done by running ``git add docs/notebooks`` 
 If you want to locally develop notebooks in ``tidy3d/docs/notebooks`` then just use that submodule as your main development repository and commit to your local branch. Then when you are ready to publish, just make sure to commit the submodule to the latest ``develop`` branch. You can then build the documentation locally easily using this approach before it is published.
 
 Updating Docstrings
-'''''''''''''''''''''
+^^^^^^^^^^^^^^^^^^^^^^
 
 The ``tidy3d develop`` suite includes a utility command ``replace-in-files``, which is designed to recursively find and replace strings in files within a specified directory. This functionality is particularly useful for updating docstrings across the codebase when there are changes in the API, ensuring that the documentation remains consistent with multiple version updates.
 This is useful when updating the API and you want to update the docstrings to reflect the changes from multiple versions.

@@ -9,7 +9,7 @@ Maybe you already have ``tidy3d`` installed in some form. After installing versi
 It does not matter how you have installed ``tidy3d`` before as long as you have any form of ``tidy3d>=2.6`` in your environment. This can help you transition from a standard user installation to a development environment installation.
 
 Quick Start
-~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Instructions for anyone who wants to migrate to the development flow from a version before 2.6:
 
@@ -31,7 +31,7 @@ Now you can run the following ``tidy3d`` cli commands to test them.
 
 
 Automatic Environment Installation *Beta*
-''''''''''''''''''''''''''''''''''''''''''
+""""""""""""""""""""""""""""""""""""""""""""""
 
 If you are transitioning from the old development flow, to this new one, there are a list of commands you can run to make your life easier and set you up well:
 
@@ -47,7 +47,7 @@ The way this command works is dependent on the operating system you are running.
 This command will first check if you already have installed the development requirements, and if not, it will run the installation scripts for ``pipx``, ``poetry``, and ask you to install the required version of ``pandoc``. It will also install the development requirements and ``tidy3d`` package in a specific ``poetry`` environment.
 
 Environment Verification
-''''''''''''''''''''''''
+""""""""""""""""""""""""""""
 
 If you rather install ``poetry``, ``pipx`` and ``pandoc`` yourself, you can run the following command to verify that your environment conforms to the reproducible development environment which would be equivalent to the one installed automatically above and described in :ref:`The Detailed Lane`.
 

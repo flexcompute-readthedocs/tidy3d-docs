@@ -4,7 +4,7 @@ Code Quality Principles
 When writing a code snippet, remember the saying: "code is read more than written". We want to maintain our code maintainable, readable and high quality.
 
 Linting & Formatting
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To maintain code quality, we use `Ruff <https://github.com/astral-sh/ruff>`_ as a linter and code formatter. A linter analyzes code to identify and flag potential errors, stylistic issues, and code that doesn't adhere to defined standards (such as `PEP8 <https://peps.python.org/pep-0008/>`_). A code formatter automatically restructures the code to ensure it is consistently styled and properly formatted, making it consistent across the code base.
 
@@ -25,7 +25,7 @@ The configuration defining what ``ruff`` will correct lives in ``pyproject.toml`
 When submitting code, for tests to pass, ``ruff`` should give no warnings.
 
 Documentation
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
 Document all code you write using `NumPy-style docstrings <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
 
@@ -35,7 +35,7 @@ Testing
 Here we will discuss how tests are defined and run in Tidy3d.
 
 Unit Testing
-~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 
 The tests live in ``tests/`` directory.
 
@@ -81,7 +81,7 @@ To run coverage tests and get output as .html (more intuitive):
    open htmlcov/index.html
 
 Automated Testing
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We use GitHub Actions to perform these tests automatically and across different operating systems.
 
@@ -92,12 +92,12 @@ See the "actions" tab for details on previous tests and ``.github/workflows/run_
 See `this <https://docs.github.com/en/actions/learn-github-actions>`_ for more explanation.
 
 Other Tests
-~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are additional tests in both the `documentation <https://github.com/flexcompute/tidy3d-docs/tree/main/docs>`_ and our private backend code. The same practices outlined here apply to those tests.
 
 More Resources on Testing
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A useful explanation for those curious to learn more about the reasoning behind these decisions:
 

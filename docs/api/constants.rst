@@ -4,7 +4,7 @@ Constants
 =========
 
 Physical Constants
-------------------
+---------------------
 
 .. autosummary::
    :toctree: _autosummary/
@@ -29,7 +29,7 @@ Tidy3D Special Constants
    tidy3d.constants.inf
 
 Tidy3D Configuration
---------------------
+---------------------
 
 .. autosummary::
    :toctree: _autosummary/
@@ -38,7 +38,7 @@ Tidy3D Configuration
    tidy3d.config.Tidy3dConfig
 
 Default Absorber Parameters
----------------------------
+----------------------------
 
 .. autosummary::
    :toctree: _autosummary/
@@ -82,7 +82,7 @@ Units
 
 
 Precision & Comparator Values
----------------------------
+------------------------------
 
 .. autosummary::
    :toctree: _autosummary/

@@ -5,7 +5,7 @@ Inverse Design Plugin
 
 .. toctree::
 
-    ../../../tidy3d/plugins/invdes/README
+    ./../../../tidy3d/plugins/invdes/README.md
 
 .. autosummary::
    :toctree: ../_autosummary/

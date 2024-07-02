@@ -1,14 +1,14 @@
 Feature Contribution
-=====================
+-----------------------
 
 
 
 Feature Development Workflow
-------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 1. Create a branch off of ``develop``
--------------------------------------
+""""""""""""""""""""""""""""""""""""""""
 
 Our ``pre/x.x`` branches are where new features, bug fixes, and other things get added before a major release. To switch to the ``pre/x.x`` branch:
 
@@ -56,18 +56,15 @@ a clean branch on your machine.
    git checkout -b my_name/new_feature
 
 2. Writing code
----------------
+""""""""""""""""""""""""""""""""""""""""
 
 Develop your code in this new branch, committing your changes when it seems like a natural time to “save your progress”.
 
 If you are working on a new feature, make sure you add a line in the `CHANGELOG.md <https://github.com/flexcompute/Tidy3D-client-revamp/blob/develop/CHANGELOG.md>`_ file (if it exists in that repository) to summarize your changes.
 
 
-Create your feature rebase
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 3. Create a pull request on GitHub
------------------------------------
+""""""""""""""""""""""""""""""""""""""""
 
 First, push your changes to your branch on GitHub.
 
@@ -114,11 +111,9 @@ rebasing has changed its history.
 
    git push -f origin my_name/new_feature
 
-Submitting to PR
-^^^^^^^^^^^^^^^^^
 
 4. Submit for review
---------------------
+"""""""""""""""""""""
 
 Every PR must have the following before it can be merged:
 
