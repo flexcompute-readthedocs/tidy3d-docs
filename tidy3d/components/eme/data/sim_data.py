@@ -32,7 +32,7 @@ class EMESimulationData(AbstractYeeGridSimulationData):
         "associated with the monitors of the original :class:`.EMESimulation`.",
     )
 
-    smatrix: EMESMatrixDataset = pd.Field(
+    smatrix: Optional[EMESMatrixDataset] = pd.Field(
         ..., title="S Matrix", description="Scattering matrix of the EME simulation."
     )
 

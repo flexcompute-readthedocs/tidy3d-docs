@@ -976,3 +976,18 @@ def test_mode_solver_plot():
     ms.plot_pml(ax=ax[1, 1])
     ms.plot_grid(linewidth=0.3, ax=ax[1, 1])
     plt.close()
+
+def test_modes_eme_sim():
+    lambda0 = 1
+    freq0 = td.C_0 / lambda0
+    sim_size = (1, 1, 1)
+    mode_spec = td.EMEModeSpec(num_modes=10)
+    eme_grid_spec = td.EMEUniformGrid(num_cells=2, mode_spec=mode_spec)
+    sim = td.EMESimulation(size=sim_size, freqs=[freq0], axis=2, eme_grid_spec=eme_grid_spec)
+    solver = ModeSolver(
+        simulation=sim,
+        freqs=[freq0],
+        mode_spec=td.ModeSpec(num_modes=2),
+        plane=sim.eme_grid.mode_planes[0],
+    )
+    _ = solver.data
