@@ -8,7 +8,7 @@ API |:computer:|
     simulation
     submit_simulations
     geometry
-    structure_and_scene    
+    structure_and_scene
     mediums
     material_library
     rf_material_library

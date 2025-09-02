@@ -94,7 +94,7 @@ The ``FluxMonitor`` records EM power flux through a 2D surface or 3D bounding bo
        center=(0,0,0),
        size=(10,10,10),
        name='My flux-time monitor',
-       interval=50,    # number of solver times between each measurement
+       interval=50,    # number of solver time steps between each measurement
    )
 
 .. seealso::

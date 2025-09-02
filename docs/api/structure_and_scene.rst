@@ -71,13 +71,13 @@ Scene
 
    tidy3d.Scene
 
-A ``Scene`` holds a collection of objects and a background medium. You can also define the plotting units. Typically, one would use a ``Scene`` to visualize the physical layout prior to defining the rest of the simulation.
+A ``Scene`` holds a collection of structures and a background medium. You can also define the plotting units. Typically, one would use a ``Scene`` to visualize the physical layout prior to defining the rest of the simulation.
 
 .. code-block:: python
 
    # Create a scene using previously defined structures
    my_scene = Scene(
-       structures = [my_structure1, my_structure2, my_structure3],
+       structures = [my_structure_1, my_structure_2, my_structure_3],
        medium = my_background_medium,
        plot_length_units='mm',
    )

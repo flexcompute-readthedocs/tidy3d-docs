@@ -6,7 +6,7 @@ Sources
 Overview
 --------
 
-Sources in Tidy3D provide the necessary excitation to investigate the EM behaviour of the structures under simulation. The type of source used in a simulation tends to very application-specific. For instance, a ``PlaneWave`` source may be used for a unit cell simulation in a metalens; whereas a ``ModeSource`` would be more appropriate for a waveguide crossing problem.
+Sources in Tidy3D provide the necessary excitation to investigate the EM behaviour of the structures under simulation. The type of source used in a simulation tends to be very application-specific. For instance, a ``PlaneWave`` source may be used for a unit cell simulation in a metalens; whereas a ``ModeSource`` would be more appropriate for a waveguide crossing problem.
 
 A generic source can be thought of as composed of two parts: a spatial profile and a temporal profile. The former dictates the field distribution in space, whereas the latter determines the frequency band covered by the source, and by extension, the overall simulation.
 
@@ -197,7 +197,7 @@ Mode Source
 
 The ``ModeSource`` class represents a propagating mode in a given structure cross section.
 
-Behind the scenes, the desired mode is initially obtained by running the mode solver on the ``ModeSource`` plane. The ``ModeSpec`` class provides the settings for the mode solver. Once the desired mode is found, it is injected into the 3D simulation along the plane normal. The user does not need to evoke the mode solver explicitly; it is performed automatically whenever a ``ModeSource`` or ``ModeMonitor`` is included in a Tidy3D simulation. 
+Behind the scenes, the desired mode is initially obtained by running the mode solver on the ``ModeSource`` plane. The ``ModeSpec`` class provides the settings for the mode solver. Once the desired mode is found, it is injected into the 3D simulation along the plane normal. The user does not need to invoke the mode solver explicitly; it is performed automatically whenever a ``ModeSource`` or ``ModeMonitor`` is included in a Tidy3D simulation.
 
 .. code-block:: python
 
@@ -236,7 +236,7 @@ Total-Field/Scattered-Field (TFSF)
 
    tidy3d.TFSF
 
-The ``TFSF`` class represents an incident plane-wave wave source that is confined to a specific TFSF region. This type of source is typically used for scattering simulations. Within the TFSF region, the overall field comprises of the incident plane wave and the scattered field. At the edges of the TFSF region, the incident plane wave field is deliberately cancelled out, such that outside the TFSF region, the total field only contains the scattered field. 
+The ``TFSF`` class represents an incident plane wave source that is confined to a specific TFSF region. This type of source is typically used for scattering simulations. Within the TFSF region, the overall field comprises of the incident plane wave and the scattered field. At the edges of the TFSF region, the incident plane wave field is deliberately cancelled out, such that outside the TFSF region, the total field only contains the scattered field.
 
 .. seealso::
 

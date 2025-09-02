@@ -85,7 +85,7 @@ Please find short descriptions of each grid type below. For more information, pl
 
 .. seealso::
 
-   For more detail explanation and examples, please see the following learning center resources:
+   For more detailed explanation and examples, please see the following learning center resources:
 
    + `Using automatic nonuniform meshing <../notebooks/AutoGrid.html>`_
 
@@ -155,7 +155,7 @@ For more detailed usage examples of ``LayerRefinementSpec``, please refer to the
 
 .. seealso::
 
-   For more detail explanation and examples, please see the following learning center resources:
+   For more detailed explanation and examples, please see the following learning center resources:
 
    + `Using automatic nonuniform meshing: Mesh override structures <../notebooks/AutoGrid.html#Mesh-override-structures>`_
    + `Automatic mesh refinement in layered structures <../notebooks/LayerRefinement.html>`_

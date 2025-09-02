@@ -224,7 +224,7 @@ Spatial Variation
    tidy3d.SpatialDataArray
    tidy3d.CustomMedium
 
-The ``CustomMedium`` class is used to define a spatially-varying non-dispersive medium. The spatial distribution of the optical property is defined using the ``SpatialDataArray`` class. Below, we define an example spherical profile :math:`n(r) = \sqrt(2-(r/R)^2)` as in a Luneburg lens:
+The ``CustomMedium`` class is used to define a spatially-varying non-dispersive medium. The spatial distribution of the optical property is defined using the ``SpatialDataArray`` class. Below, we define an example spherical profile :math:`n(r) = \sqrt{2-(r/R)^2}` as in a Luneburg lens:
 
 .. code-block:: python
 
