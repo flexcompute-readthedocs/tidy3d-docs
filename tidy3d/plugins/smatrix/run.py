@@ -1,80 +1,20 @@
 from __future__ import annotations
 
 import json
-import os
 
 from tidy3d.components.base import Tidy3dBaseModel
+from tidy3d.components.data.index import SimulationDataMap
 from tidy3d.plugins.smatrix.component_modelers.modal import ModalComponentModeler
 from tidy3d.plugins.smatrix.component_modelers.terminal import TerminalComponentModeler
 from tidy3d.plugins.smatrix.component_modelers.types import (
     ComponentModelerType,
 )
-from tidy3d.plugins.smatrix.data.modal import ModalComponentModelerData, SimulationDataMap
+from tidy3d.plugins.smatrix.data.modal import ModalComponentModelerData
 from tidy3d.plugins.smatrix.data.terminal import TerminalComponentModelerData
 from tidy3d.plugins.smatrix.data.types import ComponentModelerDataType
 from tidy3d.web import Batch, BatchData
 
 DEFAULT_DATA_DIR = "."
-
-
-def compose_simulation_data_index(port_task_map: dict[str, str]) -> SimulationDataMap:
-    port_data_dict = {}
-    for _, _ in port_task_map.items():
-        pass
-        # FIXME: get simulationdata for each port
-        # port_data_dict[port] = sim_data_i
-
-    return SimulationDataMap(
-        keys=tuple(port_data_dict.keys()), values=tuple(port_data_dict.values())
-    )
-
-
-def compose_terminal_component_modeler_data(
-    modeler: TerminalComponentModeler, port_task_map: dict[str, str]
-) -> TerminalComponentModelerData:
-    """Assemble `TerminalComponentModelerData` from simulation results.
-
-    This function maps the simulation data from a completed batch run back to the
-    ports of the terminal component modeler.
-
-    Parameters
-    ----------
-    modeler : TerminalComponentModeler
-        The `TerminalComponentModeler` used to generate the simulations.
-    port_task_map : dict[str, str]
-        A dictionary mapping port names to their corresponding task identifiers.
-
-    Returns
-    -------
-    TerminalComponentModelerData
-        An object containing the results mapped to their respective ports.
-    """
-    port_simulation_data = compose_simulation_data_index(port_task_map)
-    return TerminalComponentModelerData(modeler=modeler, data=port_simulation_data)
-
-
-def compose_modal_component_modeler_data(
-    modeler: ModalComponentModeler, port_task_map: dict[str, str]
-) -> ModalComponentModelerData:
-    """Assemble `ModalComponentModelerData` from simulation results.
-
-    This function maps the simulation data from a completed batch run back to the
-    ports of the component modeler.
-
-    Parameters
-    ----------
-    modeler : ModalComponentModeler
-        The `ModalComponentModeler` used to generate the simulations.
-    port_task_map : dict[str, str]
-        A dictionary mapping port names to their corresponding task identifiers.
-
-    Returns
-    -------
-    ModalComponentModelerData
-        An object containing the results mapped to their respective ports.
-    """
-    port_simulation_data = compose_simulation_data_index(port_task_map)
-    return ModalComponentModelerData(modeler=modeler, data=port_simulation_data)
 
 
 def compose_modeler(
@@ -150,60 +90,6 @@ def compose_modeler_data(
     return modeler_data
 
 
-def compose_terminal_modeler_data_from_batch_data(
-    modeler: TerminalComponentModeler,
-    batch_data: BatchData,
-) -> TerminalComponentModelerData:
-    """Assemble `TerminalComponentModelerData` from simulation batch results.
-
-    This function maps the simulation data from a completed `BatchData` object
-    back to the ports of the `TerminalComponentModeler`.
-
-    Parameters
-    ----------
-    modeler : TerminalComponentModeler
-        The `TerminalComponentModeler` used to generate the simulations.
-    batch_data : BatchData
-        The results obtained from running the simulation `Batch`.
-
-    Returns
-    -------
-    TerminalComponentModelerData
-        An object containing the results mapped to their respective ports.
-    """
-    ports = [modeler.get_task_name(port=port_i) for port_i in modeler.ports]
-    data = [batch_data[modeler.get_task_name(port=port_i)] for port_i in modeler.ports]
-    port_simulation_data = SimulationDataMap(keys=tuple(ports), values=tuple(data))
-    return TerminalComponentModelerData(modeler=modeler, data=port_simulation_data)
-
-
-def compose_modal_modeler_data_from_batch_data(
-    modeler: ModalComponentModeler,
-    batch_data: BatchData,
-) -> ModalComponentModelerData:
-    """Assemble `ModalComponentModelerData` from simulation batch results.
-
-    This function maps the simulation data from a completed `BatchData` object
-    back to the ports of the `ModalComponentModeler`.
-
-    Parameters
-    ----------
-    modeler : ModalComponentModeler
-        The `ModalComponentModeler` used to generate the simulations.
-    batch_data : BatchData, optional
-        The results obtained from running the simulation `Batch`.
-
-    Returns
-    -------
-    ModalComponentModelerData
-        An object containing the results mapped to their respective ports.
-    """
-    ports = [modeler.get_task_name(port=port_i) for port_i in modeler.ports]
-    data = [batch_data[modeler.get_task_name(port=port_i)] for port_i in modeler.ports]
-    port_simulation_data = SimulationDataMap(keys=tuple(ports), values=tuple(data))
-    return ModalComponentModelerData(modeler=modeler, data=port_simulation_data)
-
-
 def compose_modeler_data_from_batch_data(
     modeler: ComponentModelerType,
     batch_data: BatchData,
@@ -232,40 +118,22 @@ def compose_modeler_data_from_batch_data(
     TypeError
         If the provided `modeler` is not a recognized type.
     """
-    if isinstance(modeler, ModalComponentModeler):
-        modeler_data = compose_modal_modeler_data_from_batch_data(
-            modeler=modeler, batch_data=batch_data
-        )
-    elif isinstance(modeler, TerminalComponentModeler):
-        modeler_data = compose_terminal_modeler_data_from_batch_data(
-            modeler=modeler, batch_data=batch_data
-        )
-    else:
-        raise TypeError(f"Unsupported modeler type: {type(modeler)}")
-
-    return modeler_data
+    port_simulation_data = SimulationDataMap(
+        keys=tuple(batch_data.keys()), values=tuple(batch_data.values())
+    )
+    return compose_modeler_data(modeler=modeler, indexed_sim_data=port_simulation_data)
 
 
 def create_batch(
     modeler: ComponentModelerType,
-    path_dir: str = DEFAULT_DATA_DIR,
-    file_name: str = "batch.hdf5",
     **kwargs,
 ) -> Batch:
-    """Create a simulation Batch from a component modeler and save it to a file.
+    """Create a simulation Batch from a component modeler.
 
     Parameters
     ----------
     modeler : ComponentModelerType
         The component modeler that defines the set of simulations.
-    path_dir : str, optional
-        Directory where the batch file will be saved. Defaults to ".".
-    parent_batch_id : str, optional
-        Identifier for a parent batch, if this is a child batch.
-    group_id : str, optional
-        Identifier for grouping tasks within the batch.
-    file_name : str, optional
-        Name for the HDF5 file where the batch is stored. Defaults to "batch.hdf5".
     **kwargs
         Additional keyword arguments passed to the `Batch` constructor.
 
@@ -274,13 +142,11 @@ def create_batch(
     Batch
         The configured `Batch` object ready for execution.
     """
-    filepath = os.path.join(path_dir, file_name)
 
     batch = Batch(
         simulations=modeler.sim_dict,
         **kwargs,
     )
-    batch.to_file(filepath)
     return batch
 
 
@@ -309,7 +175,7 @@ def run(
         An object containing the processed simulation data, ready for
         S-parameter extraction and analysis.
     """
-    batch = create_batch(modeler=modeler, path_dir=path_dir, **kwargs)
-    batch_data = batch.run()
+    batch = create_batch(modeler=modeler, **kwargs)
+    batch_data = batch.run(path_dir=path_dir)
     modeler_data = compose_modeler_data_from_batch_data(modeler=modeler, batch_data=batch_data)
     return modeler_data

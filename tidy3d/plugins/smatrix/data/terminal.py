@@ -14,8 +14,8 @@ from tidy3d.components.data.sim_data import SimulationData
 from tidy3d.components.microwave.data.monitor_data import AntennaMetricsData
 from tidy3d.log import log
 from tidy3d.plugins.smatrix.component_modelers.terminal import TerminalComponentModeler
+from tidy3d.plugins.smatrix.data.base import AbstractComponentModelerData
 from tidy3d.plugins.smatrix.data.data_array import PortDataArray, TerminalPortDataArray
-from tidy3d.plugins.smatrix.data.modal import SimulationDataMap
 from tidy3d.plugins.smatrix.network import SParamDef
 from tidy3d.plugins.smatrix.ports.types import TerminalPortType
 from tidy3d.plugins.smatrix.utils import (
@@ -51,7 +51,7 @@ class MicrowaveSMatrixData(Tidy3dBaseModel):
     )
 
 
-class TerminalComponentModelerData(Tidy3dBaseModel):
+class TerminalComponentModelerData(AbstractComponentModelerData):
     """
     Data associated with a :class:`TerminalComponentModeler` simulation run.
 
@@ -87,22 +87,10 @@ class TerminalComponentModelerData(Tidy3dBaseModel):
         "and from which this data was generated.",
     )
 
-    data: SimulationDataMap = pd.Field(
-        ...,
-        title="Port-Simulation Data Map",
-        description="A read-only dictionary that maps simulation data to each microwave port name",
-    )
-
-    log: str = pd.Field(
-        None,
-        title="Solver Log",
-        description="A string containing the log information from the simulation run.",
-    )
-
     def smatrix(
         self,
-        assume_ideal_excitation: bool = False,
-        s_param_def: SParamDef = "pseudo",
+        assume_ideal_excitation: Optional[bool] = None,
+        s_param_def: Optional[SParamDef] = None,
     ) -> MicrowaveSMatrixData:
         """Computes and returns the S-matrix and port reference impedances.
 
@@ -110,9 +98,11 @@ class TerminalComponentModelerData(Tidy3dBaseModel):
         ----------
         assume_ideal_excitation: If ``True``, assumes that exciting one port
             does not produce incident waves at other ports. This simplifies the
-            S-matrix calculation and is required if not all ports are excited.
+            S-matrix calculation and is required if not all ports are excited. If not
+            provided, ``modeler.assume_ideal_excitation`` is used.
         s_param_def: The definition of S-parameters to use, determining whether
-            "pseudo waves" or "power waves" are calculated.
+            "pseudo waves" or "power waves" are calculated. If not provided,
+            ``modeler.s_param_def`` is used.
 
         Returns
         -------
@@ -123,13 +113,15 @@ class TerminalComponentModelerData(Tidy3dBaseModel):
 
         terminal_port_data = terminal_construct_smatrix(
             modeler_data=self,
-            assume_ideal_excitation=assume_ideal_excitation,
-            s_param_def=s_param_def,
+            assume_ideal_excitation=assume_ideal_excitation
+            if (assume_ideal_excitation is not None)
+            else self.modeler.assume_ideal_excitation,
+            s_param_def=s_param_def if (s_param_def is not None) else self.modeler.s_param_def,
         )
         smatrix_data = MicrowaveSMatrixData(
             data=terminal_port_data,
             port_reference_impedances=self.port_reference_impedances,
-            s_param_def=s_param_def,
+            s_param_def=s_param_def if (s_param_def is not None) else self.modeler.s_param_def,
         )
         return smatrix_data
 

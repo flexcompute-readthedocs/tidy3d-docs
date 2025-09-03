@@ -286,15 +286,7 @@ def upload(
     port_name_list = None
     if task_type in ("COMPONENT_MODELER", "TERMINAL_COMPONENT_MODELER"):
         task_type = "RF"
-        # Collect port names for modeler tasks if available
-        try:
-            ports = getattr(simulation, "ports", None)
-            if ports is not None:
-                port_name_list = [
-                    getattr(p, "name", None) for p in ports if getattr(p, "name", None)
-                ]
-        except Exception:
-            port_name_list = None
+        port_name_list = tuple(simulation.sim_dict.keys())
 
     task = SimulationTask.create(
         task_type,

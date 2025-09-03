@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
 from unittest.mock import MagicMock
 
+import pydantic.v1 as pd
 import pytest
 
 import tidy3d
@@ -20,8 +20,6 @@ from tidy3d.plugins.smatrix.data.terminal import TerminalComponentModelerData
 from tidy3d.plugins.smatrix.run import (
     compose_modeler,
     compose_modeler_data,
-    compose_simulation_data_index,
-    compose_terminal_component_modeler_data,
     create_batch,
     run,
 )
@@ -48,44 +46,6 @@ def test_compose_modeler_unsupported_type(tmp_path, monkeypatch):
         compose_modeler(modeler_file=str(modeler_file))
 
 
-def test_compose_simulation_data_index_empty_map():
-    port_task_map = {}
-    result = compose_simulation_data_index(port_task_map)
-    assert isinstance(result, SimulationDataMap)
-    assert len(result.keys()) == 0
-    assert len(result.values()) == 0
-
-
-def test_compose_terminal_component_modeler_data(monkeypatch):
-    # Mock compose_simulation_data_index
-    dummy_sim_data_map = SimulationDataMap(
-        keys=("port1", "port2"),
-        values=(
-            SimulationData(
-                simulation=make_terminal_component_modeler(planar_pec=True).simulation, data=()
-            ),
-            SimulationData(
-                simulation=make_terminal_component_modeler(planar_pec=True).simulation, data=()
-            ),
-        ),
-    )
-    monkeypatch.setattr(
-        "tidy3d.plugins.smatrix.run.compose_simulation_data_index", lambda x: dummy_sim_data_map
-    )
-
-    # Create a dummy TerminalComponentModeler
-    dummy_modeler = make_terminal_component_modeler(planar_pec=True)
-
-    # Call the function under test
-    port_task_map = {"port1": "task1", "port2": "task2"}
-    result = compose_terminal_component_modeler_data(dummy_modeler, port_task_map)
-
-    # Assertions
-    assert isinstance(result, TerminalComponentModelerData)
-    assert result.modeler == dummy_modeler
-    assert result.data == dummy_sim_data_map
-
-
 def test_create_batch(monkeypatch, tmp_path):
     # Mock Batch and Batch.to_file
     mock_batch_instance = MagicMock()
@@ -96,11 +56,10 @@ def test_create_batch(monkeypatch, tmp_path):
     dummy_modeler = make_modal_component_modeler()
 
     # Test with default arguments
-    result_batch = create_batch(modeler=dummy_modeler, path_dir=str(tmp_path))
+    result_batch = create_batch(modeler=dummy_modeler)
     mock_batch_class.assert_called_once_with(
         simulations=dummy_modeler.sim_dict,
     )
-    mock_batch_instance.to_file.assert_called_once_with(os.path.join(str(tmp_path), "batch.hdf5"))
     assert result_batch == mock_batch_instance
 
     # Reset mocks for next test
@@ -108,11 +67,8 @@ def test_create_batch(monkeypatch, tmp_path):
     mock_batch_instance.to_file.reset_mock()
 
     # Test with parent_batch_id and group_id
-    file_name = "custom_batch.hdf5"
     result_batch = create_batch(
         modeler=dummy_modeler,
-        path_dir=str(tmp_path),
-        file_name=file_name,
         some_kwarg="value",
     )
 
@@ -120,7 +76,6 @@ def test_create_batch(monkeypatch, tmp_path):
         simulations=dummy_modeler.sim_dict,
         some_kwarg="value",
     )
-    mock_batch_instance.to_file.assert_called_once_with(os.path.join(str(tmp_path), file_name))
     assert result_batch == mock_batch_instance
 
 
@@ -146,10 +101,8 @@ def test_run_function(monkeypatch):
     result = run(modeler=dummy_modeler, path_dir="./temp_dir")
 
     # Assertions
-    tidy3d.plugins.smatrix.run.create_batch.assert_called_once_with(
-        modeler=dummy_modeler, path_dir="./temp_dir"
-    )
-    mock_batch_instance.run.assert_called_once_with()
+    tidy3d.plugins.smatrix.run.create_batch.assert_called_once_with(modeler=dummy_modeler)
+    mock_batch_instance.run.assert_called_once_with(path_dir="./temp_dir")
     tidy3d.plugins.smatrix.run.compose_modeler_data_from_batch_data.assert_called_once_with(
         modeler=dummy_modeler, batch_data=mock_batch_data
     )
@@ -165,3 +118,22 @@ def test_compose_modeler_data_unsupported_type():
 
     with pytest.raises(TypeError, match="Unsupported modeler type: UnsupportedModeler"):
         compose_modeler_data(unsupported_modeler, dummy_sim_data_map)
+
+
+def test_compose_modeler_data_keys_mismatch():
+    dummy_sim_data_map = SimulationDataMap(
+        keys=("1", "2"),
+        values=(
+            SimulationData(
+                simulation=make_terminal_component_modeler(planar_pec=True).simulation, data=()
+            ),
+            SimulationData(
+                simulation=make_terminal_component_modeler(planar_pec=True).simulation, data=()
+            ),
+        ),
+    )
+
+    with pytest.raises(pd.ValidationError, match="do not match data keys"):
+        TerminalComponentModelerData(
+            modeler=make_terminal_component_modeler(planar_pec=True), data=dummy_sim_data_map
+        )
