@@ -2,6 +2,7 @@ name: "public/tidy3d/python-client-tests"
 
 on:
   merge_group:
+  
   workflow_dispatch:
     inputs:
       remote_tests:
@@ -12,6 +13,34 @@ on:
         description: 'local-tests'
         type: boolean
         default: false
+      release_tag:
+        description: 'Release Tag (v2.10.0, v2.10.0rc1)'
+        required: false
+        type: string
+        default: ''
+  
+  workflow_call:
+    inputs:
+      remote_tests:
+        description: 'remote-tests'
+        type: boolean
+        required: false
+        default: true
+      local_tests:
+        description: 'local-tests'
+        type: boolean
+        required: false
+        default: true
+      release_tag:
+        description: 'Release Tag (v2.10.0, v2.10.0rc1)'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      workflow_success:
+        description: 'Overall test workflow success status'
+        value: ${{ (jobs.local-tests.result == 'success' || jobs.local-tests.result == 'skipped') && (jobs.remote-tests.result == 'success' || jobs.remote-tests.result == 'skipped') && (jobs.lint.result == 'success' || jobs.lint.result == 'skipped') && (jobs.mypy.result == 'success' || jobs.mypy.result == 'skipped') }}
+  
   pull_request:
     branches:
       - latest
@@ -82,8 +111,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REVIEW_STATE: ${{ github.event.review.state }}
           REF: ${{ github.ref }}
-          INPUT_LOCAL: ${{ github.event.inputs.local_tests }}
-          INPUT_REMOTE: ${{ github.event.inputs.remote_tests }}
+          INPUT_LOCAL: ${{ github.event.inputs.local_tests || inputs.local_tests }}
+          INPUT_REMOTE: ${{ github.event.inputs.remote_tests || inputs.remote_tests }}
           APPROVED: ${{ steps.approval.outputs.approved }}
         run: |
           echo "Event: $EVENT_NAME"
@@ -466,15 +495,27 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:  # Set environment variables for the whole job
+    env:
       PIP_ONLY_BINARY: gdstk
       MPLBACKEND: agg
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
     permissions:
         pull-requests: write
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code (HEAD)
+      if: ${{ !env.RELEASE_TAG }}
+      uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Required 0 for diff report.
+        fetch-depth: 0
+        submodules: false
+        persist-credentials: false
+
+    - name: Checkout code (TAG)
+      if: ${{ env.RELEASE_TAG }}
+      uses: actions/checkout@v4
+      with:
+        ref: refs/tags/${{ env.RELEASE_TAG }}
+        fetch-depth: 0
         submodules: false
         persist-credentials: false
 
@@ -580,13 +621,25 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:  # Set environment variables for the whole job
+    env:
       PIP_ONLY_BINARY: gdstk
       MPLBACKEND: agg
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code (HEAD)
+      if: ${{ !env.RELEASE_TAG }}
+      uses: actions/checkout@v4
       with:
+        fetch-depth: 1
+        submodules: false
+        persist-credentials: false
+
+    - name: Checkout code (TAG)
+      if: ${{ env.RELEASE_TAG }}
+      uses: actions/checkout@v4
+      with:
+        ref: refs/tags/${{ env.RELEASE_TAG }}
         fetch-depth: 1
         submodules: false
         persist-credentials: false
