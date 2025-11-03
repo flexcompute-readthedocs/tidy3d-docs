@@ -451,7 +451,7 @@ jobs:
   
   github-release:
     name: create-github-release
-    needs: [determine-workflow-scope, compile-tests-results, sync-readthedocs]
+    needs: [determine-workflow-scope, compile-tests-results]
     if: |
       always() &&
       (needs.compile-tests-results.outputs.proceed_deploy == 'true' || needs.compile-tests-results.result == 'skipped') &&
@@ -482,7 +482,7 @@ jobs:
   
   pypi-release:
     name: publish-to-pypi
-    needs: [determine-workflow-scope, compile-tests-results, github-release]
+    needs: [determine-workflow-scope, compile-tests-results]
     if: |
       always() &&
       (needs.compile-tests-results.outputs.proceed_deploy == 'true' || needs.compile-tests-results.result == 'skipped') &&
