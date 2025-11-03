@@ -307,6 +307,7 @@ jobs:
           echo "sync_branches=$sync_branches" >> $GITHUB_OUTPUT
           
           echo "? Workflow scope determined"
+          exit 1
   
   create-tag:
     name: create-and-push-tag
@@ -462,20 +463,22 @@ jobs:
       RELEASE_TAG: ${{ needs.determine-workflow-scope.outputs.release_tag }}
       IS_RC_RELEASE: ${{ needs.determine-workflow-scope.outputs.is_rc_release }}
     steps:
-      - name: checkout-tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
-          persist-credentials: false
+      - run: |
+          echo "steps"
+      # - name: checkout-tag
+      #   uses: actions/checkout@v4
+      #   with:
+      #     ref: ${{ env.RELEASE_TAG }}
+      #     persist-credentials: false
       
-      - name: create-github-release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          generate_release_notes: true
-          prerelease: ${{ env.IS_RC_RELEASE == 'true' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      # - name: create-github-release
+      #   uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
+      #   with:
+      #     tag_name: ${{ env.RELEASE_TAG }}
+      #     generate_release_notes: true
+      #     prerelease: ${{ env.IS_RC_RELEASE == 'true' }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GH_PAT }}
   
   pypi-release:
     name: publish-to-pypi
@@ -488,33 +491,36 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.determine-workflow-scope.outputs.release_tag }}
     steps:
-      - name: checkout-tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
-          persist-credentials: false
+      - run: |
+          echo "steps"
+
+      # - name: checkout-tag
+      #   uses: actions/checkout@v4
+      #   with:
+      #     ref: ${{ env.RELEASE_TAG }}
+      #     persist-credentials: false
       
-      - name: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      # - name: setup-python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.10'
       
-      - name: install-build-tools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install setuptools wheel twine build
+      # - name: install-build-tools
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     python -m pip install setuptools wheel twine build
       
-      - name: build-package
-        run: |
-          echo "?? Building package from tag $RELEASE_TAG..."
-          python -m build
-          ls -lh dist/
+      # - name: build-package
+      #   run: |
+      #     echo "?? Building package from tag $RELEASE_TAG..."
+      #     python -m build
+      #     ls -lh dist/
       
-      - name: publish-to-pypi
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: | # zizmor: ignore[use-trusted-publishing]
-          echo "?? Publishing to PyPI..."
-          python -m twine upload --repository pypi dist/*
-          echo "? Published to PyPI"
+      # - name: publish-to-pypi
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      #   run: | # zizmor: ignore[use-trusted-publishing]
+      #     echo "?? Publishing to PyPI..."
+      #     python -m twine upload --repository pypi dist/*
+      #     echo "? Published to PyPI"
