@@ -353,20 +353,24 @@ jobs:
         env:
           RUN_CLIENT_TESTS: ${{ needs.determine-workflow-scope.outputs.run_client_tests }}
           CLIENT_TESTS_RESULT: ${{ needs.run-client-tests.result }}
+          WORKFLOW_SUCCESS: ${{ needs.run-client-tests.outputs.workflow_success }}
         run: |
           echo "=== Checking Test Results ==="
           echo ""
           
           proceed_deploy=true
           
-          # Check client tests (includes local, remote, CLI, and submodule tests)
+          # Check client tests using the workflow_success output from tests workflow
+          # This output validates all tests: local, remote, CLI, submodule, lint, mypy, etc.
           if [[ "$RUN_CLIENT_TESTS" == "true" ]]; then
-            echo "Client tests (includes local, remote, CLI, and submodule): $CLIENT_TESTS_RESULT"
-            if [[ "$CLIENT_TESTS_RESULT" != "success" ]]; then
-              echo "? Client tests failed or were skipped"
+            echo "Client tests workflow result: $CLIENT_TESTS_RESULT"
+            echo "Client tests validation status: $WORKFLOW_SUCCESS"
+            
+            if [[ "$CLIENT_TESTS_RESULT" != "success" ]] || [[ "$WORKFLOW_SUCCESS" != "true" ]]; then
+              echo "? Client tests failed - see workflow-validation job in tests workflow for details"
               proceed_deploy=false
             else
-              echo "? Client tests passed"
+              echo "? All client tests passed (local, remote, CLI, submodule, and quality checks)"
             fi
           else
             echo "Client tests: not required (skipped)"
@@ -396,8 +400,7 @@ jobs:
     with:
       source_ref: ${{ needs.determine-workflow-scope.outputs.release_tag }}
       target_ref: ${{ needs.determine-workflow-scope.outputs.push_to_latest == 'true' && 'latest' || '' }}
-    secrets:
-      GH_PAT: ${{ secrets.GH_PAT }}
+    secrets: inherit # zizmor: ignore[secrets-inherit]
   
   github-release:
     name: create-github-release

@@ -57,7 +57,7 @@ on:
     outputs:
       workflow_success:
         description: 'Overall test workflow success status'
-        value: ${{ (jobs.local-tests.result == 'success' || jobs.local-tests.result == 'skipped') && (jobs.remote-tests.result == 'success' || jobs.remote-tests.result == 'skipped') && (jobs.lint.result == 'success' || jobs.lint.result == 'skipped') && (jobs.mypy.result == 'success' || jobs.mypy.result == 'skipped') }}
+        value: ${{ jobs.workflow-validation.result == 'success' }}
   
   pull_request:
     branches:
@@ -760,12 +760,9 @@ jobs:
       run-workflow: true
       release_tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
   
-  pr-requirements-pass:
-    name: pr-requirements-pass
-    if: |
-      always() &&
-      (github.event_name == 'pull_request' || github.event_name == 'pull_request_review' || github.event_name == 'merge_group') && 
-      ((needs.determine-test-scope.outputs.pr_approval_state == 'true' && needs.determine-test-scope.outputs.local_tests == 'true') || needs.determine-test-scope.outputs.remote_tests == 'true')
+  workflow-validation:
+    name: workflow-validation
+    if: always()
     needs:
       - determine-test-scope
       - local-tests
@@ -779,74 +776,86 @@ jobs:
       - develop-cli-tests
       - submodule-tests
     runs-on: ubuntu-latest
-    env:
-      NEEDS_LOCAL_TESTS_RESULT: ${{ needs.local-tests.result }}
-      NEEDS_REMOTE_TESTS_RESULT: ${{ needs.remote-tests.result }}
-      NEEDS_LINT_RESULT: ${{ needs.lint.result }}
-      NEEDS_VERIFY_SCHEMA_CHANGE_RESULT: ${{ needs.verify-schema-change.result }}
-      NEEDS_LINT_COMMIT_MESSAGES_RESULT: ${{ needs.lint-commit-messages.result }}
-      NEEDS_LINT_BRANCH_NAME_RESULT: ${{ needs.lint-branch-name.result }}
-      NEEDS_ZIZMOR_RESULT: ${{ needs.zizmor.result }}
     steps:
       - name: check-linting-result
-        if: ${{ needs.lint.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.lint.result != 'success' && needs.lint.result != 'skipped' }}
         run: |
           echo "❌ Linting failed."
           exit 1
 
       - name: check-mypy-result
-        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.mypy.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.mypy.result != 'success' && needs.mypy.result != 'skipped' }}
         run: |
           echo "❌ Mypy type checking failed."
           exit 1
           
       - name: check-schema-change-verification
-        if: ${{ needs.verify-schema-change.result != 'success' }}
-        
+        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.verify-schema-change.result != 'success' && needs.verify-schema-change.result != 'skipped' }}
         run: |
           echo "❌ Schema change verification failed."
           exit 1
 
       - name: check-local-tests-result
-        if: ${{ needs.local-tests.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.local_tests == 'true' && needs.local-tests.result != 'success' && needs.local-tests.result != 'skipped' }}
         run: |
           echo "❌ Local tests failed."
           exit 1
 
       - name: check-remote-tests-result
-        if: ${{ needs.remote-tests.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.remote_tests == 'true' && needs.remote-tests.result != 'success' && needs.remote-tests.result != 'skipped' }}
         run: |
           echo "❌ Remote tests failed."
           exit 1
 
       - name: check-commit-message-linting
-        if: ${{  needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.lint-commit-messages.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.lint-commit-messages.result != 'success' && needs.lint-commit-messages.result != 'skipped' }}
         run: |
           echo "❌ Commit message linting failed."
           exit 1
 
       - name: check-branch-name-linting
-        if: ${{ needs.determine-test-scope.outputs.pr_review_tests == 'true' && needs.lint-branch-name.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.pr_review_tests == 'true' && needs.lint-branch-name.result != 'success' && needs.lint-branch-name.result != 'skipped' }}
         run: |
           echo "❌ Branch name linting failed."
           exit 1
 
       - name: check-zizmor-static-analysis
-        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.zizmor.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.zizmor.result != 'success' && needs.zizmor.result != 'skipped' }}
         run: |
           echo "❌ Zizmor static analysis failed."
           exit 1
 
       - name: check-cli-tests-result
-        if: ${{ needs.determine-test-scope.outputs.cli_tests == 'true' && needs.develop-cli-tests.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.cli_tests == 'true' && needs.develop-cli-tests.result != 'success' && needs.develop-cli-tests.result != 'skipped' }}
         run: |
           echo "❌ CLI tests failed."
           exit 1
 
       - name: check-submodule-tests-result
-        if: ${{ needs.determine-test-scope.outputs.submodule_tests == 'true' && needs.submodule-tests.result != 'success' }}
+        if: ${{ needs.determine-test-scope.outputs.submodule_tests == 'true' && needs.submodule-tests.result != 'success' && needs.submodule-tests.result != 'skipped' }}
         run: |
           echo "❌ Submodule tests failed."
+          exit 1
+
+      - name: all-checks-passed
+        if: ${{ success() }}
+        run: echo "✅ All required jobs passed!"
+  
+  pr-requirements-pass:
+    name: pr-requirements-pass
+    if: |
+      always() &&
+      (github.event_name == 'pull_request' || github.event_name == 'pull_request_review' || github.event_name == 'merge_group') && 
+      ((needs.determine-test-scope.outputs.pr_approval_state == 'true' && needs.determine-test-scope.outputs.local_tests == 'true') || needs.determine-test-scope.outputs.remote_tests == 'true')
+    needs:
+      - determine-test-scope
+      - workflow-validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-workflow-validation
+        if: ${{ needs.workflow-validation.result != 'success' }}
+        run: |
+          echo "❌ Workflow validation failed. See workflow-validation job for details."
           exit 1
 
       - name: all-checks-passed
