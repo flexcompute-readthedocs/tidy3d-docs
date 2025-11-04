@@ -46,7 +46,7 @@ jobs:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
     if: github.event.inputs.run-workflow || inputs.run-workflow
     steps:
-      - name: Checkout repository with submodules (HEAD)
+      - name: checkout-head
         if: ${{ !env.RELEASE_TAG }}
         uses: actions/checkout@v4
         with:
@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Checkout repository with submodules (TAG)
+      - name: checkout-tag
         if: ${{ env.RELEASE_TAG }}
         uses: actions/checkout@v4
         with:
@@ -63,7 +63,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Initialize and update submodule
+      - name: initialize-submodules
         run: |
           git submodule update --init --recursive
 

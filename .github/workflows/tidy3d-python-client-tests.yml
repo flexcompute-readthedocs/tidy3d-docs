@@ -540,7 +540,7 @@ jobs:
     permissions:
         pull-requests: write
     steps:
-    - name: Checkout code (HEAD)
+    - name: checkout-head
       if: ${{ !env.RELEASE_TAG }}
       uses: actions/checkout@v4
       with:
@@ -548,7 +548,7 @@ jobs:
         submodules: false
         persist-credentials: false
 
-    - name: Checkout code (TAG)
+    - name: checkout-tag
       if: ${{ env.RELEASE_TAG }}
       uses: actions/checkout@v4
       with:
@@ -665,7 +665,7 @@ jobs:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
 
     steps:
-    - name: Checkout code (HEAD)
+    - name: checkout-head
       if: ${{ !env.RELEASE_TAG }}
       uses: actions/checkout@v4
       with:
@@ -673,7 +673,7 @@ jobs:
         submodules: false
         persist-credentials: false
 
-    - name: Checkout code (TAG)
+    - name: checkout-tag
       if: ${{ env.RELEASE_TAG }}
       uses: actions/checkout@v4
       with:
