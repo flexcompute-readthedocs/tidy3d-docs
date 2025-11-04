@@ -88,9 +88,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
-  cancel-in-progress: false
 
 jobs:
   determine-workflow-scope:
@@ -327,6 +324,9 @@ jobs:
       always() &&
       needs.determine-workflow-scope.outputs.run_client_tests == 'true'
     uses: ./.github/workflows/tidy3d-python-client-tests.yml
+    permissions:
+      security-events: write
+      pull-requests: write
     with:
       release_tag: ${{ needs.determine-workflow-scope.outputs.release_tag }}
       local_tests: true
