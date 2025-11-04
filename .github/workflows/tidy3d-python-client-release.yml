@@ -331,27 +331,8 @@ jobs:
       release_tag: ${{ needs.determine-workflow-scope.outputs.release_tag }}
       local_tests: true
       remote_tests: true
-  
-  run-cli-tests:
-    name: run-develop-cli-tests
-    needs: [determine-workflow-scope, create-tag]
-    if: |
-      always() &&
-      needs.determine-workflow-scope.outputs.run_cli_tests == 'true'
-    uses: ./.github/workflows/tidy3d-python-client-develop-cli.yml
-    with:
-      release_tag: ${{ needs.determine-workflow-scope.outputs.release_tag }}
-  
-  run-submodule-tests:
-    name: run-submodule-tests
-    needs: [determine-workflow-scope, create-tag]
-    if: |
-      always() &&
-      needs.determine-workflow-scope.outputs.run_submodule_tests == 'true'
-    uses: ./.github/workflows/tidy3d-python-client-submodules-test.yml
-    with:
-      run-workflow: true
-      release_tag: ${{ needs.determine-workflow-scope.outputs.release_tag }}
+      cli_tests: ${{ needs.determine-workflow-scope.outputs.run_cli_tests == 'true' }}
+      submodule_tests: ${{ needs.determine-workflow-scope.outputs.run_submodule_tests == 'true' }}
   
   compile-tests-results:
     name: test-gatekeeper
@@ -362,8 +343,6 @@ jobs:
     needs:
       - determine-workflow-scope
       - run-client-tests
-      - run-cli-tests
-      - run-submodule-tests
     runs-on: ubuntu-latest
     outputs:
       proceed_deploy: ${{ steps.check-tests.outputs.proceed_deploy }}
@@ -372,20 +351,16 @@ jobs:
         id: check-tests
         env:
           RUN_CLIENT_TESTS: ${{ needs.determine-workflow-scope.outputs.run_client_tests }}
-          RUN_CLI_TESTS: ${{ needs.determine-workflow-scope.outputs.run_cli_tests }}
-          RUN_SUBMODULE_TESTS: ${{ needs.determine-workflow-scope.outputs.run_submodule_tests }}
           CLIENT_TESTS_RESULT: ${{ needs.run-client-tests.result }}
-          CLI_TESTS_RESULT: ${{ needs.run-cli-tests.result }}
-          SUBMODULE_TESTS_RESULT: ${{ needs.run-submodule-tests.result }}
         run: |
           echo "=== Checking Test Results ==="
           echo ""
           
           proceed_deploy=true
           
-          # Check client tests
+          # Check client tests (includes local, remote, CLI, and submodule tests)
           if [[ "$RUN_CLIENT_TESTS" == "true" ]]; then
-            echo "Client tests: $CLIENT_TESTS_RESULT"
+            echo "Client tests (includes local, remote, CLI, and submodule): $CLIENT_TESTS_RESULT"
             if [[ "$CLIENT_TESTS_RESULT" != "success" ]]; then
               echo "? Client tests failed or were skipped"
               proceed_deploy=false
@@ -394,32 +369,6 @@ jobs:
             fi
           else
             echo "Client tests: not required (skipped)"
-          fi
-          
-          # Check CLI tests
-          if [[ "$RUN_CLI_TESTS" == "true" ]]; then
-            echo "CLI tests: $CLI_TESTS_RESULT"
-            if [[ "$CLI_TESTS_RESULT" != "success" ]]; then
-              echo "? CLI tests failed or were skipped"
-              proceed_deploy=false
-            else
-              echo "? CLI tests passed"
-            fi
-          else
-            echo "CLI tests: not required (skipped)"
-          fi
-          
-          # Check submodule tests
-          if [[ "$RUN_SUBMODULE_TESTS" == "true" ]]; then
-            echo "Submodule tests: $SUBMODULE_TESTS_RESULT"
-            if [[ "$SUBMODULE_TESTS_RESULT" != "success" ]]; then
-              echo "? Submodule tests failed or were skipped"
-              proceed_deploy=false
-            else
-              echo "? Submodule tests passed"
-            fi
-          else
-            echo "Submodule tests: not required (skipped)"
           fi
           
           echo ""

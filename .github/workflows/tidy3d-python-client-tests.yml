@@ -13,6 +13,14 @@ on:
         description: 'local-tests'
         type: boolean
         default: false
+      cli_tests:
+        description: 'Run develop-cli tests'
+        type: boolean
+        default: false
+      submodule_tests:
+        description: 'Run submodule tests'
+        type: boolean
+        default: false
       release_tag:
         description: 'Release Tag (v2.10.0, v2.10.0rc1)'
         required: false
@@ -31,6 +39,16 @@ on:
         type: boolean
         required: false
         default: true
+      cli_tests:
+        description: 'Run develop-cli tests'
+        type: boolean
+        required: false
+        default: false
+      submodule_tests:
+        description: 'Run submodule tests'
+        type: boolean
+        required: false
+        default: false
       release_tag:
         description: 'Release Tag (v2.10.0, v2.10.0rc1)'
         required: false
@@ -65,6 +83,8 @@ jobs:
       pr_review_tests: ${{ steps.determine-test-type.outputs.pr_review_tests }}
       local_tests: ${{ steps.determine-test-type.outputs.local_tests }}
       remote_tests: ${{ steps.determine-test-type.outputs.remote_tests }}
+      cli_tests: ${{ steps.determine-test-type.outputs.cli_tests }}
+      submodule_tests: ${{ steps.determine-test-type.outputs.submodule_tests }}
       pr_approval_state: ${{ steps.approval.outputs.approved }}
     steps:
       - name: check-current-approval-status
@@ -113,6 +133,8 @@ jobs:
           REF: ${{ github.ref }}
           INPUT_LOCAL: ${{ github.event.inputs.local_tests || inputs.local_tests }}
           INPUT_REMOTE: ${{ github.event.inputs.remote_tests || inputs.remote_tests }}
+          INPUT_CLI: ${{ github.event.inputs.cli_tests || inputs.cli_tests }}
+          INPUT_SUBMODULE: ${{ github.event.inputs.submodule_tests || inputs.submodule_tests }}
           APPROVED: ${{ steps.approval.outputs.approved }}
         run: |
           echo "Event: $EVENT_NAME"
@@ -121,10 +143,14 @@ jobs:
           echo "Git REF: $REF"
           echo "Input local: $INPUT_LOCAL"
           echo "Input remote: $INPUT_REMOTE"
+          echo "Input cli: $INPUT_CLI"
+          echo "Input submodule: $INPUT_SUBMODULE"
           echo "Approved: $APPROVED"
 
           remote_tests=false
           local_tests=false
+          cli_tests=false
+          submodule_tests=false
           code_quality_tests=false
           pr_review_tests=false
           
@@ -138,6 +164,14 @@ jobs:
 
             if [[ "$INPUT_LOCAL" == "true" ]]; then
               local_tests=true
+            fi
+            
+            if [[ "$INPUT_CLI" == "true" ]]; then
+              cli_tests=true
+            fi
+            
+            if [[ "$INPUT_SUBMODULE" == "true" ]]; then
+              submodule_tests=true
             fi
           fi
 
@@ -174,12 +208,16 @@ jobs:
 
           echo "local_tests=$local_tests" >> $GITHUB_OUTPUT
           echo "remote_tests=$remote_tests" >> $GITHUB_OUTPUT
+          echo "cli_tests=$cli_tests" >> $GITHUB_OUTPUT
+          echo "submodule_tests=$submodule_tests" >> $GITHUB_OUTPUT
           echo "code_quality_tests=$code_quality_tests" >> $GITHUB_OUTPUT
           echo "pr_review_tests=$pr_review_tests" >> $GITHUB_OUTPUT
           echo "code_quality_tests=$code_quality_tests"
           echo "pr_review_tests=$pr_review_tests"
           echo "local_tests=$local_tests"
           echo "remote_tests=$remote_tests"
+          echo "cli_tests=$cli_tests"
+          echo "submodule_tests=$submodule_tests"
 
   lint:
     needs: determine-test-scope
@@ -705,6 +743,23 @@ jobs:
         valColorRange: ${{ env.total }}
         style: "for-the-badge"
   
+  develop-cli-tests:
+    name: develop-cli-tests
+    needs: determine-test-scope
+    if: needs.determine-test-scope.outputs.cli_tests == 'true'
+    uses: ./.github/workflows/tidy3d-python-client-develop-cli.yml
+    with:
+      release_tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
+
+  submodule-tests:
+    name: submodule-tests
+    needs: determine-test-scope
+    if: needs.determine-test-scope.outputs.submodule_tests == 'true'
+    uses: ./.github/workflows/tidy3d-python-client-submodules-test.yml
+    with:
+      run-workflow: true
+      release_tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || inputs.release_tag }}
+  
   pr-requirements-pass:
     name: pr-requirements-pass
     if: |
@@ -721,6 +776,8 @@ jobs:
       - lint-commit-messages
       - lint-branch-name
       - zizmor
+      - develop-cli-tests
+      - submodule-tests
     runs-on: ubuntu-latest
     env:
       NEEDS_LOCAL_TESTS_RESULT: ${{ needs.local-tests.result }}
@@ -778,6 +835,18 @@ jobs:
         if: ${{ needs.determine-test-scope.outputs.code_quality_tests == 'true' && needs.zizmor.result != 'success' }}
         run: |
           echo "❌ Zizmor static analysis failed."
+          exit 1
+
+      - name: check-cli-tests-result
+        if: ${{ needs.determine-test-scope.outputs.cli_tests == 'true' && needs.develop-cli-tests.result != 'success' }}
+        run: |
+          echo "❌ CLI tests failed."
+          exit 1
+
+      - name: check-submodule-tests-result
+        if: ${{ needs.determine-test-scope.outputs.submodule_tests == 'true' && needs.submodule-tests.result != 'success' }}
+        run: |
+          echo "❌ Submodule tests failed."
           exit 1
 
       - name: all-checks-passed
