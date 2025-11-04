@@ -325,6 +325,7 @@ jobs:
       needs.determine-workflow-scope.outputs.run_client_tests == 'true'
     uses: ./.github/workflows/tidy3d-python-client-tests.yml
     permissions:
+      contents: read
       security-events: write
       pull-requests: write
     with:
