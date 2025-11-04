@@ -304,7 +304,6 @@ jobs:
           echo "sync_branches=$sync_branches" >> $GITHUB_OUTPUT
           
           echo "? Workflow scope determined"
-          exit 1
   
   create-tag:
     name: create-and-push-tag
