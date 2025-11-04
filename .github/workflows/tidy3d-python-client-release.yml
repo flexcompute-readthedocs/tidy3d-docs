@@ -315,6 +315,7 @@ jobs:
     with:
       release_tag: ${{ needs.determine-workflow-scope.outputs.release_tag }}
       release_type: ${{ needs.determine-workflow-scope.outputs.release_type }}
+    secrets: inherit # zizmor: ignore[secrets-inherit]
   
   run-client-tests:
     name: run-python-client-tests
