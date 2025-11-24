@@ -3,14 +3,14 @@ FlexAgent MCP
 
 *AI-powered simulation assistance for Tidy3D through Model Context Protocol*
 
-FlexAgent MCP is a Model Context Protocol (MCP) server that brings physics-aware AI assistance to Tidy3D workflows. Unlike generic coding assistants, FlexAgent understands electromagnetic simulation concepts, Tidy3D's API, and can interact with the `3D Viewer <3DViewer.html>`_ to provide comprehensive, context-aware support for your simulation projects.
+FlexAgent MCP is a Model Context Protocol (MCP) server that brings physics-aware AI assistance to Tidy3D workflows. Unlike generic coding assistants, FlexAgent understands electromagnetic simulation concepts, Tidy3D's API, and can interact with the `3D Viewer <3d_viewer.html>`_ to provide comprehensive, context-aware support for your simulation projects.
 
 📹 **Watch the demo**: `FlexAgent MCP Introduction Video <https://youtu.be/KU6QP-gqUGA?list=PL7kxN4u_N9HHb1QBPXhTlYEMjIt2SY1re>`_
 
 Overview
 --------
 
-FlexAgent enables natural language interaction with Tidy3D simulations across multiple platforms, including `Cursor <CursorExtension.html>`_, `VS Code <VSCodeExtension.html>`_, and other MCP-compatible environments. Through structured workflows that leverage Tidy3D's trusted documentation, FlexAgent transforms your AI assistant into a knowledgeable simulation partner capable of:
+FlexAgent enables natural language interaction with Tidy3D simulations across multiple platforms, including `Cursor <cursor_extension.html>`_, `VS Code <vscode_extension.html>`_, and other MCP-compatible environments. Through structured workflows that leverage Tidy3D's trusted documentation, FlexAgent transforms your AI assistant into a knowledgeable simulation partner capable of:
 
 - **Learning** – Understanding Tidy3D concepts and workflows: *"Explain how Tidy3D FDTD updates the fields in this notebook"*
 - **Troubleshooting** – Diagnosing and resolving simulation issues: *"I want to fix the structure-related validation error"*
@@ -18,7 +18,7 @@ FlexAgent enables natural language interaction with Tidy3D simulations across mu
 - **Build from Scratch** – Creating new simulation setups: *"Create a y-junction waveguide simulation setup"*
 - **Result Analysis** – Interpreting and visualizing simulation data: *"Plot all the electric field components"*
 
-For a comprehensive introduction to the Tidy3D + AI ecosystem, see the `Tidy3D + AI overview <Tidy3DPlusAI.html>`_.
+For a comprehensive introduction to the Tidy3D + AI ecosystem, see the `Tidy3D + AI overview <index.html>`_.
 
 Installation
 ------------
@@ -32,10 +32,10 @@ Tidy3D Extensions
 
 For detailed installation and setup instructions, see:
 
-- `Tidy3D for Cursor <CursorExtension.html>`_ – Complete guide for Cursor users
-- `Tidy3D for VS Code <VSCodeExtension.html>`_ – Complete guide for Visual Studio Code users
+- `Tidy3D for Cursor <cursor_extension.html>`_ – Complete guide for Cursor users
+- `Tidy3D for VS Code <vscode_extension.html>`_ – Complete guide for Visual Studio Code users
 
-The extensions handle all FlexAgent configuration automatically, including API key management, MCP server deployment, and integration with the `3D Viewer <3DViewer.html>`_.
+The extensions handle all FlexAgent configuration automatically, including API key management, MCP server deployment, and integration with the `3D Viewer <3d_viewer.html>`_.
 
 Standalone MCP Client
 ~~~~~~~~~~~~~~~~~~~~~
@@ -122,7 +122,7 @@ The more specific your prompts, the better FlexAgent's assistance. Instead of ge
 Use the Viewer for Real-Time Iteration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Keep the `3D Viewer <3DViewer.html>`_ open while editing your simulation code. Changes to geometry, materials, sources, or monitors update automatically, letting you immediately visualize the impact of parameter tweaks without re-running the code. This creates a powerful feedback loop for rapid iteration.
+Keep the `3D Viewer <3d_viewer.html>`_ open while editing your simulation code. Changes to geometry, materials, sources, or monitors update automatically, letting you immediately visualize the impact of parameter tweaks without re-running the code. This creates a powerful feedback loop for rapid iteration.
 
 Be Specific When Troubleshooting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -162,7 +162,7 @@ When working with multiple Python environments, explicitly tell FlexAgent which 
 Prompt Examples
 ---------------
 
-The following examples demonstrate effective ways to interact with FlexAgent across different use cases. These prompts leverage FlexAgent's understanding of Tidy3D workflows and its ability to access documentation and control the `3D Viewer <3DViewer.html>`_.
+The following examples demonstrate effective ways to interact with FlexAgent across different use cases. These prompts leverage FlexAgent's understanding of Tidy3D workflows and its ability to access documentation and control the `3D Viewer <3d_viewer.html>`_.
 
 Learning
 ~~~~~~~~
